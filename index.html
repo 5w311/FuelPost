@@ -249,6 +249,9 @@
 </div>
 
 <script src="https://js.api.here.com/v3/3.1/mapsjs-core.js"></script>
+<!-- HARP is the rendering engine the map draws on; it depends on core, so it
+     must load after it and before the map is constructed. -->
+<script src="https://js.api.here.com/v3/3.1/mapsjs-harp.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-mapevents.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-ui.js"></script>
@@ -420,7 +423,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.1.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -439,18 +442,28 @@ const stateSel = document.getElementById('stateSel');
 states.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;stateSel.appendChild(o);});
 
 // Map init — HERE Maps JS API
-// Domain-restricted key: this will only authenticate on the domain(s) you allowlisted
-// in the HERE developer console (your GitHub domain). It will NOT render inside this
-// chat preview — that's expected. Verify on your actual GitHub Pages URL.
 const HERE_API_KEY = 'C7r-EHfOixmC3imxi1ATMEUnt_Fx9P7Cc1-0_UsJ0Uo';
 
+// The engine type has to be set in BOTH places or the map half-works:
+//   - createDefaultLayers({engineType}) builds layers whose styles the engine
+//     can actually parse. Omit it and HARP throws "Wrong style format for
+//     layer H-18" because it is handed WEBGL-format styles.
+//   - the H.Map option selects the engine that draws. Omit it and the map
+//     silently falls back to WEBGL, under which HERE's own MapSettingsControl
+//     disables Satellite and both Traffic entries ("Disabled with WEBGL
+//     engine") — they render greyed and cannot be picked.
+// Verified in a browser against the real library: HARP in both places gives a
+// HARP engine with all four view entries selectable. See PR notes.
+const HERE_ENGINE = H.Map.EngineType.HARP;
+
 const platform = new H.service.Platform({ apikey: HERE_API_KEY });
-const defaultLayers = platform.createDefaultLayers();
+const defaultLayers = platform.createDefaultLayers({ engineType: HERE_ENGINE });
 
 const map = new H.Map(
   document.getElementById('map'),
-  defaultLayers.raster.normal.map,
+  defaultLayers.vector.normal.map,
   {
+    engineType: HERE_ENGINE,
     center: { lat: 39.5, lng: -98.35 },
     zoom: 5,
     pixelRatio: window.devicePixelRatio || 1

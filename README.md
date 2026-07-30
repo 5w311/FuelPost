@@ -67,10 +67,20 @@ They answer different questions and must not be conflated:
   that has left it is a compliance violation. A driver cannot tell stale station
   data from current station data without it. Bump this only when the station data
   is re-sourced from a new book.
-- **`APP_VERSION`** (`1.1.1`) — the code. Shown in the **legend card** as a
+- **`APP_VERSION`** (`1.1.2`) — the code. Shown in the **legend card** as a
   support detail. Bumped for every shipped change.
 
 ## Version history
+
+### v1.1.2
+
+Fixed a blank map on load and the greyed-out entries in the map settings control.
+The app now loads `mapsjs-harp.js` and runs on the HARP engine, with the engine
+type set in **both** `createDefaultLayers()` and the `H.Map` options — either one
+alone leaves the map half-working. The base layer moved from
+`raster.normal.map` to `vector.normal.map`, which is also what makes the settings
+control's active entry match the layer the map was actually built with. Satellite,
+Traffic conditions and Show traffic incidents are now selectable.
 
 ### v1.1.1
 
