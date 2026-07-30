@@ -86,6 +86,23 @@ They answer different questions and must not be conflated:
 
 ## Version history
 
+### v1.5.1
+
+Two fixes to the location feature from v1.4.0. The live position dot now
+renders in its own color (`--you-are-here`, a vivid magenta) instead of
+`var(--ta)` — it was the exact same blue as every TA station pin, so it got
+lost in a cluster of them at a zoomed-out view. It also gets a second ring:
+a fixed 30px CSS ring with a subtle opacity pulse, always the same pixel
+size regardless of zoom, purely so the dot stays easy to spot at a glance —
+separate from (and layered under) the real accuracy circle, which correctly
+keeps its true meter-based radius and shrinks toward invisible at low zoom;
+that one is unchanged. Also, the STOPS-mode recenter button no longer shows
+in Route mode, which has its own "use my location" entry point on the
+pickup field already — a redundant second location button in the corner was
+never the intent. The dot itself, and the watch that drives it, keep
+running across both modes exactly as before; only the STOPS recenter
+button's visibility changed.
+
 ### v1.5.0
 
 "Range leaving shipper" is now a tappable fuel gauge instead of a mile-number
