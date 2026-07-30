@@ -1,0 +1,4 @@
+FuelPost geocode report — 2026-07-30T01:26:57.946Z
+Rows: 146, accepted: 146, flagged (kept old coord): 0
+
+No flagged rows.
