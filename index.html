@@ -131,6 +131,7 @@
   .rr-end .rr-mile{color:var(--sub);}
   .rr-endlabel{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--sub);}
   .rr-endaddr{font-size:12.5px;font-weight:600;line-height:1.35;margin-top:1px;}
+  .rr-fix{background:none;border:none;padding:0;margin-left:7px;font-size:11px;font-weight:700;color:var(--ta);text-decoration:underline;white-space:nowrap;}
 
   #routeResults{position:absolute;left:0;right:0;bottom:0;max-height:62%;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.18);z-index:360;display:none;flex-direction:column;}
   #routeResults.show{display:flex;}
@@ -153,6 +154,15 @@
   .rr-warn a{color:#8A1C1C;font-weight:800;}
   .rr-note{font-size:12.5px;color:var(--sub);line-height:1.5;}
   .rr-note b{color:var(--ink);}
+  /* Amber = worth flagging but not a stop-and-call-support problem: the search
+     widened past 8mi, or the plan comes up short but a real alternative exists
+     near the pickup. Distinct from the red rr-warn, which is reserved for a
+     genuine dead end with no alternative. */
+  .rr-caution{background:#FFF6E5;border:1px solid #F0D9A8;border-radius:10px;padding:10px 12px;margin:10px 0;font-size:12.5px;color:#7A5200;line-height:1.45;}
+  .rr-caution b{display:block;margin-bottom:4px;font-size:13px;}
+  /* A quiet plain-text line, not a callout — topping off before rolling is an
+     option the driver can take or ignore, never a problem to be flagged. */
+  .rr-tip{font-size:12px;color:var(--sub);line-height:1.4;margin-top:6px;}
 
   .rpin{width:30px;height:30px;border-radius:50%;background:var(--gold);border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12.5px;color:#4A3200;}
   .rpin.endpt{background:var(--navy);color:#fff;font-size:9.5px;letter-spacing:.3px;}
@@ -222,7 +232,7 @@
       </div>
       <div class="rb-help">Miles left in the tank pulling out of the shipper.</div>
     </div>
-    <button id="planBtn">Look up addresses</button>
+    <button id="planBtn">Plan fuel for this load</button>
   </div>
 
   <div id="mapwrap">
@@ -263,6 +273,31 @@
 <script>var module = { exports: {} };</script>
 <script src="lib/fuelplan.js"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
+
+<!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
+     — real Node syntax. Loading it with a plain src attribute, like the two
+     files above, throws: its `const { projectStops, planFuel, haversine } =
+     require(...)` tries to lexically declare names that fuelplan.js's own
+     top-level function declarations already created as bare global bindings,
+     and a browser won't let a const re-declare an existing var/function of
+     the same name in the same top-level scope. Running it inside its own
+     function scope (fetch + new Function) avoids that collision without
+     touching either file. Route mode already needs a live connection for
+     geocoding and routing, so this adds no new offline dependency; Stops
+     mode never loads this file. -->
+<script>
+var FuelPlanAdaptive;
+fetch('lib/fuelplan-adaptive.js')
+  .then(r => r.text())
+  .then(src => {
+    const m = { exports: {} };
+    const req = p => { if (p === './fuelplan.js') return FuelPlan; throw new Error('unexpected require: ' + p); };
+    new Function('module', 'require', src)(m, req);
+    FuelPlanAdaptive = m.exports;
+  })
+  .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
+</script>
+
 <script src="lib/flexible-polyline.js"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
@@ -423,7 +458,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.1.2';
+const APP_VERSION = '1.2.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -609,7 +644,13 @@ const FUEL_STOPS = DATA.filter(r => r[11] !== 'term').map(r => ({
   id: r[0], name: r[2], lat: r[9], lng: r[10], tier: r[11], row: r
 }));
 
-const DETOUR_MAX_MI = 8;      // verified against real corridors (Amarillo, OKC on I-40)
+// Detour tolerance widens only when the tight search would strand the driver.
+// planAdaptive (lib/fuelplan-adaptive.js) tries these in order and stops at
+// the first that produces a complete plan — 8 mi still solves the vast
+// majority of routes (verified against real corridors: Amarillo, OKC on I-40).
+const DETOUR_TIERS = [8, 15, 30];
+const NEAR_PICKUP_RADIUS_GAP = 50;  // "is anything reachable near the shipper at all"
+const NEAR_PICKUP_RADIUS_TIP = 25;  // "close enough that topping off first is worth mentioning"
 const RANGE_MIN = 300, RANGE_MAX = 1200;
 const DRIVER_SUPPORT = '423-463-3680';
 
@@ -755,21 +796,44 @@ function showRoutePanel(html){
   $('routeResults').classList.add('show');
 }
 
+function nearPickupLine(stop){
+  return `${stop.name} — ${stop.fromPickup.toFixed(1)} mi from your pickup`;
+}
+
 // The run reads top to bottom: pickup, fuel stops in order, delivery.
-function renderPlan(result, routeMiles, ranges, pickup, delivery, projectedCount){
+// nearPickup is stopsNearPickup(pickup, NEAR_PICKUP_RADIUS_GAP) — always
+// computed for the confirmed pickup, whether or not the plan actually gaps,
+// because it also drives the quiet top-off tip on a successful plan.
+function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
   const stops = result.plan;
   planStops = stops;
   const { maxRange, rangeAtPickup, startBurned } = ranges;
+  // Only call the search "widened" when it actually produced a plan — a failed
+  // attempt at 30 mi is a dead end, not a plan that uses 30 mi stops.
+  const widened = result.ok && result.detourMax > DETOUR_TIERS[0];
 
-  let h = `<div class="rr-head">${stops.length === 0 ? 'No fuel stop needed' :
-      stops.length + (stops.length === 1 ? ' fuel stop' : ' fuel stops')}</div>`;
+  // "No fuel stop needed" must never head a plan that didn't complete — with
+  // zero reachable stops that reads as the opposite of what happened.
+  const headline = result.ok
+    ? (stops.length === 0 ? 'No fuel stop needed'
+                          : stops.length + (stops.length === 1 ? ' fuel stop' : ' fuel stops'))
+    : (stops.length === 0 ? 'No network fuel plan for this load'
+                          : stops.length + (stops.length === 1 ? ' fuel stop' : ' fuel stops') + ', then a gap');
+  let h = `<div class="rr-head">${headline}</div>`;
   h += `<div class="rr-sub">${mi(routeMiles)} mi loaded miles &middot; ${mi(rangeAtPickup)} mi of range leaving the shipper`
      + `${startBurned > 0 ? ` &middot; ${mi(startBurned)} mi already burned` : ''}</div>`;
+
+  // Say so above the plan, plainly — the driver is being asked to drive extra
+  // miles for fuel and should know before scanning the stop list.
+  if(widened){
+    h += `<div class="rr-caution">No network stops within ${DETOUR_TIERS[0]} miles of your route,
+      so this plan uses stops up to ${result.detourMax} miles off route to keep the load on network fuel.</div>`;
+  }
 
   h += `<div class="rr-end">
     <div class="rr-mile"><b>0</b><span>mile</span></div>
     <div class="rr-info"><div class="rr-endlabel">Pickup</div>
-      <div class="rr-endaddr">${pickup.label}</div></div></div>`;
+      <div class="rr-endaddr">${pickup.label}<button class="rr-fix" data-end="pickup">not right?</button></div></div></div>`;
 
   stops.forEach((s, i) => {
     h += `<button class="rr-stop" data-idx="${i}">
@@ -787,30 +851,55 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, projectedCount
     h += `<div class="rr-end" style="border-top:1px solid var(--line)">
       <div class="rr-mile"><b>${mi(routeMiles)}</b><span>mile</span></div>
       <div class="rr-info"><div class="rr-endlabel">Delivery</div>
-        <div class="rr-endaddr">${delivery.label}</div></div></div>`;
+        <div class="rr-endaddr">${delivery.label}<button class="rr-fix" data-end="delivery">not right?</button></div></div></div>`;
     h += `<div class="rr-final">Final leg <b>${mi(result.finalLegMiles)} mi</b>${
       stops.length ? ' from your last fuel stop to delivery.' : ' — the whole run is inside your range, no stop needed.'}</div>`;
     if(stops.length){
       h += `<div class="rr-ok">Fewest-stop plan on network fuel. Every leg is inside your ${mi(maxRange)} mi range.</div>`;
     }
+    // A quiet option, not a warning: the first leg is long and a real station
+    // sits close enough to the pickup that topping off first is worth naming.
+    if(stops.length && stops[0].mile > maxRange / 2){
+      const near = nearPickup.find(s => s.fromPickup <= NEAR_PICKUP_RADIUS_TIP);
+      if(near){
+        h += `<div class="rr-tip">${nearPickupLine(near)} — topping off there before you roll is an option.</div>`;
+      }
+    }
   } else {
     const g = result.gap;
-    h += `<div class="rr-warn"><b>Network fuel gap — this load won't make it</b>
-      No Covenant network stop between <b>mile ${mi(g.fromMile)}</b> and <b>mile ${mi(g.deadMile)}</b>,
-      which is as far as you can reach${stops.length ? ' after the stop' + (stops.length > 1 ? 's' : '') + ' above' : ' leaving the shipper with ' + mi(rangeAtPickup) + ' mi'}.
-      ${stops.length ? 'Fuel as listed above — then you run dry inside that stretch.' : 'No network stop is reachable from the pickup at this range.'}
-      Out-of-network fuel needs approval first — call Driver Support
-      <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.
-      ${rangeAtPickup < maxRange ? 'Fueling before you leave the shipper may close this gap. ' : ''}If the truck can run further than ${mi(maxRange)} mi, raise the range and re-plan.</div>`;
-  }
-
-  if(projectedCount === 0){
-    h += `<div class="rr-warn">No network stop of any kind falls within ${DETOUR_MAX_MI} mi of this route.</div>`;
+    const trueGap = nearPickup.length === 0;
+    if(trueGap){
+      // No alternative exists near the pickup either — this is the real thing.
+      h += `<div class="rr-warn"><b>Network fuel gap — this load won't make it</b>
+        No Covenant network stop between <b>mile ${mi(g.fromMile)}</b> and <b>mile ${mi(g.deadMile)}</b>,
+        which is as far as you can reach${stops.length ? ' after the stop' + (stops.length > 1 ? 's' : '') + ' above' : ' leaving the shipper with ' + mi(rangeAtPickup) + ' mi'}.
+        ${stops.length ? 'Fuel as listed above — then you run dry inside that stretch.' : 'No network stop is reachable from the pickup at this range.'}
+        No network stop sits within ${NEAR_PICKUP_RADIUS_GAP} mi of your pickup either, so there is no
+        top-off option to suggest. Out-of-network fuel needs approval first — call Driver Support
+        <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.
+        If the truck can run further than ${mi(maxRange)} mi, raise the range and re-plan.</div>`;
+    } else {
+      // A real alternative exists near the pickup — lead with it instead of
+      // sending the driver to Driver Support for a load that has an obvious
+      // fix. The number still follows, because this plan does not clear: a
+      // driver who can't top off is back to needing out-of-network fuel, and
+      // that always needs a call first.
+      const namedNear = nearPickup.slice(0, 2).map(nearPickupLine).join('; ');
+      h += `<div class="rr-caution"><b>This plan doesn't clear at your current settings</b>
+        Even widening the search to ${result.detourMax} mi off route, there is no network stop between
+        <b>mile ${mi(g.fromMile)}</b> and <b>mile ${mi(g.deadMile)}</b>${stops.length ? ' after the stop' + (stops.length > 1 ? 's' : '') + ' above' : ''}.
+        Nearest network stop to your pickup: <b>${namedNear}</b>. Topping off there before you roll,
+        or entering a lower number for range leaving the shipper, may close this gap.
+        If you can't, out-of-network fuel still needs approval first — call Driver Support
+        <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.</div>`;
+    }
   }
 
   showRoutePanel(h);
   document.querySelectorAll('.rr-stop').forEach(el =>
     el.addEventListener('click', () => openSheet(planStops[+el.dataset.idx].row)));
+  document.querySelectorAll('.rr-fix').forEach(el =>
+    el.addEventListener('click', () => reopenPicker(el.dataset.end)));
 }
 
 /* ---- Ranges ---- */
@@ -861,57 +950,105 @@ $('pickupRangeToggle').addEventListener('click', () => {
   setPickupRangeOpen($('pickupRangeField').hidden);
 });
 
-/* ---- Step 1: geocode both ends and let the driver confirm ---- */
+/* ---- Step 1: geocode both ends, confirm only what's actually ambiguous ---- */
 let geoCands = { pickup: [], delivery: [] };
+// The pair actually routed on last, so a "not right?" tap can hold the other
+// end fixed while re-picking just the one the driver flagged.
+let confirmed = { pickup: null, delivery: null };
 
 function offlineNote(lead){
   return `<div class="rr-note"><b>${lead}</b> Route planning needs a data connection.
     Switch back to <b>Stops</b> — the map and all ${DATA.length} network locations work without one.</div>`;
 }
 
-function renderConfirm(){
-  const blocks = [
-    { key:'pickup',   label:'Pickup',   typed:$('pickupInput').value.trim(),   input:'pickupInput' },
-    { key:'delivery', label:'Delivery', typed:$('deliveryInput').value.trim(), input:'deliveryInput' }
-  ];
-  let h = `<div class="rr-head">Check the addresses</div>
-    <div class="rr-sub">Dispatch addresses land on the wrong building more often than you'd think.
-      Confirm both before we route the load.</div>`;
+// A single high-confidence match needs no confirmation. More than one
+// candidate, or a match that isn't an exact street address, does.
+function endIsAmbiguous(cands){
+  return cands.length > 1 || !isExactMatch(cands[0]);
+}
 
-  for(const b of blocks){
-    const cands = geoCands[b.key];
-    h += `<div class="gc-block"><div class="gc-label">${b.label}</div>
-      <div class="gc-typed">You entered: ${b.typed}</div>`;
-    if(!isExactMatch(cands[0])){
-      h += `<div class="gc-warn">This one did not resolve to an exact street address.
-        Check it against your dispatch${cands.length > 1 ? ' or pick another match below' : ''} — a wrong
-        building shifts every mile marker in the plan.</div>`;
-    }
-    cands.forEach((c, i) => {
-      h += `<label class="gc-cand">
-        <input type="radio" name="gc-${b.key}" value="${i}"${i === 0 ? ' checked' : ''}>
-        <div class="gc-txt"><div class="gc-addr">${c.label}</div>
-          <div class="gc-kind">${matchKind(c)}</div></div></label>`;
-    });
-    h += `<button class="gc-edit" data-edit="${b.input}">Edit ${b.label.toLowerCase()} address</button></div>`;
+function endBlockHTML(key, label, cands, ambiguous){
+  if(!ambiguous){
+    // Nothing to ask — state what matched, no radios, no re-confirmation.
+    return `<div class="gc-block"><div class="gc-label">${label}</div>
+      <div class="gc-typed">Matched: ${cands[0].label}</div></div>`;
   }
+  const typed = $(key === 'pickup' ? 'pickupInput' : 'deliveryInput').value.trim();
+  let h = `<div class="gc-block"><div class="gc-label">${label}</div>
+    <div class="gc-typed">You entered: ${typed}</div>`;
+  if(!isExactMatch(cands[0])){
+    h += `<div class="gc-warn">This one did not resolve to an exact street address.
+      Check it against your dispatch${cands.length > 1 ? ' or pick another match below' : ''} — a wrong
+      building shifts every mile marker in the plan.</div>`;
+  }
+  cands.forEach((c, i) => {
+    h += `<label class="gc-cand">
+      <input type="radio" name="gc-${key}" value="${i}"${i === 0 ? ' checked' : ''}>
+      <div class="gc-txt"><div class="gc-addr">${c.label}</div>
+        <div class="gc-kind">${matchKind(c)}</div></div></label>`;
+  });
+  h += `<button class="gc-edit" data-edit="${key === 'pickup' ? 'pickupInput' : 'deliveryInput'}">Edit ${label.toLowerCase()} address</button></div>`;
+  return h;
+}
 
-  h += '<button id="confirmBtn">Plan fuel for this load</button>';
+// Reached only when at least one end is ambiguous — a confident match on both
+// ends never sees this, it routes straight through from startPlan(). Shows a
+// picker for the ambiguous end(s) only; an unambiguous end is stated, not
+// re-asked.
+function renderConfirmStep(ambiguous){
+  const both = ambiguous.pickup && ambiguous.delivery;
+  let h = `<div class="rr-head">Check the address${both ? 'es' : ''}</div>
+    <div class="rr-sub">Dispatch addresses land on the wrong building more often than you'd think.</div>`;
+  h += endBlockHTML('pickup', 'Pickup', geoCands.pickup, ambiguous.pickup);
+  h += endBlockHTML('delivery', 'Delivery', geoCands.delivery, ambiguous.delivery);
+  h += '<button id="confirmBtn">Confirm and plan fuel</button>';
   showRoutePanel(h);
 
   document.querySelectorAll('.gc-edit').forEach(el => el.addEventListener('click', () => {
-    const input = $(el.dataset.edit);
-    input.focus();
-    input.select();
+    $(el.dataset.edit).focus();
+    $(el.dataset.edit).select();
   }));
   $('confirmBtn').addEventListener('click', () => {
-    const pick = key => geoCands[key][
-      +document.querySelector(`input[name="gc-${key}"]:checked`).value];
-    planLoad(pick('pickup'), pick('delivery'));
+    const pick = (key, isAmbiguous) => isAmbiguous
+      ? geoCands[key][+document.querySelector(`input[name="gc-${key}"]:checked`).value]
+      : geoCands[key][0];
+    planLoad(pick('pickup', ambiguous.pickup), pick('delivery', ambiguous.delivery));
   });
 }
 
-async function lookupAddresses(){
+// "Not right?" on a plan result — reopens the picker for just that one end,
+// using the candidates already fetched (including ones a confident top match
+// let us skip past), and re-plans with the other end held at its last
+// confirmed value.
+function reopenPicker(key){
+  const cands = geoCands[key];
+  const label = key === 'pickup' ? 'Pickup' : 'Delivery';
+  const inputId = key === 'pickup' ? 'pickupInput' : 'deliveryInput';
+
+  let h = `<div class="rr-head">Which ${label.toLowerCase()} address?</div>
+    <div class="rr-sub">Pick the right match, or edit the address and plan again.</div>
+    <div class="gc-block"><div class="gc-label">${label}</div>`;
+  cands.forEach((c, i) => {
+    h += `<label class="gc-cand">
+      <input type="radio" name="gc-fix" value="${i}"${c === confirmed[key] ? ' checked' : ''}>
+      <div class="gc-txt"><div class="gc-addr">${c.label}</div>
+        <div class="gc-kind">${matchKind(c)}</div></div></label>`;
+  });
+  h += `<button class="gc-edit" data-edit="${inputId}">Edit ${label.toLowerCase()} address and re-plan</button></div>`;
+  h += '<button id="confirmBtn">Use this address</button>';
+  showRoutePanel(h);
+
+  document.querySelectorAll('.gc-edit').forEach(el => el.addEventListener('click', () => {
+    $(el.dataset.edit).focus();
+    $(el.dataset.edit).select();
+  }));
+  $('confirmBtn').addEventListener('click', () => {
+    const chosen = cands[+document.querySelector('input[name="gc-fix"]:checked').value];
+    planLoad(key === 'pickup' ? chosen : confirmed.pickup, key === 'delivery' ? chosen : confirmed.delivery);
+  });
+}
+
+async function startPlan(){
   const btn = $('planBtn');
   const pickupQ = $('pickupInput').value.trim();
   const deliveryQ = $('deliveryInput').value.trim();
@@ -944,7 +1081,15 @@ async function lookupAddresses(){
       return;
     }
     geoCands = { pickup: pk, delivery: dv };
-    renderConfirm();
+    const ambiguous = { pickup: endIsAmbiguous(pk), delivery: endIsAmbiguous(dv) };
+
+    if(!ambiguous.pickup && !ambiguous.delivery){
+      // Nothing to disambiguate — straight through, no extra tap.
+      showRoutePanel('<div class="rr-note">Routing and planning your fuel stops…</div>');
+      await planLoad(pk[0], dv[0]);
+    } else {
+      renderConfirmStep(ambiguous);
+    }
   } catch(err){
     showRoutePanel(!navigator.onLine ? offlineNote('Lost signal.')
       : `<div class="rr-note"><b>Address lookup failed.</b><br>${
@@ -952,15 +1097,22 @@ async function lookupAddresses(){
         Switch back to <b>Stops</b> — the map and all ${DATA.length} locations still work.</div>`);
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Look up addresses';
+    btn.textContent = 'Plan fuel for this load';
   }
 }
 
 /* ---- Step 2: route the confirmed pair and plan the fuel ---- */
 async function planLoad(pickup, delivery){
+  confirmed = { pickup, delivery };
   const btn = $('confirmBtn');
   if(btn){ btn.disabled = true; btn.textContent = 'Planning…'; }
   if(!navigator.onLine){ showRoutePanel(offlineNote('No signal.')); return; }
+  // fuelplan-adaptive.js loads via a background fetch (see the shim above);
+  // it finishes almost immediately, but guard the sliver of time before it has.
+  if(!FuelPlanAdaptive){
+    showRoutePanel('<div class="rr-note">Still finishing setup — try again in a second.</div>');
+    return;
+  }
 
   const ranges = readRanges();
 
@@ -972,11 +1124,13 @@ async function planLoad(pickup, delivery){
     const cum = FuelPlan.cumulativeMiles(poly);
     const routeMiles = cum[cum.length - 1];
 
-    const proj = FuelPlan.projectStops(poly, FUEL_STOPS, DETOUR_MAX_MI);
-    const result = FuelPlan.planFuel(routeMiles, proj, ranges.maxRange, ranges.startBurned);
+    const result = FuelPlanAdaptive.planAdaptive(
+      poly, routeMiles, FUEL_STOPS, ranges.maxRange, ranges.startBurned, DETOUR_TIERS);
+    const nearPickup = FuelPlanAdaptive.stopsNearPickup(
+      pickup.lat, pickup.lng, FUEL_STOPS, NEAR_PICKUP_RADIUS_GAP);
 
     drawRoute(poly, result.plan);
-    renderPlan(result, routeMiles, ranges, pickup, delivery, proj.length);
+    renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup);
   } catch(err){
     showRoutePanel(!navigator.onLine ? offlineNote('Lost signal mid-plan.')
       : `<div class="rr-note"><b>Could not plan this load.</b><br>${
@@ -986,9 +1140,9 @@ async function planLoad(pickup, delivery){
   }
 }
 
-$('planBtn').addEventListener('click', lookupAddresses);
+$('planBtn').addEventListener('click', startPlan);
 [$('pickupInput'), $('deliveryInput'), $('rangeInput'), $('pickupRangeInput')].forEach(el =>
-  el.addEventListener('keydown', e => { if(e.key === 'Enter') lookupAddresses(); }));
+  el.addEventListener('keydown', e => { if(e.key === 'Enter') startPlan(); }));
 </script>
 </body>
 </html>

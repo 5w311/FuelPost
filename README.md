@@ -42,9 +42,19 @@ Two inputs shape the plan:
 - **Range leaving shipper** — how far the truck can go when it rolls out of the
   pickup. Maps to `startBurned = max(0, maxRange - rangeAtPickup)`.
 
+Selection uses `lib/fuelplan-adaptive.js`'s `planAdaptive`, which tries stops
+within 8 miles of the route first and only widens to 15, then 30, if the tight
+search would strand the driver — most routes solve at 8 and are never widened.
+When the search still comes up short even at 30 miles, `stopsNearPickup` looks
+for a network stop within 50 miles of the pickup in any direction (not just
+along the route) before the app calls it a dead end: a station near the
+shipper — off to the side, behind, wherever — is worth naming as a top-off
+option even though it isn't on the route.
+
 Covenant has **no network stops in New Mexico**, which leaves a ~490 mile run on
 I-40 between TA Holbrook AZ and TA Amarillo TX with nothing on it. When no
-network stop is reachable, the app shows the partial plan and names the gap
+network stop is reachable at all — not on the widened route search, and not
+near the pickup either — the app shows the partial plan and names the gap
 rather than returning a plan that strands the driver. Out-of-network fuel needs
 Driver Support approval first: 423-463-3680.
 
@@ -67,10 +77,25 @@ They answer different questions and must not be conflated:
   that has left it is a compliance violation. A driver cannot tell stale station
   data from current station data without it. Bump this only when the station data
   is re-sourced from a new book.
-- **`APP_VERSION`** (`1.1.2`) — the code. Shown in the **legend card** as a
+- **`APP_VERSION`** (`1.2.0`) — the code. Shown in the **legend card** as a
   support detail. Bumped for every shipped change.
 
 ## Version history
+
+### v1.2.0
+
+Two changes to Route mode. First, the fuel planner no longer declares a gap
+the moment nothing is within 8 miles of the route — `planAdaptive`
+(`lib/fuelplan-adaptive.js`) widens to 15, then 30 miles before giving up, and
+`stopsNearPickup` checks for a network stop within 50 miles of the pickup in
+any direction (not just along the route) before the app calls it a true dead
+end. A widened search shows a plain note above the plan; a gap that has a
+real near-pickup alternative names it instead of just telling the driver to
+call Driver Support. Second, "Look up addresses" and "Plan fuel for this load"
+are now one button. Two high-confidence matches route straight through with a
+"not right?" affordance on each address; the picker only reappears for an end
+that's actually ambiguous — more than one candidate, or a match that isn't an
+exact street address.
 
 ### v1.1.2
 
