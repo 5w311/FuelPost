@@ -16,6 +16,8 @@ Two modes:
 ```
 index.html                  the app — markup, styles, DATA array, map + UI wiring
 lib/fuelplan.js             pure fuel-planning logic (no DOM, no network)
+lib/fuelplan-adaptive.js    widens the detour search before declaring a gap
+lib/triptext.js             formats a plan as plain text for share / save
 lib/flexible-polyline.js    HERE's reference polyline decoder, vendored unmodified (MIT)
 test/*.test.js              plain-node tests, no framework
 test/run.js                 runs every test file and reports a combined total
@@ -77,10 +79,22 @@ They answer different questions and must not be conflated:
   that has left it is a compliance violation. A driver cannot tell stale station
   data from current station data without it. Bump this only when the station data
   is re-sourced from a new book.
-- **`APP_VERSION`** (`1.2.0`) — the code. Shown in the **legend card** as a
+- **`APP_VERSION`** (`1.3.0`) — the code. Shown in the **legend card** as a
   support detail. Bumped for every shipped change.
 
 ## Version history
+
+### v1.3.0
+
+**Clear trip** resets the route planner to a blank first-open state — inputs,
+both range values, geocode candidates, the results panel, and the route drawn
+on the map. **Share / save trip** hands the plan to the phone's native share
+sheet via `navigator.share`, so it can land in Notes, Messages, Mail or AirDrop
+in one native flow, falling back to a clipboard copy and then to a selectable
+textarea. The text comes from `formatTripText` in `lib/triptext.js`. Nothing is
+persisted — no `localStorage`, no saved-trips list, so no `PRESET_VERSION`
+question. The header no longer repeats "100% compliance required"; the legend
+card already carries the compliance note and the Driver Support number.
 
 ### v1.2.0
 

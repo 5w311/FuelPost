@@ -40,7 +40,15 @@ ok('header subtitle renders #fuelBookRev', /id="fuelBookRev"/.test(subtitle), su
 ok('header subtitle does NOT contain #appVer', !/id="appVer"/.test(subtitle), subtitle);
 ok('header subtitle has no hardcoded v-number',
    !/\bv\d+\.\d+\.\d+/.test(subtitle), subtitle);
-ok('header still states the compliance line', /100% compliance required/.test(subtitle));
+// v1.3.0 removed the header's compliance line as a duplicate. The rule itself
+// must still be stated exactly once, in the legend card, alongside the Driver
+// Support number — dedup was the point, dropping the rule was not.
+ok('header no longer duplicates the compliance line', !/100% compliance required/.test(subtitle), subtitle);
+ok('  the compliance rule is still stated in the legend',
+   /Fuel only at network stops/.test(html), 'legend note missing');
+ok('  and it appears exactly once in the app',
+   (html.match(/Fuel only at network stops/g) || []).length === 1,
+   String((html.match(/Fuel only at network stops/g) || []).length));
 
 console.log('\n=== build number lives in the legend card ===');
 const legend = (html.match(/<div id="legendCard">[\s\S]*?\n {4}<\/div>/) || [''])[0];
