@@ -111,6 +111,16 @@
   .rb-unit{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:11.5px;color:var(--sub);font-weight:700;}
   #planBtn{width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:0 14px;height:38px;font-size:13.5px;font-weight:700;}
   #planBtn[disabled]{opacity:.55;}
+  /* Clear is a text button, not a second filled button competing with Plan —
+     it resets fields, it isn't the thing the driver came here to do. */
+  #clearTripBtn{align-self:center;background:none;border:none;padding:4px 2px;font-size:12.5px;font-weight:700;color:var(--sub);text-decoration:underline;}
+
+  #shareTripBtn{width:100%;background:#fff;color:var(--navy);border:1.5px solid var(--navy);border-radius:10px;height:40px;font-size:13.5px;font-weight:700;margin-top:14px;}
+  #shareTripBtn[disabled]{opacity:.55;}
+  .share-note{font-size:12px;color:#0F6B33;font-weight:700;text-align:center;margin-top:7px;}
+  /* Last-resort fallback when neither the share sheet nor the clipboard API
+     exists: show the text so the driver can select and copy it by hand. */
+  #shareFallback{width:100%;margin-top:10px;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:11.5px;line-height:1.4;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);min-height:150px;}
 
   /* Geocode confirmation — dispatch addresses resolve badly, so the driver
      approves what HERE matched before we route on it. */
@@ -178,7 +188,7 @@
     <div class="badge">FP</div>
     <div class="titles">
       <h1>FuelPost</h1>
-      <p>Covenant network fuel stops &middot; 100% compliance required &middot; <span id="fuelBookRev"></span></p>
+      <p>Covenant network fuel stops &middot; <span id="fuelBookRev"></span></p>
     </div>
     <div class="count"><b id="countNum">0</b>stops</div>
   </header>
@@ -233,6 +243,7 @@
       <div class="rb-help">Miles left in the tank pulling out of the shipper.</div>
     </div>
     <button id="planBtn">Plan fuel for this load</button>
+    <button type="button" id="clearTripBtn" hidden>Clear trip</button>
   </div>
 
   <div id="mapwrap">
@@ -273,6 +284,8 @@
 <script>var module = { exports: {} };</script>
 <script src="lib/fuelplan.js"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
+<script src="lib/triptext.js"></script>
+<script>var TripText = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
      — real Node syntax. Loading it with a plain src attribute, like the two
@@ -458,7 +471,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -794,6 +807,97 @@ function tierBadge(tier){
 function showRoutePanel(html){
   $('routeResultsBody').innerHTML = html;
   $('routeResults').classList.add('show');
+  updateClearVisibility();
+}
+
+/* ---- Share / save trip ----
+   Hands the plan to the phone's native share sheet, so it can land in Notes,
+   Messages, Mail or AirDrop in one native flow. Nothing is stored by the app. */
+
+// Set by renderPlan; the last plan or gap result worth sharing.
+let lastTrip = null;
+
+function shareTrip(){
+  if(!lastTrip) return;
+  const text = TripText.formatTripText(lastTrip);
+  const btn = $('shareTripBtn');
+
+  const note = msg => {
+    const el = document.createElement('div');
+    el.className = 'share-note';
+    el.textContent = msg;
+    btn.insertAdjacentElement('afterend', el);
+    setTimeout(() => el.remove(), 2000);
+  };
+
+  if(navigator.share){
+    // A driver dismissing the share sheet is a normal outcome, not an error.
+    navigator.share({ title: 'FuelPost trip plan', text }).catch(() => {});
+    return;
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text)
+      .then(() => note('Copied'))
+      .catch(() => showShareFallback(text));
+    return;
+  }
+  // No share sheet and no clipboard: show the text so it can be copied by
+  // hand. Never leave the driver tapping a button that does nothing.
+  showShareFallback(text);
+}
+
+function showShareFallback(text){
+  if($('shareFallback')) { $('shareFallback').select(); return; }
+  const ta = document.createElement('textarea');
+  ta.id = 'shareFallback';
+  ta.readOnly = true;
+  ta.value = text;
+  $('shareTripBtn').insertAdjacentElement('afterend', ta);
+  const hint = document.createElement('div');
+  hint.className = 'share-note';
+  hint.textContent = 'Copy the text below';
+  ta.insertAdjacentElement('beforebegin', hint);
+  ta.focus();
+  ta.select();
+}
+
+/* ---- Clear trip ----
+   Resets the planner to a blank first-open state: fields, ranges, geocode
+   candidates, the results panel AND the route drawn on the map. A stale
+   polyline left behind on a cleared trip is worse than no clear button. */
+const ROUTE_DEFAULT_RANGE = 800;
+
+function routeHasSomethingToClear(){
+  return !!($('pickupInput').value.trim() || $('deliveryInput').value.trim()
+    || $('routeResultsBody').innerHTML
+    || Number($('rangeInput').value) !== ROUTE_DEFAULT_RANGE
+    || Number($('pickupRangeInput').value) !== ROUTE_DEFAULT_RANGE);
+}
+
+function updateClearVisibility(){
+  $('clearTripBtn').hidden = !routeHasSomethingToClear();
+}
+
+function clearTrip(){
+  $('pickupInput').value = '';
+  $('deliveryInput').value = '';
+
+  $('rangeInput').value = ROUTE_DEFAULT_RANGE;
+  // Reuse the disclosure's own collapse behaviour — it already resets
+  // pickupRangeInput to mirror the main range and clears pickupRangeTouched.
+  setPickupRangeOpen(false);
+
+  geoCands = { pickup: [], delivery: [] };
+  confirmed = { pickup: null, delivery: null };
+  lastTrip = null;
+  planStops = [];
+
+  $('routeResultsBody').innerHTML = '';
+  $('routeResults').classList.remove('show');
+  routeGroup.removeAll();   // polyline + endpoint pins + chosen fuel stops
+
+  updateClearVisibility();
+  $('pickupInput').focus();
 }
 
 function nearPickupLine(stop){
@@ -807,6 +911,25 @@ function nearPickupLine(stop){
 function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
   const stops = result.plan;
   planStops = stops;
+  // Everything Share trip needs, captured at render time from the values
+  // actually planned on — including the CONFIRMED matched addresses rather
+  // than the raw text the driver typed.
+  // Leg distances are rounded to whole miles here so the shared text reads the
+  // same as the screen — planFuel returns one decimal (697.9), which the panel
+  // already rounds to 698 via mi(). Two different numbers for one leg is the
+  // kind of thing a driver notices and distrusts.
+  lastTrip = {
+    pickupAddr: pickup.label,
+    deliveryAddr: delivery.label,
+    maxRange: ranges.maxRange,
+    rangeAtPickup: ranges.rangeAtPickup,
+    plan: stops.map(s => ({ ...s, legMiles: Math.round(s.legMiles) })),
+    gap: result.ok ? null : result.gap,
+    finalLegMiles: result.ok ? Math.round(result.finalLegMiles) : null,
+    detourMax: result.detourMax,
+    appVersion: APP_VERSION,
+    fuelBookRev: FUEL_BOOK_REV
+  };
   const { maxRange, rangeAtPickup, startBurned } = ranges;
   // Only call the search "widened" when it actually produced a plan — a failed
   // attempt at 30 mi is a dead end, not a plan that uses 30 mi stops.
@@ -895,7 +1018,11 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
     }
   }
 
+  // There is a trip worth taking with you now — a plan or a gap, either way.
+  h += '<button type="button" id="shareTripBtn">Share / save trip</button>';
+
   showRoutePanel(h);
+  $('shareTripBtn').addEventListener('click', shareTrip);
   document.querySelectorAll('.rr-stop').forEach(el =>
     el.addEventListener('click', () => openSheet(planStops[+el.dataset.idx].row)));
   document.querySelectorAll('.rr-fix').forEach(el =>
@@ -1141,8 +1268,13 @@ async function planLoad(pickup, delivery){
 }
 
 $('planBtn').addEventListener('click', startPlan);
-[$('pickupInput'), $('deliveryInput'), $('rangeInput'), $('pickupRangeInput')].forEach(el =>
-  el.addEventListener('keydown', e => { if(e.key === 'Enter') startPlan(); }));
+[$('pickupInput'), $('deliveryInput'), $('rangeInput'), $('pickupRangeInput')].forEach(el => {
+  el.addEventListener('keydown', e => { if(e.key === 'Enter') startPlan(); });
+  el.addEventListener('input', updateClearVisibility);
+});
+
+$('clearTripBtn').addEventListener('click', clearTrip);
+updateClearVisibility();
 </script>
 </body>
 </html>
