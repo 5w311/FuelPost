@@ -92,6 +92,68 @@
   #legendCard div{display:flex;align-items:center;gap:7px;margin:5px 0;}
   #legendCard .sw{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
 
+  /* ---- Route mode ---- */
+  /* STOPS-mode filters stay in the DOM; they just hide while planning a route. */
+  body.route-mode .stops-only{display:none;}
+
+  #routebar{display:none;flex-direction:column;gap:8px;padding:10px 12px;background:#fff;border-bottom:1px solid var(--line);flex-shrink:0;z-index:400;}
+  body.route-mode #routebar{display:flex;}
+  .rb-field{flex:1;min-width:0;}
+  .rb-field label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--sub);margin-bottom:3px;}
+  .rb-field input{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);font-size:13px;background:var(--bg);color:var(--ink);}
+  .rb-row{display:flex;gap:8px;align-items:flex-end;}
+  .rb-range{flex:1 1 0;min-width:0;}
+  .rb-range-wrap{position:relative;}
+  .rb-range-wrap input{width:100%;padding:8px 28px 8px 10px;border-radius:10px;border:1px solid var(--line);font-size:13px;background:var(--bg);color:var(--ink);}
+  .rb-unit{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:11.5px;color:var(--sub);font-weight:700;}
+  #planBtn{width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:0 14px;height:38px;font-size:13.5px;font-weight:700;}
+  #planBtn[disabled]{opacity:.55;}
+
+  /* Geocode confirmation — dispatch addresses resolve badly, so the driver
+     approves what HERE matched before we route on it. */
+  .gc-block{border-top:1px solid var(--line);padding:10px 0 2px;}
+  .gc-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--sub);}
+  .gc-typed{font-size:11.5px;color:var(--sub);margin:2px 0 7px;}
+  .gc-cand{display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border:1px solid var(--line);border-radius:9px;margin-bottom:5px;background:var(--bg);}
+  .gc-cand input{margin:2px 0 0;flex-shrink:0;}
+  .gc-cand .gc-txt{flex:1;min-width:0;}
+  .gc-cand .gc-addr{font-size:12.5px;font-weight:600;line-height:1.35;}
+  .gc-cand .gc-kind{font-size:10.5px;color:var(--sub);margin-top:2px;}
+  .gc-warn{background:#FFF6E5;border:1px solid #F0D9A8;border-radius:9px;padding:8px 10px;font-size:11.5px;color:#7A5200;line-height:1.4;margin-bottom:6px;}
+  .gc-edit{background:none;border:none;padding:2px 0;font-size:12px;font-weight:700;color:var(--ta);text-decoration:underline;}
+  #confirmBtn{width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;height:40px;font-size:13.5px;font-weight:700;margin-top:12px;}
+  #confirmBtn[disabled]{opacity:.55;}
+
+  .rr-end{display:flex;gap:10px;padding:9px 0;align-items:flex-start;}
+  .rr-end .rr-mile{color:var(--sub);}
+  .rr-endlabel{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--sub);}
+  .rr-endaddr{font-size:12.5px;font-weight:600;line-height:1.35;margin-top:1px;}
+
+  #routeResults{position:absolute;left:0;right:0;bottom:0;max-height:62%;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.18);z-index:360;display:none;flex-direction:column;}
+  #routeResults.show{display:flex;}
+  .rr-body{overflow-y:auto;padding:12px 14px 22px;}
+  .rr-head{font-size:15px;font-weight:700;margin:0 0 2px;}
+  .rr-sub{font-size:11.5px;color:var(--sub);margin-bottom:8px;}
+  .rr-stop{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:flex-start;text-align:left;width:100%;background:none;border-left:none;border-right:none;border-bottom:none;font:inherit;color:inherit;}
+  .rr-mile{flex:0 0 66px;text-align:center;}
+  .rr-mile b{display:block;font-size:14.5px;line-height:1.15;}
+  .rr-mile span{font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);}
+  .rr-info{flex:1;min-width:0;}
+  .rr-name{font-weight:700;font-size:13.5px;}
+  .rr-meta{font-size:11.5px;color:var(--sub);margin-top:2px;}
+  .rr-chev{align-self:center;color:var(--sub);font-size:16px;flex-shrink:0;}
+  .rr-final{border-top:1px solid var(--line);padding-top:10px;font-size:12.5px;color:var(--sub);}
+  .rr-final b{color:var(--ink);}
+  .rr-ok{background:#E4F3EA;border:1px solid #BFE3CC;border-radius:10px;padding:9px 12px;margin-top:10px;font-size:12.5px;color:#0F6B33;line-height:1.45;}
+  .rr-warn{background:#FDECEC;border:1px solid #F0BEBE;border-radius:10px;padding:10px 12px;margin-top:12px;font-size:12.5px;color:#8A1C1C;line-height:1.45;}
+  .rr-warn b{display:block;margin-bottom:4px;font-size:13px;}
+  .rr-warn a{color:#8A1C1C;font-weight:800;}
+  .rr-note{font-size:12.5px;color:var(--sub);line-height:1.5;}
+  .rr-note b{color:var(--ink);}
+
+  .rpin{width:30px;height:30px;border-radius:50%;background:var(--gold);border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12.5px;color:#4A3200;}
+  .rpin.endpt{background:var(--navy);color:#fff;font-size:9.5px;letter-spacing:.3px;}
+
   /* HERE Maps UI: keep default zoom + copyright, just make sure it sits above our map */
   .H_l_bottom{z-index:390;}
 </style>
@@ -103,33 +165,66 @@
     <div class="badge">FP</div>
     <div class="titles">
       <h1>FuelPost</h1>
-      <p>Covenant network fuel stops &middot; 100% compliance required &middot; Rev 01-2026</p>
+      <p>Covenant network fuel stops &middot; 100% compliance required &middot; <span id="appVer"></span></p>
     </div>
     <div class="count"><b id="countNum">0</b>stops</div>
   </header>
 
   <div class="toolbar">
-    <div class="seg" id="brandSeg">
+    <div class="seg" id="modeSeg">
+      <button data-v="stops" class="active">Stops</button>
+      <button data-v="route">Route</button>
+    </div>
+    <div class="seg stops-only" id="brandSeg">
       <button data-v="all" class="active">All</button>
       <button data-v="TA">TA</button>
       <button data-v="Petro">Petro</button>
     </div>
-    <div class="seg" id="typeSeg">
+    <div class="seg stops-only" id="typeSeg">
       <button data-v="all" class="active">All types</button>
       <button data-v="excl">Exclusive</button>
       <button data-v="prim">Primary</button>
     </div>
-    <select class="stateSel" id="stateSel"><option value="all">All states</option></select>
-    <div class="search-wrap">
+    <select class="stateSel stops-only" id="stateSel"><option value="all">All states</option></select>
+    <div class="search-wrap stops-only">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="searchInput" placeholder="Search city, state, exit…">
     </div>
-    <button class="iconbtn" id="listToggle" title="List view">☰</button>
+    <button class="iconbtn stops-only" id="listToggle" title="List view">☰</button>
+  </div>
+
+  <div id="routebar">
+    <div class="rb-field">
+      <label for="pickupInput">Pickup — street, city, state, zip</label>
+      <input id="pickupInput" placeholder="e.g. 2000 Distribution Way, Memphis, TN 38118" autocomplete="off" autocapitalize="words">
+    </div>
+    <div class="rb-field">
+      <label for="deliveryInput">Delivery — street, city, state, zip</label>
+      <input id="deliveryInput" placeholder="e.g. 4500 Commerce Dr, Fort Worth, TX 76106" autocomplete="off" autocapitalize="words">
+    </div>
+    <div class="rb-row">
+      <div class="rb-field rb-range">
+        <label for="pickupRangeInput">Range leaving shipper</label>
+        <div class="rb-range-wrap">
+          <input id="pickupRangeInput" type="number" value="800" min="25" max="1200" step="10" inputmode="numeric">
+          <span class="rb-unit">mi</span>
+        </div>
+      </div>
+      <div class="rb-field rb-range">
+        <label for="rangeInput">Fuel before you hit</label>
+        <div class="rb-range-wrap">
+          <input id="rangeInput" type="number" value="800" min="300" max="1200" step="10" inputmode="numeric">
+          <span class="rb-unit">mi</span>
+        </div>
+      </div>
+    </div>
+    <button id="planBtn">Look up addresses</button>
   </div>
 
   <div id="mapwrap">
     <div id="map"></div>
     <div id="listview"></div>
+    <div id="routeResults"><div class="rr-body" id="routeResultsBody"></div></div>
     <button id="legendBtn">Legend ⓘ</button>
     <div id="legendCard">
       <div><span class="sw" style="background:var(--ta)"></span> TA location</div>
@@ -152,6 +247,17 @@
 <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-mapevents.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-ui.js"></script>
+
+<!-- Planning logic and HERE's reference polyline decoder. Both are CommonJS so
+     test/*.test.js runs under plain node with no build step; this three-line
+     shim lets the same unmodified files load in the browser (and over file://,
+     which ES modules cannot do). See PR notes if you'd rather go true ESM. -->
+<script>var module = { exports: {} };</script>
+<script src="lib/fuelplan.js"></script>
+<script>var FuelPlan = module.exports; module = { exports: {} };</script>
+<script src="lib/flexible-polyline.js"></script>
+<script>var FlexPolyline = module.exports; module = undefined;</script>
+
 <script>
 // Fields: id,brand,name,addr,city,st,zip,exit,phone,lat,lng,type,park,resIt,showers,bays,amen,clin,scale,ulsd,nav
 const DATA = [
@@ -303,9 +409,14 @@ const DATA = [
 ["WY1","TA","TA Cheyenne","4000 I-80 Service Road","Burns","WY","82053","I-80, Exit 377","(307) 365-6670",41.1602,-104.5205,"prim",140,1,12,3,"F,W","",1,1,"CVENTA187"]
 ];
 
+// Bumped for every shipped change; see the version history in README.md.
+const APP_VERSION = '1.1.0';
+
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
 const CLIN_LABEL = {M:"Medical clinic",D:"Dental clinic",C:"Chiropractic",T:"Drug testing",P:"DOT physicals"};
 const TYPE_LABEL = {excl:"Exclusive — most cost-effective",prim:"Primary network stop",term:"Covenant terminal"};
+
+document.getElementById('appVer').textContent = 'v' + APP_VERSION;
 
 // Populate state dropdown
 const states = [...new Set(DATA.map(r=>r[5]))].sort();
@@ -457,6 +568,377 @@ document.getElementById('legendBtn').addEventListener('click', ()=>{
 });
 
 render();
+
+/* ============================================================================
+   ROUTE MODE — origin/destination truck route, auto-selected network fuel stops
+   Selection logic lives in lib/fuelplan.js (tested, unmodified). This section
+   only geocodes, routes, and renders. Nothing here runs unless the driver
+   switches to ROUTE, so STOPS mode never depends on it.
+   ========================================================================== */
+
+// Terminals are not fuel stops — exclude them from planning.
+const FUEL_STOPS = DATA.filter(r => r[11] !== 'term').map(r => ({
+  id: r[0], name: r[2], lat: r[9], lng: r[10], tier: r[11], row: r
+}));
+
+const DETOUR_MAX_MI = 8;      // verified against real corridors (Amarillo, OKC on I-40)
+const RANGE_MIN = 300, RANGE_MAX = 1200;
+const DRIVER_SUPPORT = '423-463-3680';
+
+const routeGroup = new H.map.Group();
+map.addObject(routeGroup);
+routeGroup.setVisibility(false);
+
+let planStops = [];  // chosen stops from the last plan, for tap-through to openSheet
+
+const $ = id => document.getElementById(id);
+
+/* ---- Mode switch ---- */
+function setMode(mode){
+  const route = mode === 'route';
+  document.body.classList.toggle('route-mode', route);
+  document.querySelectorAll('#modeSeg button').forEach(b =>
+    b.classList.toggle('active', b.dataset.v === mode));
+  markerGroup.setVisibility(!route);
+  routeGroup.setVisibility(route);
+  $('routeResults').classList.toggle('show', route && !!$('routeResultsBody').innerHTML);
+  if(route){
+    $('listview').classList.remove('show');
+    $('legendCard').classList.remove('show');
+  }
+  closeSheet();
+  map.getViewPort().resize();
+}
+document.querySelectorAll('#modeSeg button').forEach(b =>
+  b.addEventListener('click', () => setMode(b.dataset.v)));
+
+/* ---- HERE Geocoding v7 ----
+   Returns up to 5 candidates so the driver can pick. Dispatch addresses are
+   warehouses and DCs; a silent wrong match produces a confidently wrong fuel
+   plan, which is worse than failing. */
+async function geocodeCandidates(q){
+  const url = 'https://geocode.search.hereapi.com/v1/geocode'
+    + `?q=${encodeURIComponent(q)}&in=countryCode:USA&limit=5&apiKey=${HERE_API_KEY}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(`Address lookup failed (HTTP ${res.status}).`);
+  const j = await res.json();
+  const items = (j.items || []).filter(it => it && it.position);
+  return items.map(it => ({
+    lat: it.position.lat,
+    lng: it.position.lng,
+    label: (it.address && it.address.label) || q,
+    resultType: it.resultType || '',
+    score: it.scoring && typeof it.scoring.queryScore === 'number' ? it.scoring.queryScore : null
+  }));
+}
+
+// A match is only trustworthy if HERE resolved it to an actual address point
+// and scored it high. Anything else gets flagged for the driver to check.
+function isExactMatch(c){
+  const precise = c.resultType === 'houseNumber' || c.resultType === 'place'
+               || c.resultType === 'street' || c.resultType === 'postalCodePoint';
+  return precise && (c.score === null || c.score >= 0.9);
+}
+function matchKind(c){
+  const kind = {
+    houseNumber:'Street address', place:'Named place', street:'Street (no number matched)',
+    locality:'City / town centre only', administrativeArea:'Region centre only',
+    postalCodePoint:'ZIP centroid', intersection:'Intersection'
+  }[c.resultType] || (c.resultType || 'Unknown match');
+  return c.score === null ? kind : `${kind} · match ${(c.score*100).toFixed(0)}%`;
+}
+
+/* ---- HERE Routing v8, truck mode (respects height/weight/hazmat) ---- */
+async function truckRoute(orig, dest){
+  const url = 'https://router.hereapi.com/v8/routes'
+    + '?transportMode=truck&return=polyline,summary'
+    + `&origin=${orig.lat},${orig.lng}&destination=${dest.lat},${dest.lng}`
+    + `&apiKey=${HERE_API_KEY}`;
+  const res = await fetch(url);
+  if(!res.ok){
+    let detail = '';
+    try { const e = await res.json(); detail = e.title || e.cause || (e.notices && e.notices[0] && e.notices[0].title) || ''; } catch(_){}
+    if(res.status === 400 && detail) throw new Error(`No truck route: ${detail}`);
+    throw new Error(`Routing failed (HTTP ${res.status}).`);
+  }
+  const j = await res.json();
+  const route = j.routes && j.routes[0];
+  if(!route || !route.sections || !route.sections.length)
+    throw new Error('No truck route exists between those two points.');
+
+  // Decode each section and stitch, dropping the duplicated joint vertex.
+  const poly = [];
+  for(const sec of route.sections){
+    const pts = FlexPolyline.decode(sec.polyline).polyline;
+    for(let i = 0; i < pts.length; i++){
+      if(i === 0 && poly.length) continue;
+      poly.push([pts[i][0], pts[i][1]]);
+    }
+  }
+  if(poly.length < 2) throw new Error('Route came back empty.');
+  return poly;
+}
+
+/* ---- Map drawing ---- */
+function drawRoute(poly, chosen){
+  routeGroup.removeAll();
+
+  const ls = new H.geo.LineString();
+  poly.forEach(p => ls.pushPoint({ lat: p[0], lng: p[1] }));
+  const line = new H.map.Polyline(ls, {
+    style: { lineWidth: 6, strokeColor: 'rgba(0,87,184,.75)', lineJoin: 'round' }
+  });
+  routeGroup.addObject(line);
+
+  const endPin = (label) => {
+    const w = document.createElement('div');
+    w.innerHTML = `<div class="rpin endpt">${label}</div>`;
+    return new H.map.DomIcon(w.firstElementChild);
+  };
+  routeGroup.addObject(new H.map.DomMarker(
+    { lat: poly[0][0], lng: poly[0][1] }, { icon: endPin('PU') }));
+  routeGroup.addObject(new H.map.DomMarker(
+    { lat: poly[poly.length-1][0], lng: poly[poly.length-1][1] }, { icon: endPin('DEL') }));
+
+  // Only the chosen fuel stops get pins, numbered in driving order.
+  chosen.forEach((s, i) => {
+    const w = document.createElement('div');
+    w.innerHTML = `<div class="rpin">${i+1}</div>`;
+    const m = new H.map.DomMarker({ lat: s.lat, lng: s.lng },
+      { icon: new H.map.DomIcon(w.firstElementChild) });
+    m.addEventListener('tap', () => openSheet(s.row));
+    routeGroup.addObject(m);
+  });
+
+  map.getViewModel().setLookAtData({ bounds: line.getBoundingBox() });
+}
+
+/* ---- Result rendering ---- */
+const mi = n => Math.round(n).toLocaleString();
+
+function tierBadge(tier){
+  return tier === 'excl'
+    ? '<span class="badge-pill b-excl">★ Exclusive</span>'
+    : '<span class="badge-pill b-prim">Primary</span>';
+}
+
+function showRoutePanel(html){
+  $('routeResultsBody').innerHTML = html;
+  $('routeResults').classList.add('show');
+}
+
+// The run reads top to bottom: pickup, fuel stops in order, delivery.
+function renderPlan(result, routeMiles, ranges, pickup, delivery, projectedCount){
+  const stops = result.plan;
+  planStops = stops;
+  const { maxRange, rangeAtPickup, startBurned } = ranges;
+
+  let h = `<div class="rr-head">${stops.length === 0 ? 'No fuel stop needed' :
+      stops.length + (stops.length === 1 ? ' fuel stop' : ' fuel stops')}</div>`;
+  h += `<div class="rr-sub">${mi(routeMiles)} mi loaded miles &middot; ${mi(rangeAtPickup)} mi of range leaving the shipper`
+     + `${startBurned > 0 ? ` &middot; ${mi(startBurned)} mi already burned` : ''}</div>`;
+
+  h += `<div class="rr-end">
+    <div class="rr-mile"><b>0</b><span>mile</span></div>
+    <div class="rr-info"><div class="rr-endlabel">Pickup</div>
+      <div class="rr-endaddr">${pickup.label}</div></div></div>`;
+
+  stops.forEach((s, i) => {
+    h += `<button class="rr-stop" data-idx="${i}">
+      <div class="rr-mile"><b>${mi(s.mile)}</b><span>mile</span></div>
+      <div class="rr-info">
+        <div class="rr-name">${i+1}. ${s.name} ${tierBadge(s.tier)}</div>
+        <div class="rr-meta mono">${mi(s.legMiles)} mi this leg &middot; ${s.detour.toFixed(1)} mi off route</div>
+        <div class="rr-meta">${s.row[7] || ''}</div>
+      </div>
+      <div class="rr-chev">›</div>
+    </button>`;
+  });
+
+  if(result.ok){
+    h += `<div class="rr-end" style="border-top:1px solid var(--line)">
+      <div class="rr-mile"><b>${mi(routeMiles)}</b><span>mile</span></div>
+      <div class="rr-info"><div class="rr-endlabel">Delivery</div>
+        <div class="rr-endaddr">${delivery.label}</div></div></div>`;
+    h += `<div class="rr-final">Final leg <b>${mi(result.finalLegMiles)} mi</b>${
+      stops.length ? ' from your last fuel stop to delivery.' : ' — the whole run is inside your range, no stop needed.'}</div>`;
+    if(stops.length){
+      h += `<div class="rr-ok">Fewest-stop plan on network fuel. Every leg is inside your ${mi(maxRange)} mi range.</div>`;
+    }
+  } else {
+    const g = result.gap;
+    h += `<div class="rr-warn"><b>Network fuel gap — this load won't make it</b>
+      No Covenant network stop between <b>mile ${mi(g.fromMile)}</b> and <b>mile ${mi(g.deadMile)}</b>,
+      which is as far as you can reach${stops.length ? ' after the stop' + (stops.length > 1 ? 's' : '') + ' above' : ' leaving the shipper with ' + mi(rangeAtPickup) + ' mi'}.
+      ${stops.length ? 'Fuel as listed above — then you run dry inside that stretch.' : 'No network stop is reachable from the pickup at this range.'}
+      Out-of-network fuel needs approval first — call Driver Support
+      <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.
+      ${rangeAtPickup < maxRange ? 'Fueling before you leave the shipper may close this gap. ' : ''}If the truck can run further than ${mi(maxRange)} mi, raise the range and re-plan.</div>`;
+  }
+
+  if(projectedCount === 0){
+    h += `<div class="rr-warn">No network stop of any kind falls within ${DETOUR_MAX_MI} mi of this route.</div>`;
+  }
+
+  showRoutePanel(h);
+  document.querySelectorAll('.rr-stop').forEach(el =>
+    el.addEventListener('click', () => openSheet(planStops[+el.dataset.idx].row)));
+}
+
+/* ---- Ranges ---- */
+function readRanges(){
+  let maxRange = Math.round(Number($('rangeInput').value));
+  if(!Number.isFinite(maxRange) || maxRange <= 0) maxRange = 800;
+  maxRange = Math.min(RANGE_MAX, Math.max(RANGE_MIN, maxRange));
+  $('rangeInput').value = maxRange;
+
+  let rangeAtPickup = Math.round(Number($('pickupRangeInput').value));
+  if(!Number.isFinite(rangeAtPickup) || rangeAtPickup <= 0) rangeAtPickup = maxRange;
+  rangeAtPickup = Math.min(RANGE_MAX, Math.max(0, rangeAtPickup));
+  $('pickupRangeInput').value = rangeAtPickup;
+
+  // A driver who rolls out with more range than the max is just at max; never
+  // let startBurned go negative and hand the planner extra reach.
+  const startBurned = Math.max(0, maxRange - rangeAtPickup);
+  return { maxRange, rangeAtPickup, startBurned };
+}
+
+// Range at pickup defaults to max range, and follows it until the driver sets
+// it themselves.
+let pickupRangeTouched = false;
+$('pickupRangeInput').addEventListener('input', () => { pickupRangeTouched = true; });
+$('rangeInput').addEventListener('input', () => {
+  if(!pickupRangeTouched) $('pickupRangeInput').value = $('rangeInput').value;
+});
+
+/* ---- Step 1: geocode both ends and let the driver confirm ---- */
+let geoCands = { pickup: [], delivery: [] };
+
+function offlineNote(lead){
+  return `<div class="rr-note"><b>${lead}</b> Route planning needs a data connection.
+    Switch back to <b>Stops</b> — the map and all ${DATA.length} network locations work without one.</div>`;
+}
+
+function renderConfirm(){
+  const blocks = [
+    { key:'pickup',   label:'Pickup',   typed:$('pickupInput').value.trim(),   input:'pickupInput' },
+    { key:'delivery', label:'Delivery', typed:$('deliveryInput').value.trim(), input:'deliveryInput' }
+  ];
+  let h = `<div class="rr-head">Check the addresses</div>
+    <div class="rr-sub">Dispatch addresses land on the wrong building more often than you'd think.
+      Confirm both before we route the load.</div>`;
+
+  for(const b of blocks){
+    const cands = geoCands[b.key];
+    h += `<div class="gc-block"><div class="gc-label">${b.label}</div>
+      <div class="gc-typed">You entered: ${b.typed}</div>`;
+    if(!isExactMatch(cands[0])){
+      h += `<div class="gc-warn">This one did not resolve to an exact street address.
+        Check it against your dispatch${cands.length > 1 ? ' or pick another match below' : ''} — a wrong
+        building shifts every mile marker in the plan.</div>`;
+    }
+    cands.forEach((c, i) => {
+      h += `<label class="gc-cand">
+        <input type="radio" name="gc-${b.key}" value="${i}"${i === 0 ? ' checked' : ''}>
+        <div class="gc-txt"><div class="gc-addr">${c.label}</div>
+          <div class="gc-kind">${matchKind(c)}</div></div></label>`;
+    });
+    h += `<button class="gc-edit" data-edit="${b.input}">Edit ${b.label.toLowerCase()} address</button></div>`;
+  }
+
+  h += '<button id="confirmBtn">Plan fuel for this load</button>';
+  showRoutePanel(h);
+
+  document.querySelectorAll('.gc-edit').forEach(el => el.addEventListener('click', () => {
+    const input = $(el.dataset.edit);
+    input.focus();
+    input.select();
+  }));
+  $('confirmBtn').addEventListener('click', () => {
+    const pick = key => geoCands[key][
+      +document.querySelector(`input[name="gc-${key}"]:checked`).value];
+    planLoad(pick('pickup'), pick('delivery'));
+  });
+}
+
+async function lookupAddresses(){
+  const btn = $('planBtn');
+  const pickupQ = $('pickupInput').value.trim();
+  const deliveryQ = $('deliveryInput').value.trim();
+
+  if(!pickupQ || !deliveryQ){
+    showRoutePanel(`<div class="rr-note">Enter both the <b>pickup</b> and <b>delivery</b> addresses
+      off your dispatch — street, city, state and zip.</div>`);
+    return;
+  }
+  if(!navigator.onLine){ showRoutePanel(offlineNote('No signal.')); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Looking up…';
+  showRoutePanel('<div class="rr-note">Looking up both addresses…</div>');
+  routeGroup.removeAll();
+
+  try {
+    const [pk, dv] = await Promise.all([
+      geocodeCandidates(pickupQ), geocodeCandidates(deliveryQ)
+    ]);
+    // Name the end that failed; never route from a guess.
+    const failed = [];
+    if(!pk.length) failed.push('pickup');
+    if(!dv.length) failed.push('delivery');
+    if(failed.length){
+      showRoutePanel(`<div class="rr-warn"><b>Could not find the ${failed.join(' or ')} address</b>
+        HERE returned no match for the <b>${failed.join('</b> or <b>')}</b> address.
+        Check the street number, city and state against your dispatch and try again.
+        Nothing was routed — a plan built on a guessed address is worse than no plan.</div>`);
+      return;
+    }
+    geoCands = { pickup: pk, delivery: dv };
+    renderConfirm();
+  } catch(err){
+    showRoutePanel(!navigator.onLine ? offlineNote('Lost signal.')
+      : `<div class="rr-note"><b>Address lookup failed.</b><br>${
+          err && err.message ? err.message : 'Unknown error.'}<br><br>
+        Switch back to <b>Stops</b> — the map and all ${DATA.length} locations still work.</div>`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Look up addresses';
+  }
+}
+
+/* ---- Step 2: route the confirmed pair and plan the fuel ---- */
+async function planLoad(pickup, delivery){
+  const btn = $('confirmBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Planning…'; }
+  if(!navigator.onLine){ showRoutePanel(offlineNote('No signal.')); return; }
+
+  const ranges = readRanges();
+
+  try {
+    const poly = await truckRoute(pickup, delivery);
+
+    // routeMiles from the polyline, not HERE's summary, so the total and the
+    // mile markers are measured the same way.
+    const cum = FuelPlan.cumulativeMiles(poly);
+    const routeMiles = cum[cum.length - 1];
+
+    const proj = FuelPlan.projectStops(poly, FUEL_STOPS, DETOUR_MAX_MI);
+    const result = FuelPlan.planFuel(routeMiles, proj, ranges.maxRange, ranges.startBurned);
+
+    drawRoute(poly, result.plan);
+    renderPlan(result, routeMiles, ranges, pickup, delivery, proj.length);
+  } catch(err){
+    showRoutePanel(!navigator.onLine ? offlineNote('Lost signal mid-plan.')
+      : `<div class="rr-note"><b>Could not plan this load.</b><br>${
+          err && err.message ? err.message : 'Unknown error.'}<br><br>
+        Switch back to <b>Stops</b> — the map and all ${DATA.length} locations still work.</div>`);
+    routeGroup.removeAll();
+  }
+}
+
+$('planBtn').addEventListener('click', lookupAddresses);
+[$('pickupInput'), $('deliveryInput'), $('rangeInput'), $('pickupRangeInput')].forEach(el =>
+  el.addEventListener('keydown', e => { if(e.key === 'Enter') lookupAddresses(); }));
 </script>
 </body>
 </html>
