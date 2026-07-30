@@ -57,7 +57,30 @@ node test/fuelplan.test.js  # just the planning logic
 
 No dependencies, no install step.
 
+## Two version strings, on purpose
+
+They answer different questions and must not be conflated:
+
+- **`FUEL_BOOK_REV`** (`Rev 01-2026`) — which edition of the Covenant fuel book
+  the 146 stations in `DATA` came from. Shown in the **header**, because when the
+  book is reissued stations join and leave the network, and fueling at a station
+  that has left it is a compliance violation. A driver cannot tell stale station
+  data from current station data without it. Bump this only when the station data
+  is re-sourced from a new book.
+- **`APP_VERSION`** (`1.1.1`) — the code. Shown in the **legend card** as a
+  support detail. Bumped for every shipped change.
+
 ## Version history
+
+### v1.1.1
+
+Restored the fuel book revision to the header, where v1.1.0 had replaced it with
+the app version, and moved the app version into the legend card. Both now render
+from their own named constant. Route mode's two side-by-side range inputs are now
+one input — "How far do you run between fuel stops?" — with range-at-pickup
+demoted to an optional disclosure, since it is the exception rather than a
+routine field. Collapsing that disclosure resets it to mirror the main range, so
+a hidden field can never sit on a value that is quietly changing the plan.
 
 ### v1.1.0
 
