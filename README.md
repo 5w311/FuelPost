@@ -19,6 +19,7 @@ lib/fuelplan.js             pure fuel-planning logic (no DOM, no network)
 lib/fuelplan-adaptive.js    widens the detour search before declaring a gap
 lib/triptext.js             formats a plan as plain text for share / save
 lib/location.js             GPS fix labeling and precision checks (no DOM, no network)
+lib/gauge.js                fuel-gauge tick <-> miles math (no DOM, no network)
 lib/flexible-polyline.js    HERE's reference polyline decoder, vendored unmodified (MIT)
 test/*.test.js              plain-node tests, no framework
 test/run.js                 runs every test file and reports a combined total
@@ -84,6 +85,24 @@ They answer different questions and must not be conflated:
   support detail. Bumped for every shipped change.
 
 ## Version history
+
+### v1.5.0
+
+"Range leaving shipper" is now a tappable fuel gauge instead of a mile-number
+input, in the "Not leaving with a full tank?" disclosure — E to F in eighths,
+matching how a driver reads a dash gauge instead of asking them to estimate
+and type a figure. Full tank is a fixed fleet-wide `FULL_TANK_MILES = 1000`
+(`lib/gauge.js`), giving 125 mi per tick. Tap or drag the track to move the
+needle; both snap to the nearest tick. The track's E-to-1/8 segment is a
+permanent red danger marking, like a tachometer redline — not tied to needle
+position — but the needle itself can't land there: selection is clamped to
+ticks 2-8 (1/4 tank through F), with a static note explaining why and a
+Driver Support number for the real emergency case. Opening (or closing) the
+disclosure now resets the needle to F — "assume full unless told otherwise"
+— replacing the old behavior of mirroring whatever the policy range number
+happened to be, which is a real behavior change from v1.4.x. Leaving the
+disclosure closed is unaffected: still assumes a full tank relative to
+policy range, `startBurned` 0. Nothing here persists across page loads.
 
 ### v1.4.1
 
