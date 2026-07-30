@@ -146,12 +146,3 @@ mode is unchanged and keeps working with no signal.
 Stops mode: map and list of all 146 Covenant network locations with filters,
 search, detail cards and legend. Station coordinates geocoded from their street
 addresses via the HERE Geocoding API (see `tools/geocode-report.txt`).
-
-## HERE API key
-
-The key in `index.html` is a client-side key and is visible in source, which is
-normal for a browser map app. It must stay **domain-locked to
-`5w311.github.io`** in the HERE console — Route mode puts two more paid endpoints
-(Geocoding and Routing) behind it. A locked key returns
-`401 Unauthorized. The request is not from an authorized source.` anywhere other
-than the allowlisted domain, which is the expected behavior.
