@@ -85,6 +85,20 @@ They answer different questions and must not be conflated:
 
 ## Version history
 
+### v1.4.1
+
+Route mode's pickup/delivery/range fields collapse into a drawer once a plan
+or gap result is showing, so the map and the fuel stop list get the screen
+instead of permanently-visible input fields. A tab row (compact summary +
+chevron) stays visible and tappable in either state — tapping it toggles the
+drawer, and it's the only affordance needed to reach a collapsed Clear trip
+button, so that's never more than one tap away. Auto-collapses the moment a
+plan or gap renders; auto-expands again on a validation or geocoding
+failure, or when Clear trip resets the fields. Switching Stops → Route
+restores whichever state fits the current result — expanded if nothing's
+planned yet, collapsed with the summary intact if a plan is still showing.
+Layout only: no change to how a plan is computed.
+
 ### v1.4.0
 
 Precise location, shared by both modes through one `navigator.geolocation`

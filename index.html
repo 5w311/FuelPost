@@ -112,8 +112,19 @@
   /* STOPS-mode filters stay in the DOM; they just hide while planning a route. */
   body.route-mode .stops-only{display:none;}
 
-  #routebar{display:none;flex-direction:column;gap:8px;padding:10px 12px;background:#fff;border-bottom:1px solid var(--line);flex-shrink:0;z-index:400;}
+  #routebar{display:none;flex-direction:column;background:#fff;border-bottom:1px solid var(--line);flex-shrink:0;z-index:400;overflow:hidden;}
   body.route-mode #routebar{display:flex;}
+
+  /* Collapsible drawer — the tab row stays visible and tappable in either
+     state; the field body's max-height animates like #sheet's transform,
+     just for an in-flow element instead of an overlay. */
+  .rb-tab{display:flex;align-items:center;gap:8px;width:100%;padding:11px 12px;border:none;background:none;font:inherit;color:inherit;text-align:left;-webkit-tap-highlight-color:transparent;}
+  .rb-tab-label{flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rb-tab-chev{flex-shrink:0;width:16px;height:16px;color:var(--sub);transition:transform .2s ease;}
+  #routebar.collapsed .rb-tab-chev{transform:rotate(-90deg);}
+  .rb-body{display:flex;flex-direction:column;gap:8px;padding:0 12px 10px;max-height:560px;opacity:1;overflow:hidden;transition:max-height .25s ease, opacity .2s ease;}
+  #routebar.collapsed .rb-body{max-height:0;opacity:0;padding-top:0;padding-bottom:0;}
+
   .rb-field{flex:1;min-width:0;}
   .rb-field label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--sub);margin-bottom:3px;}
   .rb-field input{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);font-size:13px;background:var(--bg);color:var(--ink);}
@@ -248,6 +259,11 @@
   </div>
 
   <div id="routebar">
+    <button type="button" id="routebarTab" class="rb-tab" aria-expanded="true" aria-controls="routebarBody">
+      <span class="rb-tab-label" id="routebarSummary">Trip details</span>
+      <svg class="rb-tab-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="rb-body" id="routebarBody">
     <div class="rb-field">
       <label for="pickupInput">Pickup — street, city, state, zip</label>
       <div class="rb-locate-wrap">
@@ -285,6 +301,7 @@
     </div>
     <button id="planBtn">Plan fuel for this load</button>
     <button type="button" id="clearTripBtn" hidden>Clear trip</button>
+    </div>
   </div>
 
   <div id="mapwrap">
@@ -517,7 +534,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -869,9 +886,44 @@ routeGroup.setVisibility(false);
 
 let planStops = [];  // chosen stops from the last plan, for tap-through to openSheet
 
+/* ---- Collapsible trip-details drawer ----
+   Once a plan exists, the driver's attention is on the map and the fuel
+   stop list, not the fields that produced it. The tab row (and its
+   summary) stays visible and tappable in either state — collapsing never
+   hides the way back in, or the way to Clear trip. */
+let routebarOpen = true;
+
+// "1234 South 3200 West, Salt Lake City, UT 84104" -> "Salt Lake City, UT"
+function shortAddr(label){
+  if(!label) return '';
+  const parts = label.split(',').map(s => s.trim()).filter(Boolean);
+  if(parts.length < 2) return label;
+  const city = parts[parts.length - 2];
+  const stateMatch = parts[parts.length - 1].match(/^[A-Z]{2}\b/);
+  return stateMatch ? `${city}, ${stateMatch[0]}` : `${city}, ${parts[parts.length - 1]}`;
+}
+
+function updateRoutebarSummary(){
+  const label = $('routebarSummary');
+  if(routebarOpen){ label.textContent = 'Trip details'; return; }
+  label.textContent = (confirmed.pickup && confirmed.delivery)
+    ? `${shortAddr(confirmed.pickup.label)} → ${shortAddr(confirmed.delivery.label)} · ${$('rangeInput').value} mi`
+    : 'Enter pickup and delivery';
+}
+
+function setRoutebarOpen(open){
+  routebarOpen = open;
+  $('routebar').classList.toggle('collapsed', !open);
+  $('routebarTab').setAttribute('aria-expanded', String(open));
+  updateRoutebarSummary();
+}
+
+$('routebarTab').addEventListener('click', () => setRoutebarOpen(!routebarOpen));
+
 /* ---- Mode switch ---- */
 function setMode(mode){
   const route = mode === 'route';
+  const enteringRoute = route && !document.body.classList.contains('route-mode');
   document.body.classList.toggle('route-mode', route);
   document.querySelectorAll('#modeSeg button').forEach(b =>
     b.classList.toggle('active', b.dataset.v === mode));
@@ -881,6 +933,9 @@ function setMode(mode){
   if(route){
     $('listview').classList.remove('show');
     $('legendCard').classList.remove('show');
+    // Re-entering Route: expanded if there's nothing planned yet, collapsed
+    // with the summary intact if a plan or gap is still the last result.
+    if(enteringRoute) setRoutebarOpen(!$('routeResultsBody').innerHTML);
   }
   closeSheet();
   map.getViewPort().resize();
@@ -1097,6 +1152,7 @@ function clearTrip(){
   routeGroup.removeAll();   // polyline + endpoint pins + chosen fuel stops
 
   updateClearVisibility();
+  setRoutebarOpen(true);   // fields are blank again — surface them, not the summary
   $('pickupInput').focus();
 }
 
@@ -1227,6 +1283,10 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
     el.addEventListener('click', () => openSheet(planStops[+el.dataset.idx].row)));
   document.querySelectorAll('.rr-fix').forEach(el =>
     el.addEventListener('click', () => reopenPicker(el.dataset.end)));
+
+  // A plan or gap result is now showing — the map and the stop list are
+  // what matter next, not the fields that produced them.
+  setRoutebarOpen(false);
 }
 
 /* ---- Ranges ---- */
@@ -1447,11 +1507,12 @@ async function startPlan(){
   const deliveryQ = $('deliveryInput').value.trim();
 
   if(!pickupQ || !deliveryQ){
+    setRoutebarOpen(true);   // the driver needs to see the field that's missing
     showRoutePanel(`<div class="rr-note">Enter both the <b>pickup</b> and <b>delivery</b> addresses
       off your dispatch — street, city, state and zip.</div>`);
     return;
   }
-  if(!navigator.onLine){ showRoutePanel(offlineNote('No signal.')); return; }
+  if(!navigator.onLine){ setRoutebarOpen(true); showRoutePanel(offlineNote('No signal.')); return; }
 
   btn.disabled = true;
   btn.textContent = 'Looking up…';
@@ -1472,6 +1533,7 @@ async function startPlan(){
     if(!pk.length) failed.push('pickup');
     if(!dv.length) failed.push('delivery');
     if(failed.length){
+      setRoutebarOpen(true);   // the address that failed lives in one of these fields
       showRoutePanel(`<div class="rr-warn"><b>Could not find the ${failed.join(' or ')} address</b>
         HERE returned no match for the <b>${failed.join('</b> or <b>')}</b> address.
         Check the street number, city and state against your dispatch and try again.
@@ -1489,6 +1551,7 @@ async function startPlan(){
       renderConfirmStep(ambiguous);
     }
   } catch(err){
+    setRoutebarOpen(true);
     showRoutePanel(!navigator.onLine ? offlineNote('Lost signal.')
       : `<div class="rr-note"><b>Address lookup failed.</b><br>${
           err && err.message ? err.message : 'Unknown error.'}<br><br>
@@ -1504,7 +1567,7 @@ async function planLoad(pickup, delivery){
   confirmed = { pickup, delivery };
   const btn = $('confirmBtn');
   if(btn){ btn.disabled = true; btn.textContent = 'Planning…'; }
-  if(!navigator.onLine){ showRoutePanel(offlineNote('No signal.')); return; }
+  if(!navigator.onLine){ setRoutebarOpen(true); showRoutePanel(offlineNote('No signal.')); return; }
   // fuelplan-adaptive.js loads via a background fetch (see the shim above);
   // it finishes almost immediately, but guard the sliver of time before it has.
   if(!FuelPlanAdaptive){
@@ -1530,6 +1593,7 @@ async function planLoad(pickup, delivery){
     drawRoute(poly, result.plan);
     renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup);
   } catch(err){
+    setRoutebarOpen(true);
     showRoutePanel(!navigator.onLine ? offlineNote('Lost signal mid-plan.')
       : `<div class="rr-note"><b>Could not plan this load.</b><br>${
           err && err.message ? err.message : 'Unknown error.'}<br><br>
