@@ -10,6 +10,9 @@
     --navy:#0B2340; --navy2:#12335c; --ta:#0057B8; --petro:#00843D;
     --gold:#F0A93A; --bg:#F5F6F8; --line:#DEE3EA; --ink:#101826; --sub:#5B6B7D;
     --radius:14px;
+    /* Location dot — must read as its own thing at a glance, not blend into
+       the TA-blue/Petro-green/gold/navy/danger-red palette already on screen. */
+    --you-are-here:#E4007C;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);overflow:hidden;}
@@ -91,6 +94,11 @@
      HERE's own settings control. Three visual states: off (grey, no fix yet),
      locating (blue, watch running), locked (filled, a fix is in hand). */
   #locateBtn{position:absolute;left:10px;bottom:34px;z-index:400;background:#fff;border:1px solid var(--line);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.15);color:var(--sub);}
+  /* STOPS mode only — Route mode has its own "use my location" on the
+     pickup field. #locateBtn's own id-scoped display:flex above outranks
+     the plain .stops-only class rule by specificity, so it needs its own
+     explicit override here to actually hide in Route mode. */
+  body.route-mode #locateBtn{display:none;}
   #locateBtn svg{width:20px;height:20px;}
   #locateBtn.locating{color:var(--ta);}
   #locateBtn.locating svg{animation:locate-spin 1.1s linear infinite;}
@@ -100,8 +108,18 @@
   #locateError[hidden]{display:none;}
 
   /* Live position dot — own H.map.Group so STOPS filter re-renders (which
-     rebuild markerGroup) never touch it. */
-  .geo-dot{width:16px;height:16px;border-radius:50%;background:var(--ta);border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45);}
+     rebuild markerGroup) never touch it. Uses --you-are-here, not --ta —
+     the dot used to be var(--ta), the exact same blue as every TA pin, and
+     got lost in a cluster of them. */
+  .geo-dot-wrap{position:relative;width:32px;height:32px;display:flex;align-items:center;justify-content:center;}
+  /* Fixed pixel size at every zoom — unlike the true accuracy circle (a real
+     H.map.Circle with a meter radius, drawn separately), this is purely a
+     "look here" cue and never shrinks away when zoomed out. Subtle: opacity
+     only, no scaling, so it doesn't compete for attention on a screen a
+     driver is glancing at, not staring at. */
+  .geo-pulse{position:absolute;width:30px;height:30px;border-radius:50%;background:var(--you-are-here);opacity:.4;animation:geo-pulse 2.2s ease-in-out infinite;}
+  @keyframes geo-pulse{0%,100%{opacity:.4;}50%{opacity:.15;}}
+  .geo-dot{position:relative;width:16px;height:16px;border-radius:50%;background:var(--you-are-here);border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45);}
 
   #legendCard{position:absolute;right:10px;top:52px;z-index:401;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:0 4px 12px rgba(0,0,0,.18);font-size:11.5px;display:none;width:198px;}
   #legendCard.show{display:block;}
@@ -332,7 +350,7 @@
     <div id="listview"></div>
     <div id="routeResults"><div class="rr-body" id="routeResultsBody"></div></div>
     <button id="legendBtn">Legend ⓘ</button>
-    <button id="locateBtn" title="Show my location" aria-label="Show my location">
+    <button id="locateBtn" class="stops-only" title="Show my location" aria-label="Show my location">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><path d="M12 1.5v3.2M12 19.3v3.2M1.5 12h3.2M19.3 12h3.2"/></svg>
     </button>
     <div id="legendCard">
@@ -559,7 +577,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.5.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -828,8 +846,14 @@ function renderLocationDot(){
 
   // An exact-looking dot on a bad fix is misleading — draw only the ring.
   if(GeoLib.isPreciseFix(accuracy)){
+    // .geo-pulse sits first (underneath), .geo-dot on top — the fixed-size
+    // attention ring is decorative, the dot is the actual position. (Both
+    // live in the same DOM marker, which HERE draws in its DOM overlay
+    // layer above the canvas-rendered accuracy circle above; the source
+    // order here only controls stacking between the pulse ring and the dot
+    // themselves, which is what actually matters at this small a radius.)
     const w = document.createElement('div');
-    w.innerHTML = '<div class="geo-dot"></div>';
+    w.innerHTML = '<div class="geo-dot-wrap"><div class="geo-pulse"></div><div class="geo-dot"></div></div>';
     const marker = new H.map.DomMarker({ lat, lng }, { icon: new H.map.DomIcon(w.firstElementChild) });
     locateGroup.addObject(marker);
   }
