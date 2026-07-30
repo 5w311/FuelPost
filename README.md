@@ -18,6 +18,7 @@ index.html                  the app — markup, styles, DATA array, map + UI wir
 lib/fuelplan.js             pure fuel-planning logic (no DOM, no network)
 lib/fuelplan-adaptive.js    widens the detour search before declaring a gap
 lib/triptext.js             formats a plan as plain text for share / save
+lib/location.js             GPS fix labeling and precision checks (no DOM, no network)
 lib/flexible-polyline.js    HERE's reference polyline decoder, vendored unmodified (MIT)
 test/*.test.js              plain-node tests, no framework
 test/run.js                 runs every test file and reports a combined total
@@ -83,6 +84,25 @@ They answer different questions and must not be conflated:
   support detail. Bumped for every shipped change.
 
 ## Version history
+
+### v1.4.0
+
+Precise location, shared by both modes through one `navigator.geolocation`
+watch — permission is asked once, and whichever feature is tapped first
+reuses the fix for the other rather than prompting again. **Stops** gets a
+live position dot (own `H.map.Group`, so STOPS filter re-renders never touch
+it) with an accuracy ring and a recenter button; the dot renders only when
+`lib/location.js`'s `isPreciseFix` says the fix is good enough — an
+exact-looking dot on a bad fix is worse than just the ring. **Route**'s
+pickup field gets a "use my location" button that reverse-geocodes the fix
+(HERE Reverse Geocoding v7, falling back to `formatGpsFallbackLabel`'s
+coordinate label if that fails) and drops it straight into the existing
+single-candidate fast path — no disambiguation step, same as a clean typed
+match today. Editing a GPS-filled field afterward clears it back to normal
+typed-address handling. Permission denied, position unavailable and
+insecure-context failures all show a plain message with the button left
+tappable to retry. Nothing here is persisted — `liveFix` lives in memory
+only, gone on reload.
 
 ### v1.3.0
 

@@ -87,6 +87,22 @@
 
   #legendBtn{position:absolute;right:10px;top:10px;z-index:400;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-size:11.5px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.15);color:var(--navy);}
 
+  /* Recenter control, bottom-left — top-right is #legendBtn, bottom-right is
+     HERE's own settings control. Three visual states: off (grey, no fix yet),
+     locating (blue, watch running), locked (filled, a fix is in hand). */
+  #locateBtn{position:absolute;left:10px;bottom:34px;z-index:400;background:#fff;border:1px solid var(--line);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.15);color:var(--sub);}
+  #locateBtn svg{width:20px;height:20px;}
+  #locateBtn.locating{color:var(--ta);}
+  #locateBtn.locating svg{animation:locate-spin 1.1s linear infinite;}
+  #locateBtn.locked{color:#fff;background:var(--ta);border-color:var(--ta);}
+  @keyframes locate-spin{to{transform:rotate(360deg);}}
+  #locateError{position:absolute;left:10px;right:10px;bottom:80px;z-index:401;background:#FDECEC;border:1px solid #F0BEBE;border-radius:9px;padding:8px 11px;font-size:11.5px;color:#8A1C1C;line-height:1.4;box-shadow:0 2px 6px rgba(0,0,0,.15);}
+  #locateError[hidden]{display:none;}
+
+  /* Live position dot — own H.map.Group so STOPS filter re-renders (which
+     rebuild markerGroup) never touch it. */
+  .geo-dot{width:16px;height:16px;border-radius:50%;background:var(--ta);border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45);}
+
   #legendCard{position:absolute;right:10px;top:52px;z-index:401;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:0 4px 12px rgba(0,0,0,.18);font-size:11.5px;display:none;width:198px;}
   #legendCard.show{display:block;}
   #legendCard div{display:flex;align-items:center;gap:7px;margin:5px 0;}
@@ -102,6 +118,21 @@
   .rb-field label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--sub);margin-bottom:3px;}
   .rb-field input{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);font-size:13px;background:var(--bg);color:var(--ink);}
   .rb-help{font-size:11px;color:var(--sub);margin-top:4px;line-height:1.35;}
+
+  /* "Use my location" sits inside the pickup field, right-aligned like the
+     mi unit on the range input. */
+  .rb-locate-wrap{position:relative;}
+  .rb-locate-wrap input{padding-right:38px;}
+  .rb-locate-btn{position:absolute;right:5px;top:50%;transform:translateY(-50%);border:none;background:none;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ta);}
+  .rb-locate-btn svg{width:17px;height:17px;}
+  .rb-locate-btn.busy{opacity:.5;}
+  .rb-locate-btn.busy svg{animation:locate-spin 1.1s linear infinite;}
+  /* Persistent marker that the pickup came from GPS, not typed text. */
+  .rb-gps-note{font-size:11px;color:var(--ta);font-weight:700;margin-top:4px;display:flex;align-items:center;gap:4px;}
+  .rb-gps-note svg{width:12px;height:12px;flex-shrink:0;}
+  .rb-gps-note[hidden]{display:none;}
+  .geo-error{font-size:11.5px;color:#8A1C1C;background:#FDECEC;border:1px solid #F0BEBE;border-radius:9px;padding:7px 9px;margin-top:5px;line-height:1.4;}
+  .geo-error[hidden]{display:none;}
   /* Range at pickup is the exception, not the routine field — a plain text
      disclosure rather than a second input competing with the habit. */
   .rb-disclosure{align-self:flex-start;background:none;border:none;padding:2px 0;font-size:12.5px;font-weight:700;color:var(--ta);text-decoration:underline;}
@@ -219,7 +250,17 @@
   <div id="routebar">
     <div class="rb-field">
       <label for="pickupInput">Pickup — street, city, state, zip</label>
-      <input id="pickupInput" placeholder="e.g. 2000 Distribution Way, Memphis, TN 38118" autocomplete="off" autocapitalize="words">
+      <div class="rb-locate-wrap">
+        <input id="pickupInput" placeholder="e.g. 2000 Distribution Way, Memphis, TN 38118" autocomplete="off" autocapitalize="words">
+        <button type="button" id="pickupLocateBtn" class="rb-locate-btn" title="Use my current location" aria-label="Use my current location">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><path d="M12 1.5v3.2M12 19.3v3.2M1.5 12h3.2M19.3 12h3.2"/></svg>
+        </button>
+      </div>
+      <div class="rb-gps-note" id="pickupGpsNote" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        Using your current location
+      </div>
+      <div class="geo-error" id="pickupGeoError" hidden></div>
     </div>
     <div class="rb-field">
       <label for="deliveryInput">Delivery — street, city, state, zip</label>
@@ -251,6 +292,9 @@
     <div id="listview"></div>
     <div id="routeResults"><div class="rr-body" id="routeResultsBody"></div></div>
     <button id="legendBtn">Legend ⓘ</button>
+    <button id="locateBtn" title="Show my location" aria-label="Show my location">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><path d="M12 1.5v3.2M12 19.3v3.2M1.5 12h3.2M19.3 12h3.2"/></svg>
+    </button>
     <div id="legendCard">
       <div><span class="sw" style="background:var(--ta)"></span> TA location</div>
       <div><span class="sw" style="background:var(--petro)"></span> Petro location</div>
@@ -286,6 +330,8 @@
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
 <script src="lib/triptext.js"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
+<script src="lib/location.js"></script>
+<script>var GeoLib = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
      — real Node syntax. Loading it with a plain src attribute, like the two
@@ -471,7 +517,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -645,6 +691,156 @@ document.getElementById('legendBtn').addEventListener('click', ()=>{
 
 render();
 
+const $ = id => document.getElementById(id);
+
+/* ============================================================================
+   LOCATION — one geolocation watch shared by the STOPS map dot and ROUTE's
+   "use my location" pickup button. Permission is asked once: whichever
+   feature is tapped first starts the watch, the other reuses the fix already
+   in hand instead of prompting again. Nothing here is persisted — liveFix
+   lives in memory only and is gone on reload.
+   ========================================================================== */
+let liveFix = null;        // {lat, lng, accuracy} or null
+let watchId = null;
+let watchPaused = false;   // true only if visibilitychange paused a running watch
+let pickupLocatePending = false;  // pickup's "use my location" is waiting on startWatch()'s first fix
+
+const locateGroup = new H.map.Group();
+map.addObject(locateGroup);
+
+function geoErrorMessage(err){
+  if(!window.isSecureContext) return 'Location needs a secure (https) connection. This works on the deployed site.';
+  if(!navigator.geolocation) return 'Location is not supported on this device.';
+  if(err){
+    if(err.code === err.PERMISSION_DENIED)
+      return 'Location permission denied. Enable it for this site in your browser settings, then tap again to retry.';
+    if(err.code === err.POSITION_UNAVAILABLE)
+      return 'Could not determine your position. Try again in a moment.';
+    if(err.code === err.TIMEOUT)
+      return 'Location request timed out. Try again.';
+  }
+  return 'Could not get your location. Try again.';
+}
+
+function setLocateBtnState(s){
+  const btn = $('locateBtn');
+  btn.classList.remove('locating', 'locked');
+  if(s === 'locating' || s === 'locked') btn.classList.add(s);
+}
+
+function showLocateError(msg){
+  let el = $('locateError');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'locateError';
+    $('mapwrap').appendChild(el);
+  }
+  el.textContent = msg;
+  el.hidden = false;
+}
+function hideLocateError(){
+  const el = $('locateError');
+  if(el) el.hidden = true;
+}
+
+function showPickupGeoError(msg){
+  $('pickupGeoError').textContent = msg;
+  $('pickupGeoError').hidden = false;
+}
+function hidePickupGeoError(){
+  $('pickupGeoError').hidden = true;
+}
+
+function setPickupLocateBusy(busy){
+  $('pickupLocateBtn').classList.toggle('busy', busy);
+  $('pickupLocateBtn').disabled = busy;
+}
+
+// Shared failure path for both surfaces — never leaves a button dead, both
+// stay tappable to retry.
+function failLocation(msg){
+  setLocateBtnState('off');
+  showLocateError(msg);
+  if(pickupLocatePending){
+    pickupLocatePending = false;
+    setPickupLocateBusy(false);
+    showPickupGeoError(msg);
+  }
+}
+
+function handleLocationError(err){
+  failLocation(geoErrorMessage(err));
+}
+
+function renderLocationDot(){
+  locateGroup.removeAll();
+  if(!liveFix) return;
+  const { lat, lng, accuracy } = liveFix;
+
+  // A real geo-circle (meters, scales with zoom), not a fixed-size DOM icon —
+  // it has to actually represent the accuracy radius.
+  const ring = new H.map.Circle({ lat, lng }, Math.max(accuracy || 0, 20), {
+    style: { fillColor: 'rgba(0,87,184,.16)', strokeColor: 'rgba(0,87,184,.4)', lineWidth: 1 }
+  });
+  locateGroup.addObject(ring);
+
+  // An exact-looking dot on a bad fix is misleading — draw only the ring.
+  if(GeoLib.isPreciseFix(accuracy)){
+    const w = document.createElement('div');
+    w.innerHTML = '<div class="geo-dot"></div>';
+    const marker = new H.map.DomMarker({ lat, lng }, { icon: new H.map.DomIcon(w.firstElementChild) });
+    locateGroup.addObject(marker);
+  }
+}
+
+function startWatch(){
+  if(watchId != null) return;
+  if(!window.isSecureContext || !navigator.geolocation){
+    failLocation(geoErrorMessage(null));
+    return;
+  }
+  setLocateBtnState('locating');
+  watchId = navigator.geolocation.watchPosition(
+    pos => {
+      liveFix = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+      renderLocationDot();
+      setLocateBtnState('locked');
+      hideLocateError();
+      if(pickupLocatePending) resolvePickupLocate();
+    },
+    err => handleLocationError(err),
+    { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 }
+  );
+}
+
+function clearWatch(){
+  if(watchId != null){
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+}
+
+// Pause while the tab is hidden, resume on return — but never on switching
+// between STOPS and ROUTE, which share the same map and the same dot.
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden){
+    if(watchId != null){ clearWatch(); watchPaused = true; }
+  } else if(watchPaused){
+    watchPaused = false;
+    startWatch();
+  }
+});
+
+$('locateBtn').addEventListener('click', () => {
+  hideLocateError();
+  if(liveFix){
+    map.setCenter({ lat: liveFix.lat, lng: liveFix.lng });
+    map.setZoom(11);
+    return;
+  }
+  startWatch();
+});
+
 /* ============================================================================
    ROUTE MODE — origin/destination truck route, auto-selected network fuel stops
    Selection logic lives in lib/fuelplan.js (tested, unmodified). This section
@@ -672,8 +868,6 @@ map.addObject(routeGroup);
 routeGroup.setVisibility(false);
 
 let planStops = [];  // chosen stops from the last plan, for tap-through to openSheet
-
-const $ = id => document.getElementById(id);
 
 /* ---- Mode switch ---- */
 function setMode(mode){
@@ -716,12 +910,16 @@ async function geocodeCandidates(q){
 
 // A match is only trustworthy if HERE resolved it to an actual address point
 // and scored it high. Anything else gets flagged for the driver to check.
+// A GPS-sourced candidate is a device fix, not a geocode result to second-guess
+// — it's exact by construction, so it always clears this check.
 function isExactMatch(c){
+  if(c.source === 'gps') return true;
   const precise = c.resultType === 'houseNumber' || c.resultType === 'place'
                || c.resultType === 'street' || c.resultType === 'postalCodePoint';
   return precise && (c.score === null || c.score >= 0.9);
 }
 function matchKind(c){
+  if(c.source === 'gps') return 'Your current location';
   const kind = {
     houseNumber:'Street address', place:'Named place', street:'Street (no number matched)',
     locality:'City / town centre only', administrativeArea:'Region centre only',
@@ -881,6 +1079,8 @@ function updateClearVisibility(){
 function clearTrip(){
   $('pickupInput').value = '';
   $('deliveryInput').value = '';
+  $('pickupGpsNote').hidden = true;
+  hidePickupGeoError();
 
   $('rangeInput').value = ROUTE_DEFAULT_RANGE;
   // Reuse the disclosure's own collapse behaviour — it already resets
@@ -1083,6 +1283,72 @@ let geoCands = { pickup: [], delivery: [] };
 // end fixed while re-picking just the one the driver flagged.
 let confirmed = { pickup: null, delivery: null };
 
+/* ---- Pickup "use my location" ----
+   Fills the pickup field from the shared liveFix instead of typed text. If a
+   fix is already in hand (the STOPS dot got there first), it's used
+   immediately — no second permission prompt. */
+
+async function reverseGeocode(lat, lng){
+  const url = 'https://revgeocode.search.hereapi.com/v1/revgeocode'
+    + `?at=${lat},${lng}&apikey=${HERE_API_KEY}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(`Reverse geocode failed (HTTP ${res.status}).`);
+  const j = await res.json();
+  const label = j.items && j.items[0] && j.items[0].address && j.items[0].address.label;
+  if(!label) throw new Error('No reverse geocode match.');
+  return label;
+}
+
+function setPickupFromGps(lat, lng, label){
+  $('pickupInput').value = label;
+  // A single already-confirmed candidate — flows straight through the
+  // existing fast path with no disambiguation step, same as a clean
+  // forward-geocode match does today (see isExactMatch's source==='gps' case).
+  geoCands.pickup = [{ lat, lng, label, source: 'gps' }];
+  confirmed.pickup = null;
+  $('pickupGpsNote').hidden = false;
+  hidePickupGeoError();
+  updateClearVisibility();
+}
+
+function applyPickupGpsFix(){
+  const { lat, lng } = liveFix;
+  reverseGeocode(lat, lng)
+    .then(label => setPickupFromGps(lat, lng, label))
+    // Reverse geocoding failing doesn't mean the fix failed — fall back to
+    // coordinates rather than leaving the field unusable.
+    .catch(() => setPickupFromGps(lat, lng, GeoLib.formatGpsFallbackLabel(lat, lng)))
+    .finally(() => setPickupLocateBusy(false));
+}
+
+function resolvePickupLocate(){
+  pickupLocatePending = false;
+  applyPickupGpsFix();
+}
+
+$('pickupLocateBtn').addEventListener('click', () => {
+  hidePickupGeoError();
+  if(liveFix){
+    setPickupLocateBusy(true);
+    applyPickupGpsFix();
+    return;
+  }
+  setPickupLocateBusy(true);
+  pickupLocatePending = true;
+  startWatch();
+});
+
+// Editing the field after a GPS fill means the driver is overriding it —
+// drop the GPS candidate and marker, let normal forward-geocoding on plan
+// take over again.
+$('pickupInput').addEventListener('input', () => {
+  if(geoCands.pickup.length && geoCands.pickup[0].source === 'gps'){
+    geoCands.pickup = [];
+    confirmed.pickup = null;
+  }
+  $('pickupGpsNote').hidden = true;
+});
+
 function offlineNote(lead){
   return `<div class="rr-note"><b>${lead}</b> Route planning needs a data connection.
     Switch back to <b>Stops</b> — the map and all ${DATA.length} network locations work without one.</div>`;
@@ -1193,8 +1459,13 @@ async function startPlan(){
   routeGroup.removeAll();
 
   try {
+    // A pickup filled by "use my location" and left untouched is already a
+    // confirmed candidate — re-running forward geocoding on its label text
+    // would just be searching for the address GPS already gave us directly.
+    const pickupFromGps = geoCands.pickup.length === 1 && geoCands.pickup[0].source === 'gps';
     const [pk, dv] = await Promise.all([
-      geocodeCandidates(pickupQ), geocodeCandidates(deliveryQ)
+      pickupFromGps ? Promise.resolve(geoCands.pickup) : geocodeCandidates(pickupQ),
+      geocodeCandidates(deliveryQ)
     ]);
     // Name the end that failed; never route from a guess.
     const failed = [];
