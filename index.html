@@ -151,6 +151,23 @@
   .rb-range-wrap{position:relative;}
   .rb-range-wrap input{width:100%;padding:8px 28px 8px 10px;border-radius:10px;border:1px solid var(--line);font-size:13px;background:var(--bg);color:var(--ink);}
   .rb-unit{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:11.5px;color:var(--sub);font-weight:700;}
+
+  /* Fuel gauge — needle, not a fill bar. The E-1/8 segment of the TRACK
+     itself is permanently red (a fixed danger marking, like a tachometer
+     redline); the needle's own color never changes with position, and its
+     usable range is clamped to ticks 2-8 (1/4 tank through F) in JS. */
+  .gauge{margin-top:2px;-webkit-tap-highlight-color:transparent;}
+  .gauge-labels{position:relative;height:13px;margin-bottom:4px;}
+  .gauge-labels span{position:absolute;top:0;transform:translateX(-50%);font-size:9.5px;font-weight:800;color:var(--sub);white-space:nowrap;}
+  .gauge-track{position:relative;height:36px;border:3px solid var(--navy);border-radius:10px;background:var(--bg);touch-action:none;cursor:pointer;}
+  .gauge-danger{position:absolute;top:-3px;bottom:-3px;left:-3px;width:calc(12.5% + 3px);background:#F3B4B4;border-radius:8px 0 0 8px;pointer-events:none;}
+  .gauge-tick{position:absolute;top:5px;bottom:5px;width:2px;background:rgba(11,35,64,.3);transform:translateX(-50%);pointer-events:none;}
+  .gauge-tick.minor{top:11px;bottom:11px;width:1px;background:rgba(11,35,64,.18);}
+  .gauge-needle{position:absolute;top:-4px;bottom:-4px;width:9px;border-radius:5px;background:#C4281C;box-shadow:0 1px 4px rgba(0,0,0,.35);transform:translateX(-50%);pointer-events:none;}
+  .gauge-danger-note{font-size:10.5px;color:#8A1C1C;line-height:1.4;margin-top:8px;}
+  .gauge-danger-note a{color:#8A1C1C;font-weight:700;}
+  .gauge-readout{font-size:13px;font-weight:700;color:var(--ink);margin-top:8px;}
+
   #planBtn{width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:0 14px;height:38px;font-size:13.5px;font-weight:700;}
   #planBtn[disabled]{opacity:.55;}
   /* Clear is a text button, not a second filled button competing with Plan —
@@ -292,12 +309,18 @@
     </div>
     <button type="button" id="pickupRangeToggle" class="rb-disclosure" aria-expanded="false" aria-controls="pickupRangeField">Not leaving with a full tank?</button>
     <div class="rb-field" id="pickupRangeField" hidden>
-      <label for="pickupRangeInput">How far can you run right now?</label>
-      <div class="rb-range-wrap">
-        <input id="pickupRangeInput" type="number" value="800" min="25" max="1200" step="10" inputmode="numeric">
-        <span class="rb-unit">mi</span>
+      <label id="gaugeLabel">How far can you run right now?</label>
+      <div class="gauge" id="fuelGauge" tabindex="0" role="slider" aria-labelledby="gaugeLabel" aria-valuemin="2" aria-valuemax="8">
+        <div class="gauge-labels" id="gaugeLabels"></div>
+        <div class="gauge-track" id="gaugeTrack">
+          <div class="gauge-danger"></div>
+          <div class="gauge-ticks" id="gaugeTicks"></div>
+          <div class="gauge-needle" id="gaugeNeedle"></div>
+        </div>
       </div>
-      <div class="rb-help">Miles left in the tank pulling out of the shipper.</div>
+      <div class="gauge-danger-note" id="gaugeDangerNote"></div>
+      <div class="gauge-readout" id="gaugeReadout"></div>
+      <div class="rb-help">Tap or drag to where your gauge sits.</div>
     </div>
     <button id="planBtn">Plan fuel for this load</button>
     <button type="button" id="clearTripBtn" hidden>Clear trip</button>
@@ -349,6 +372,8 @@
 <script>var TripText = module.exports; module = { exports: {} };</script>
 <script src="lib/location.js"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
+<script src="lib/gauge.js"></script>
+<script>var FuelGauge = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
      — real Node syntax. Loading it with a plain src attribute, like the two
@@ -534,7 +559,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.5.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1121,10 +1146,11 @@ function showShareFallback(text){
 const ROUTE_DEFAULT_RANGE = 800;
 
 function routeHasSomethingToClear(){
+  const gaugeChanged = !$('pickupRangeField').hidden && gaugeTick !== GAUGE_MAX_TICK;
   return !!($('pickupInput').value.trim() || $('deliveryInput').value.trim()
     || $('routeResultsBody').innerHTML
     || Number($('rangeInput').value) !== ROUTE_DEFAULT_RANGE
-    || Number($('pickupRangeInput').value) !== ROUTE_DEFAULT_RANGE);
+    || gaugeChanged);
 }
 
 function updateClearVisibility(){
@@ -1138,8 +1164,8 @@ function clearTrip(){
   hidePickupGeoError();
 
   $('rangeInput').value = ROUTE_DEFAULT_RANGE;
-  // Reuse the disclosure's own collapse behaviour — it already resets
-  // pickupRangeInput to mirror the main range and clears pickupRangeTouched.
+  // Reuse the disclosure's own collapse behaviour — it already resets the
+  // gauge to F and closes the field.
   setPickupRangeOpen(false);
 
   geoCands = { pickup: [], delivery: [] };
@@ -1296,42 +1322,109 @@ function readRanges(){
   maxRange = Math.min(RANGE_MAX, Math.max(RANGE_MIN, maxRange));
   $('rangeInput').value = maxRange;
 
-  let rangeAtPickup = Math.round(Number($('pickupRangeInput').value));
-  if(!Number.isFinite(rangeAtPickup) || rangeAtPickup <= 0) rangeAtPickup = maxRange;
-  rangeAtPickup = Math.min(RANGE_MAX, Math.max(0, rangeAtPickup));
-  $('pickupRangeInput').value = rangeAtPickup;
+  // Leaving with a full tank (disclosure closed) still means "full relative
+  // to policy" — maxRange, startBurned 0 — same as before the gauge existed.
+  // Only once the driver says otherwise does the gauge's own reading apply.
+  const pickupOpen = !$('pickupRangeField').hidden;
+  const rangeAtPickup = pickupOpen ? FuelGauge.milesForTick(gaugeTick) : maxRange;
 
   // A driver who rolls out with more range than the max is just at max; never
   // let startBurned go negative and hand the planner extra reach.
-  const startBurned = Math.max(0, maxRange - rangeAtPickup);
+  const startBurned = FuelGauge.computeStartBurned(maxRange, rangeAtPickup);
   return { maxRange, rangeAtPickup, startBurned };
 }
 
-// Range at pickup defaults to max range, and follows it until the driver sets
-// it themselves.
-let pickupRangeTouched = false;
-$('pickupRangeInput').addEventListener('input', () => { pickupRangeTouched = true; });
-$('rangeInput').addEventListener('input', () => {
-  if(!pickupRangeTouched) $('pickupRangeInput').value = $('rangeInput').value;
+/* ---- Fuel gauge (range leaving shipper) ----
+   Needle gauge, not a fill bar: one indicator that slides to the selected
+   tick, its own color never changing with position. The E-1/8 segment of
+   the TRACK is a fixed danger marking, visible regardless of where the
+   needle sits — like a tachometer redline, not a live warning state. The
+   needle's usable range is clamped to ticks 2-8 (1/4 tank through F);
+   isEmergencyZone(tick) in lib/gauge.js stays correct and tested, it's
+   just never true for a tick this control can actually produce. */
+const GAUGE_MIN_TICK = FuelGauge.EMERGENCY_TICK_CEILING; // 2 (1/4 tank) — the floor
+const GAUGE_MAX_TICK = FuelGauge.TICKS;                  // 8 (F)
+const GAUGE_TICK_LABELS = ['E','1/8','1/4','3/8','1/2','5/8','3/4','7/8','F'];
+let gaugeTick = GAUGE_MAX_TICK;
+let gaugeDragging = false;
+
+function buildGaugeMarkup(){
+  $('gaugeLabels').innerHTML = GAUGE_TICK_LABELS
+    .map((lbl, i) => `<span style="left:${i / GAUGE_MAX_TICK * 100}%">${lbl}</span>`)
+    .join('');
+  let ticks = '';
+  for(let i = 0; i <= GAUGE_MAX_TICK; i++){
+    ticks += `<div class="gauge-tick" style="left:${i / GAUGE_MAX_TICK * 100}%"></div>`;
+    if(i < GAUGE_MAX_TICK)
+      ticks += `<div class="gauge-tick minor" style="left:${(i + 0.5) / GAUGE_MAX_TICK * 100}%"></div>`;
+  }
+  $('gaugeTicks').innerHTML = ticks;
+  $('gaugeDangerNote').innerHTML = `Below 1/4 tank isn't selectable here — call Driver Support if
+    you're actually running that low:
+    <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.`;
+}
+buildGaugeMarkup();
+
+function gaugeReadoutText(tick){
+  return `${FuelGauge.tickLabel(tick)} — about ${FuelGauge.milesForTick(tick).toLocaleString()} mi`;
+}
+
+function renderGauge(){
+  const pct = gaugeTick / GAUGE_MAX_TICK * 100;
+  $('gaugeNeedle').style.left = pct + '%';
+  const text = gaugeReadoutText(gaugeTick);
+  $('gaugeReadout').textContent = text;
+  $('fuelGauge').setAttribute('aria-valuenow', String(gaugeTick));
+  $('fuelGauge').setAttribute('aria-valuetext', text);
+}
+
+// The red zone (ticks 0-1) isn't a landing spot — a tap or drag that lands
+// there snaps to the floor (tick 2) instead of wherever was actually tapped.
+function setGaugeTick(rawTick){
+  gaugeTick = Math.max(GAUGE_MIN_TICK, Math.min(GAUGE_MAX_TICK, Math.round(rawTick)));
+  renderGauge();
+  updateClearVisibility();
+}
+
+function tickFromClientX(clientX){
+  const rect = $('gaugeTrack').getBoundingClientRect();
+  const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  return frac * GAUGE_MAX_TICK;
+}
+
+const gaugeTrackEl = $('gaugeTrack');
+gaugeTrackEl.addEventListener('pointerdown', e => {
+  gaugeDragging = true;
+  gaugeTrackEl.setPointerCapture(e.pointerId);
+  setGaugeTick(tickFromClientX(e.clientX));
+});
+gaugeTrackEl.addEventListener('pointermove', e => {
+  if(gaugeDragging) setGaugeTick(tickFromClientX(e.clientX));
+});
+gaugeTrackEl.addEventListener('pointerup', () => { gaugeDragging = false; });
+gaugeTrackEl.addEventListener('pointercancel', () => { gaugeDragging = false; });
+
+$('fuelGauge').addEventListener('keydown', e => {
+  if(e.key === 'ArrowRight' || e.key === 'ArrowUp'){ setGaugeTick(gaugeTick + 1); e.preventDefault(); }
+  else if(e.key === 'ArrowLeft' || e.key === 'ArrowDown'){ setGaugeTick(gaugeTick - 1); e.preventDefault(); }
+  else if(e.key === 'Home'){ setGaugeTick(GAUGE_MIN_TICK); e.preventDefault(); }
+  else if(e.key === 'End'){ setGaugeTick(GAUGE_MAX_TICK); e.preventDefault(); }
+  else if(e.key === 'Enter') startPlan();
 });
 
-// Collapsing the disclosure resets range-at-pickup to mirror the main range, so
-// a hidden field can never sit on a stale value that is quietly changing the
-// plan. Revealing it and leaving it alone plans identically — nothing special
-// needed for that case.
+renderGauge();
+
+// Collapsing (or opening) the disclosure resets the gauge to F — "assume
+// full unless told otherwise" is the honest default for a gauge, unlike the
+// old input's "mirror whatever the policy number happens to be".
 function setPickupRangeOpen(open){
   $('pickupRangeField').hidden = !open;
   $('pickupRangeToggle').setAttribute('aria-expanded', String(open));
   $('pickupRangeToggle').textContent = open
     ? 'Never mind — leaving with a full tank'
     : 'Not leaving with a full tank?';
-  if(open){
-    $('pickupRangeInput').focus();
-    $('pickupRangeInput').select();
-  } else {
-    pickupRangeTouched = false;
-    $('pickupRangeInput').value = $('rangeInput').value;
-  }
+  setGaugeTick(GAUGE_MAX_TICK);
+  if(open) $('fuelGauge').focus();
 }
 $('pickupRangeToggle').addEventListener('click', () => {
   setPickupRangeOpen($('pickupRangeField').hidden);
@@ -1603,7 +1696,7 @@ async function planLoad(pickup, delivery){
 }
 
 $('planBtn').addEventListener('click', startPlan);
-[$('pickupInput'), $('deliveryInput'), $('rangeInput'), $('pickupRangeInput')].forEach(el => {
+[$('pickupInput'), $('deliveryInput'), $('rangeInput')].forEach(el => {
   el.addEventListener('keydown', e => { if(e.key === 'Enter') startPlan(); });
   el.addEventListener('input', updateClearVisibility);
 });
