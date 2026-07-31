@@ -86,6 +86,18 @@ They answer different questions and must not be conflated:
 
 ## Version history
 
+### v1.6.1
+
+Fixed the STOPS locate button: the first tap started the location watch and
+drew the dot, but never moved the map to it — only a *second* tap (once a fix
+was already in hand) actually recentered and zoomed, because that logic lived
+solely in the button's click handler, not in the watch's first-fix callback.
+A driver tapping once and expecting to see themselves on the map got nothing
+until they tapped again. The first fix from a fresh watch now recenters and
+zooms (to 11) exactly once, the same as an already-in-hand fix does on
+tap; later position updates from the ongoing watch do not keep forcing the
+map back, so panning around afterward still works normally.
+
 ### v1.6.0
 
 The gauge's numbers were wrong in a specific way: reading "F" as 1000 mi

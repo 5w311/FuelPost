@@ -577,7 +577,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.6.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -764,6 +764,7 @@ let liveFix = null;        // {lat, lng, accuracy} or null
 let watchId = null;
 let watchPaused = false;   // true only if visibilitychange paused a running watch
 let pickupLocatePending = false;  // pickup's "use my location" is waiting on startWatch()'s first fix
+let locateBtnPending = false;     // STOPS locate button is waiting on startWatch()'s first fix, to recenter once
 
 const locateGroup = new H.map.Group();
 map.addObject(locateGroup);
@@ -821,6 +822,7 @@ function setPickupLocateBusy(busy){
 function failLocation(msg){
   setLocateBtnState('off');
   showLocateError(msg);
+  locateBtnPending = false;
   if(pickupLocatePending){
     pickupLocatePending = false;
     setPickupLocateBusy(false);
@@ -872,6 +874,15 @@ function startWatch(){
       renderLocationDot();
       setLocateBtnState('locked');
       hideLocateError();
+      // The very first fix needs the same recenter+zoom a second tap would
+      // give it (see the click handler below) — otherwise the dot lands
+      // wherever the map already happened to be, off-screen more often than
+      // not, and nothing about the STOPS button's first tap moves the map.
+      if(locateBtnPending){
+        locateBtnPending = false;
+        map.setCenter({ lat: liveFix.lat, lng: liveFix.lng });
+        map.setZoom(11);
+      }
       if(pickupLocatePending) resolvePickupLocate();
     },
     err => handleLocationError(err),
@@ -904,6 +915,7 @@ $('locateBtn').addEventListener('click', () => {
     map.setZoom(11);
     return;
   }
+  locateBtnPending = true;
   startWatch();
 });
 
