@@ -413,7 +413,7 @@
       <div><span class="sw" style="background:var(--petro)"></span> Petro location</div>
       <div><span class="sw" style="background:var(--navy);border-radius:4px"></span> Covenant terminal</div>
       <div><span class="sw" style="background:var(--gold)"></span> Exclusive (most cost-effective)</div>
-      <div style="margin-top:6px;color:var(--sub);font-size:10.5px;line-height:1.4;border-top:1px solid var(--line);padding-top:6px;">Fuel only at network stops. Out-of-network fuel: call Driver Support 423-463-3680.</div>
+      <div id="legendSupportNote" style="margin-top:6px;color:var(--sub);font-size:10.5px;line-height:1.4;border-top:1px solid var(--line);padding-top:6px;"></div>
       <div class="theme-row">
         <span class="theme-label">Theme</span>
         <div class="seg" id="themeSeg">
@@ -653,7 +653,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1106,6 +1106,11 @@ const NEAR_PICKUP_RADIUS_GAP = 50;  // "is anything reachable near the shipper a
 const NEAR_PICKUP_RADIUS_TIP = 25;  // "close enough that topping off first is worth mentioning"
 const RANGE_MIN = 300, RANGE_MAX = 1200;
 const DRIVER_SUPPORT = '423-463-3680';
+// Rendered from JS, same as #appVer elsewhere in the legend card, so this is
+// a tel: link like every other Driver Support mention instead of the one
+// remaining plain-text phone number in the app.
+document.getElementById('legendSupportNote').innerHTML =
+  `Fuel only at network stops. Out-of-network fuel: call Driver Support <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.`;
 
 const routeGroup = new H.map.Group();
 map.addObject(routeGroup);
@@ -1623,10 +1628,8 @@ function buildGaugeMarkup(){
       ticks += `<div class="gauge-tick minor" style="left:${(i + 0.5) / GAUGE_MAX_TICK * 100}%"></div>`;
   }
   $('gaugeTicks').innerHTML = ticks;
-  $('gaugeDangerNote').innerHTML = `Only E is off the gauge. At 1/8 tank you're at 0 plannable
-    miles — about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} miles of physical range left to limp toward a stop.
-    Call Driver Support if you're that low:
-    <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.`;
+  $('gaugeDangerNote').innerHTML = `E isn't selectable. At 1/8th tank, plannable range is 0 — you likely have about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} miles to limp towards an emergency fuel stop.
+    <br>Call Driver Support if you're this low: <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>`;
 }
 buildGaugeMarkup();
 

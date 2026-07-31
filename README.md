@@ -107,6 +107,18 @@ follow, not just this one:
 
 ## Version history
 
+### v1.7.1
+
+Two copy/markup fixes, no logic changed. The gauge's 1/8-tank floor note has
+new approved wording — still computes its mile figure from
+`FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)` rather than a hardcoded
+125, so it stays correct if the reserve math ever changes. The legend card's
+Driver Support number was the one remaining plain-text phone number in the
+app; it's now a `tel:` link built from the same `DRIVER_SUPPORT` constant
+every other mention already used, rendered from JS (`#legendSupportNote`)
+the same way `#appVer` next to it already is, since the number needed the
+JS-side constant rather than a second hardcoded string in static markup.
+
 ### v1.7.0
 
 Dark theme, covering both the UI chrome and the map tiles themselves. Two new
