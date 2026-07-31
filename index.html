@@ -238,7 +238,7 @@
   .rb-body{display:flex;flex-direction:column;gap:8px;padding:0 12px 10px;max-height:560px;opacity:1;overflow:hidden;transition:max-height .25s ease, opacity .2s ease;}
   #routebar.collapsed .rb-body{max-height:0;opacity:0;padding-top:0;padding-bottom:0;}
 
-  .rb-field{flex:1;min-width:0;}
+  .rb-field{flex:1;min-width:0;position:relative;}
   .rb-field label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--sub);margin-bottom:3px;}
   .rb-field input{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);font-size:13px;background:var(--bg);color:var(--ink);}
   .rb-help{font-size:11px;color:var(--sub);margin-top:4px;line-height:1.35;}
@@ -257,13 +257,24 @@
   .rb-gps-note[hidden]{display:none;}
   .geo-error{font-size:11.5px;color:#8A1C1C;background:#FDECEC;border:1px solid #F0BEBE;border-radius:9px;padding:7px 9px;margin-top:5px;line-height:1.4;}
   .geo-error[hidden]{display:none;}
-  /* Address autosuggest dropdown. position:fixed (not absolute) — #routebar
-     and .rb-body both have their own overflow:hidden (needed for the
-     collapse-to-a-tab animation elsewhere), which would clip an
-     absolutely-positioned dropdown taller than the field's own remaining
-     space. Fixed escapes that entirely; JS computes its on-screen position
-     from the input's own getBoundingClientRect() each time it opens. */
-  .suggest-list{position:fixed;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.18);z-index:410;max-height:220px;overflow-y:auto;}
+  /* Address autosuggest dropdown. Plain position:absolute under the field
+     (.rb-field is its containing block) — no JS-computed screen coordinates
+     at all. That matters specifically on iOS: this app has no scrollable
+     container anywhere (html,body are overflow:hidden), so the on-screen
+     keyboard opening can't scroll the page — it pans the *visual* viewport
+     instead, independently of the *layout* viewport. position:fixed tracks
+     the visual viewport through that pan while getBoundingClientRect() (and
+     everything else in normal document flow, including this) stays in the
+     layout viewport's coordinate space, so a fixed element positioned from
+     a fixed/absolute-computed rect drifts out of sync with its field as the
+     keyboard animates — tried that, twice, on real hardware it still
+     didn't line up. Plain absolute positioning shares the input's own
+     coordinate space, so it pans right along with it for free.
+     #routebar and .rb-body both have their own overflow:hidden (needed for
+     the collapse-to-a-tab animation elsewhere), which would otherwise clip
+     this — see setSuggestClipping() below, which lifts that clipping only
+     while a dropdown is actually open. */
+  .suggest-list{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.18);z-index:410;max-height:160px;overflow-y:auto;}
   .suggest-list[hidden]{display:none;}
   .suggest-item{display:block;width:100%;text-align:left;padding:9px 12px;border:none;border-top:1px solid var(--line);background:none;font:inherit;font-size:12.5px;color:var(--ink);line-height:1.35;}
   .suggest-item:first-child{border-top:none;}
@@ -751,7 +762,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.10.2';
+const APP_VERSION = '1.10.3';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -2004,34 +2015,23 @@ function suggestFieldEls(field){
     : { input: $('deliveryInput'), list: $('deliverySuggest') };
 }
 
+// #routebar and .rb-body are overflow:hidden for the collapse-to-a-tab
+// animation elsewhere — that would clip the dropdown (position:absolute,
+// see the CSS) since it can run taller than the field's own remaining
+// space. Lifting the clipping only while a dropdown is actually open (and
+// only on those two ancestors, not permanently) keeps the collapse
+// animation's own overflow:hidden intact the rest of the time.
+function setSuggestClipping(clipped){
+  $('routebar').style.overflow = clipped ? '' : 'visible';
+  $('routebarBody').style.overflow = clipped ? '' : 'visible';
+}
+
 function hideSuggest(field){
   const { list } = suggestFieldEls(field);
   list.hidden = true;
   list.innerHTML = '';
   suggestItems[field] = [];
-}
-
-// position:fixed (see the CSS) needs its on-screen spot computed fresh each
-// time it opens, since it's positioned by JS coordinates, not CSS layout.
-//
-// getBoundingClientRect() reports coordinates relative to the *layout*
-// viewport, but on iOS Safari position:fixed is anchored to the *visual*
-// viewport — when the on-screen keyboard pans the visual viewport to bring
-// the focused field into view, those two coordinate spaces diverge by
-// exactly visualViewport.offsetTop/offsetLeft. Without subtracting that
-// offset here, the dropdown renders shifted away from where the field
-// actually sits on screen (this was the real bug behind the reposition-on-
-// resize fix not actually fixing anything — it kept recomputing the same
-// uncompensated value).
-function positionSuggestList(field){
-  const { input, list } = suggestFieldEls(field);
-  const r = input.getBoundingClientRect();
-  const vv = window.visualViewport;
-  const offsetLeft = vv ? vv.offsetLeft : 0;
-  const offsetTop = vv ? vv.offsetTop : 0;
-  list.style.left = (r.left - offsetLeft) + 'px';
-  list.style.width = r.width + 'px';
-  list.style.top = (r.bottom + 4 - offsetTop) + 'px';
+  if($('pickupSuggest').hidden && $('deliverySuggest').hidden) setSuggestClipping(true);
 }
 
 function queueSuggest(field){
@@ -2075,7 +2075,7 @@ function renderSuggest(field, items){
     const label = (item.address && item.address.label) || item.title || '';
     return `<button type="button" class="suggest-item" data-idx="${i}">${label}</button>`;
   }).join('');
-  positionSuggestList(field);
+  setSuggestClipping(false);
   list.hidden = false;
   list.querySelectorAll('.suggest-item').forEach(btn => {
     // mousedown (before click, before the input's own blur) with
@@ -2126,22 +2126,6 @@ document.addEventListener('click', (e) => {
   });
 });
 
-// The visualViewport offset positionSuggestList() compensates for isn't
-// static — it changes live as the keyboard-open animation plays out, and
-// html,body are overflow:hidden (see above) so none of that ever shows up
-// as a window scroll event, only a visualViewport one. Re-run the same
-// calculation whenever it fires so the dropdown tracks the field the whole
-// time the keyboard is animating, not just once it settles.
-function repositionOpenSuggestLists(){
-  ['pickup', 'delivery'].forEach(field => {
-    const { list } = suggestFieldEls(field);
-    if(!list.hidden) positionSuggestList(field);
-  });
-}
-if(window.visualViewport){
-  window.visualViewport.addEventListener('resize', repositionOpenSuggestLists);
-  window.visualViewport.addEventListener('scroll', repositionOpenSuggestLists);
-}
 // Close on the field losing focus too — delayed so a tap on a suggestion
 // (mousedown above already keeps focus, but this is a second safety net)
 // still has time to register as a click before the list disappears under it.
