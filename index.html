@@ -4,15 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>FuelPost</title>
+<script>
+// Resolves and sets the theme before the stylesheet below is parsed, so
+// dark mode never flashes light first. Kept in sync with the versioned
+// localStorage key and fallback logic in the main script at the bottom —
+// see THEME_KEY there.
+(function(){
+  try{
+    var stored = localStorage.getItem('fuelpost.theme.v1');
+    var theme = (stored === 'light' || stored === 'dark') ? stored :
+      ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  }catch(e){}
+})();
+</script>
 <link rel="stylesheet" type="text/css" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css" />
 <style>
   :root{
     --navy:#0B2340; --navy2:#12335c; --ta:#0057B8; --petro:#00843D;
     --gold:#F0A93A; --bg:#F5F6F8; --line:#DEE3EA; --ink:#101826; --sub:#5B6B7D;
+    --surface:#FFFFFF;
     --radius:14px;
     /* Location dot — must read as its own thing at a glance, not blend into
        the TA-blue/Petro-green/gold/navy/danger-red palette already on screen. */
     --you-are-here:#E4007C;
+  }
+  /* Dark palette — WCAG-checked against both --bg and --surface (see README).
+     Brand/marker colors (navy, TA, Petro, gold, the location dot) are
+     deliberately left unchanged: they're filled shapes on the map itself,
+     not on this chrome, and were never placed on a background that's
+     changing. */
+  html[data-theme="dark"]{
+    --bg:#0D1117; --surface:#161B22; --ink:#E6E9EF; --sub:#93A0B4; --line:#333E4F;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);overflow:hidden;}
@@ -28,7 +51,7 @@
   header .count{font-size:11px;color:#B9C6D8;text-align:right;flex-shrink:0;}
   header .count b{color:#fff;font-size:15px;display:block;}
 
-  .toolbar{display:flex;gap:8px;padding:10px 12px;background:#fff;border-bottom:1px solid var(--line);flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch;z-index:400;}
+  .toolbar{display:flex;gap:8px;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--line);flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch;z-index:400;}
   .toolbar::-webkit-scrollbar{display:none;}
   .seg{display:flex;background:var(--bg);border-radius:10px;padding:3px;flex-shrink:0;border:1px solid var(--line);}
   .seg button{border:none;background:transparent;padding:7px 12px;font-size:12.5px;font-weight:600;color:var(--sub);border-radius:8px;white-space:nowrap;}
@@ -55,7 +78,7 @@
   #mapwrap{flex:1;position:relative;min-height:0;}
   #map{position:absolute;inset:0;}
 
-  #listview{position:absolute;inset:0;background:#fff;overflow-y:auto;display:none;z-index:350;padding-bottom:20px;}
+  #listview{position:absolute;inset:0;background:var(--surface);overflow-y:auto;display:none;z-index:350;padding-bottom:20px;}
   #listview.show{display:block;}
   .list-item{display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);align-items:flex-start;}
   .list-item .dot{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;margin-top:2px;}
@@ -81,7 +104,7 @@
   .pin-term span{transform:none;font-size:9px;}
   .pin.excl:after{content:'';position:absolute;top:-5px;right:-5px;width:12px;height:12px;background:var(--gold);border-radius:50%;border:2px solid #fff;transform:rotate(45deg);}
 
-  #sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.2);transform:translateY(100%);transition:transform .25s ease;z-index:600;max-height:72%;display:flex;flex-direction:column;}
+  #sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:18px 18px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.2);transform:translateY(100%);transition:transform .25s ease;z-index:600;max-height:72%;display:flex;flex-direction:column;}
   #sheet.show{transform:translateY(0);}
   #sheet .grabber{width:36px;height:4px;background:var(--line);border-radius:2px;margin:9px auto 4px;flex-shrink:0;}
   #sheet .sheetBody{overflow-y:auto;padding:6px 18px 22px;}
@@ -109,12 +132,12 @@
   #scrim{position:absolute;inset:0;background:rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .2s;z-index:550;}
   #scrim.show{opacity:1;pointer-events:auto;}
 
-  #legendBtn{position:absolute;right:10px;top:10px;z-index:400;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-size:11.5px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.15);color:var(--navy);}
+  #legendBtn{position:absolute;right:10px;top:10px;z-index:400;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-size:11.5px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.15);color:var(--navy);}
 
   /* Recenter control, bottom-left — top-right is #legendBtn, bottom-right is
      HERE's own settings control. Three visual states: off (grey, no fix yet),
      locating (blue, watch running), locked (filled, a fix is in hand). */
-  #locateBtn{position:absolute;left:10px;bottom:34px;z-index:400;background:#fff;border:1px solid var(--line);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.15);color:var(--sub);}
+  #locateBtn{position:absolute;left:10px;bottom:34px;z-index:400;background:var(--surface);border:1px solid var(--line);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.15);color:var(--sub);}
   /* STOPS mode only — Route mode has its own "use my location" on the
      pickup field. #locateBtn's own id-scoped display:flex above outranks
      the plain .stops-only class rule by specificity, so it needs its own
@@ -144,12 +167,19 @@
   @keyframes geo-pulse{0%,100%{opacity:.4;}50%{opacity:.15;}}
   .geo-dot{position:relative;width:16px;height:16px;border-radius:50%;background:var(--you-are-here);border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45);}
 
-  #legendCard{position:absolute;right:10px;top:52px;z-index:401;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:0 4px 12px rgba(0,0,0,.18);font-size:11.5px;display:none;width:198px;}
+  #legendCard{position:absolute;right:10px;top:52px;z-index:401;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:0 4px 12px rgba(0,0,0,.18);font-size:11.5px;display:none;width:198px;}
   #legendCard.show{display:block;}
   #legendCard div{display:flex;align-items:center;gap:7px;margin:5px 0;}
   #legendCard .sw{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
+  /* Theme toggle row — overrides the flat icon-row rule above (higher
+     specificity: id + class beats id + type), stacking label over the
+     segmented control instead of laying them out side by side. */
+  #legendCard .theme-row{display:block;margin:8px 0 0;padding-top:8px;border-top:1px solid var(--line);}
+  #legendCard .theme-label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--sub);margin-bottom:5px;}
+  #legendCard .theme-row .seg{display:flex;width:100%;}
+  #legendCard .theme-row .seg button{flex:1;text-align:center;}
 
-  #filterCard{position:absolute;left:10px;top:8px;z-index:401;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:0 4px 12px rgba(0,0,0,.18);display:none;min-width:210px;}
+  #filterCard{position:absolute;left:10px;top:8px;z-index:401;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:0 4px 12px rgba(0,0,0,.18);display:none;min-width:210px;}
   #filterCard.show{display:block;}
   #filterCard .seg{width:100%;}
   #filterCard .seg button{flex:1;text-align:center;}
@@ -160,7 +190,7 @@
   /* STOPS-mode filters stay in the DOM; they just hide while planning a route. */
   body.route-mode .stops-only{display:none;}
 
-  #routebar{display:none;flex-direction:column;background:#fff;border-bottom:1px solid var(--line);flex-shrink:0;z-index:400;overflow:hidden;}
+  #routebar{display:none;flex-direction:column;background:var(--surface);border-bottom:1px solid var(--line);flex-shrink:0;z-index:400;overflow:hidden;}
   body.route-mode #routebar{display:flex;}
 
   /* Collapsible drawer — the tab row stays visible and tappable in either
@@ -222,7 +252,7 @@
      it resets fields, it isn't the thing the driver came here to do. */
   #clearTripBtn{align-self:center;background:none;border:none;padding:4px 2px;font-size:12.5px;font-weight:700;color:var(--sub);text-decoration:underline;}
 
-  #shareTripBtn{width:100%;background:#fff;color:var(--navy);border:1.5px solid var(--navy);border-radius:10px;height:40px;font-size:13.5px;font-weight:700;margin-top:14px;}
+  #shareTripBtn{width:100%;background:var(--surface);color:var(--navy);border:1.5px solid var(--navy);border-radius:10px;height:40px;font-size:13.5px;font-weight:700;margin-top:14px;}
   #shareTripBtn[disabled]{opacity:.55;}
   .share-note{font-size:12px;color:#0F6B33;font-weight:700;text-align:center;margin-top:7px;}
   /* Last-resort fallback when neither the share sheet nor the clipboard API
@@ -250,7 +280,7 @@
   .rr-endaddr{font-size:12.5px;font-weight:600;line-height:1.35;margin-top:1px;}
   .rr-fix{background:none;border:none;padding:0;margin-left:7px;font-size:11px;font-weight:700;color:var(--ta);text-decoration:underline;white-space:nowrap;}
 
-  #routeResults{position:absolute;left:0;right:0;bottom:0;max-height:62%;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.18);z-index:360;display:none;flex-direction:column;}
+  #routeResults{position:absolute;left:0;right:0;bottom:0;max-height:62%;background:var(--surface);border-radius:16px 16px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.18);z-index:360;display:none;flex-direction:column;}
   #routeResults.show{display:flex;}
   .rr-body{overflow-y:auto;padding:12px 14px 22px;}
   .rr-head{font-size:15px;font-weight:700;margin:0 0 2px;}
@@ -345,7 +375,7 @@
     <div class="rb-field">
       <label for="rangeInput">How far do you run between fuel stops?</label>
       <div class="rb-range-wrap">
-        <input id="rangeInput" type="number" value="625" min="300" max="1200" step="10" inputmode="numeric">
+        <input id="rangeInput" type="number" value="850" min="300" max="1200" step="10" inputmode="numeric">
         <span class="rb-unit">mi</span>
       </div>
       <div class="rb-help">Set this once. Most drivers leave it alone.</div>
@@ -383,8 +413,16 @@
       <div><span class="sw" style="background:var(--petro)"></span> Petro location</div>
       <div><span class="sw" style="background:var(--navy);border-radius:4px"></span> Covenant terminal</div>
       <div><span class="sw" style="background:var(--gold)"></span> Exclusive (most cost-effective)</div>
-      <div style="margin-top:6px;color:#5B6B7D;font-size:10.5px;line-height:1.4;border-top:1px solid #DEE3EA;padding-top:6px;">Fuel only at network stops. Out-of-network fuel: call Driver Support 423-463-3680.</div>
-      <div id="appVer" style="margin-top:5px;color:#5B6B7D;font-size:10.5px;line-height:1.4;"></div>
+      <div style="margin-top:6px;color:var(--sub);font-size:10.5px;line-height:1.4;border-top:1px solid var(--line);padding-top:6px;">Fuel only at network stops. Out-of-network fuel: call Driver Support 423-463-3680.</div>
+      <div class="theme-row">
+        <span class="theme-label">Theme</span>
+        <div class="seg" id="themeSeg">
+          <button type="button" data-v="light">Light</button>
+          <button type="button" data-v="dark">Dark</button>
+          <button type="button" data-v="system">System</button>
+        </div>
+      </div>
+      <div id="appVer" style="margin-top:5px;color:var(--sub);font-size:10.5px;line-height:1.4;"></div>
     </div>
     <div id="filterCard">
       <div class="seg stops-only" id="brandSeg">
@@ -615,7 +653,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.6.4';
+const APP_VERSION = '1.7.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -651,9 +689,31 @@ const HERE_ENGINE = H.Map.EngineType.HARP;
 const platform = new H.service.Platform({ apikey: HERE_API_KEY });
 const defaultLayers = platform.createDefaultLayers({ engineType: HERE_ENGINE });
 
+// Theme: first persisted preference in this app, hence the versioned key
+// (fuelpost.theme.v1, not a bare fuelpost.theme) — if a future brief changes
+// what the default logic does, bump to v2 and treat v1 values as absent
+// rather than reusing the key for a changed meaning. Only 'light'/'dark' are
+// ever stored; no stored value means "follow system", so there's nothing to
+// encode for that state. A tiny blocking script in <head> already resolved
+// and set documentElement's data-theme before this file's stylesheet was
+// parsed, so there's no light-then-dark flash — this just keeps the map's
+// base layer and the toggle UI in sync with that decision.
+const THEME_KEY = 'fuelpost.theme.v1';
+function storedTheme(){
+  try{
+    const v = localStorage.getItem(THEME_KEY);
+    return (v === 'light' || v === 'dark') ? v : null;
+  }catch(e){ return null; } // storage disabled/unavailable — treat as absent
+}
+const systemDarkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+function systemTheme(){ return (systemDarkQuery && systemDarkQuery.matches) ? 'dark' : 'light'; }
+function resolvedTheme(){ return storedTheme() || systemTheme(); }
+
+const initialTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+
 const map = new H.Map(
   document.getElementById('map'),
-  defaultLayers.vector.normal.map,
+  initialTheme === 'dark' ? defaultLayers.vector.normal.mapnight : defaultLayers.vector.normal.map,
   {
     engineType: HERE_ENGINE,
     center: { lat: 39.5, lng: -98.35 },
@@ -666,6 +726,44 @@ window.addEventListener('resize', () => map.getViewPort().resize());
 const mapEvents = new H.mapevents.MapEvents(map);
 new H.mapevents.Behavior(mapEvents);
 H.ui.UI.createDefault(map, defaultLayers);
+
+function updateThemeToggleUI(){
+  const mode = storedTheme() || 'system';
+  document.querySelectorAll('#themeSeg button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.v === mode);
+  });
+}
+updateThemeToggleUI(); // map was already constructed on the right layer above — nothing to switch yet
+
+// Swaps the map's base layer for the resolved theme — used any time the
+// theme changes *after* initial load (toggle tap, live system-preference
+// change). Center/zoom don't carry over across setBaseLayer on their own
+// (HERE's own guidance), so preserve them explicitly.
+function switchTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  const c = map.getCenter(), z = map.getZoom();
+  map.setBaseLayer(theme === 'dark' ? defaultLayers.vector.normal.mapnight : defaultLayers.vector.normal.map);
+  map.setCenter(c);
+  map.setZoom(z);
+  updateThemeToggleUI();
+}
+
+// Only follow live system changes when the driver hasn't made an explicit
+// choice — once they tap the toggle, that choice sticks until they reset it
+// back to "System" below.
+if(systemDarkQuery){
+  systemDarkQuery.addEventListener('change', ()=>{
+    if(!storedTheme()) switchTheme(systemTheme());
+  });
+}
+document.querySelectorAll('#themeSeg button').forEach(b=>b.addEventListener('click', ()=>{
+  const v = b.dataset.v;
+  try{
+    if(v === 'system') localStorage.removeItem(THEME_KEY);
+    else localStorage.setItem(THEME_KEY, v);
+  }catch(e){} // storage disabled — theme still applies for this session
+  switchTheme(v === 'system' ? systemTheme() : v);
+}));
 
 const markerGroup = new H.map.Group();
 map.addObject(markerGroup);

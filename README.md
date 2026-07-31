@@ -84,7 +84,66 @@ They answer different questions and must not be conflated:
 - **`APP_VERSION`** (`1.3.0`) — the code. Shown in the **legend card** as a
   support detail. Bumped for every shipped change.
 
+## Persisted settings (localStorage)
+
+`fuelpost.theme.v1` (dark mode, v1.7.0) is the first thing this app persists,
+and the pattern it set is the one every future persisted setting should
+follow, not just this one:
+
+- Version the key itself — `fuelpost.<setting>.v1`, never a bare
+  `fuelpost.<setting>`.
+- Store only genuinely explicit choices. If "unset" already has a sensible
+  meaning (e.g. "follow system"), don't invent a stored value for it —
+  absence already encodes it.
+- Treat anything read back that isn't one of the expected values (corrupted,
+  from a future format) as absent, falling back to the same default an
+  actually-absent key would get. Never throw, never fall back to a fixed
+  value that ignores the real default.
+- If a later change alters what the *default* logic does — not just adds a
+  new valid stored value, but changes what "unset" resolves to — bump to
+  `.v2` and treat `.v1` values as absent. Don't reuse a versioned key for a
+  changed meaning; an old stored choice under new default semantics can
+  silently produce a result the driver never chose.
+
 ## Version history
+
+### v1.7.0
+
+Dark theme, covering both the UI chrome and the map tiles themselves. Two new
+CSS variables drive it — `--surface` (the 10 places that used to hardcode
+`background:#fff` now read `background:var(--surface)`) and a
+`html[data-theme="dark"]` override block for `--bg`, `--surface`, `--ink`,
+`--sub` and `--line`. Brand/marker colors (navy, TA blue, Petro green, gold,
+the location dot) are unchanged in dark mode — they're filled shapes on the
+map, not on this chrome, and contrast was checked (WCAG relative luminance)
+against both `--bg` and `--surface` before shipping. The map itself switches
+HERE's real vector night layer (`defaultLayers.vector.normal.mapnight`) via
+`map.setBaseLayer()`, not a CSS filter — center and zoom are preserved
+explicitly across the switch since HERE doesn't carry them over on its own.
+Defaults to the phone's `prefers-color-scheme` and keeps following it live
+via a `matchMedia` change listener, until the driver taps the new Light /
+Dark / System control in the Legend card — that becomes an explicit stored
+choice, and "System" is how they get back to following the OS again. A
+blocking script at the top of `<head>`, before the stylesheet, resolves and
+sets the theme ahead of first paint so there's no light-then-dark flash on
+load.
+
+This is the app's first localStorage usage, so it's also the first use of
+the versioned-key discipline future persisted settings should follow: the
+key is `fuelpost.theme.v1`, not a bare `fuelpost.theme`. Only the two
+explicit values (`'light'` / `'dark'`) are ever stored — no stored value
+already means "follow system," so there's nothing to encode for that state.
+Anything else found under the key (corrupted, from a future format) is
+treated as absent rather than thrown on or defaulted to a fixed theme. If a
+later brief changes what the default logic does (a scheduled
+night-mode-after-dark feature, say), bump to `fuelpost.theme.v2` and treat
+`v1` values as absent — never reuse a versioned key for a changed meaning.
+
+### v1.6.5
+
+The default value for "How far do you run between fuel stops?" increased from
+625 mi to 850 mi, reflecting a more typical highway-segment planning distance
+for Covenant drivers.
 
 ### v1.6.4
 
