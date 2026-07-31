@@ -86,6 +86,16 @@ They answer different questions and must not be conflated:
 
 ## Version history
 
+### v1.6.3
+
+The state select ("All states") moved into the Filters popover from v1.6.2,
+alongside brand and type — one more toolbar control tucked away, and one
+more filter the Filters button's badge now accounts for (badge shows if
+brand, type, *or* state isn't "all"). Same reasoning as the other two: state
+is rarely touched, so it doesn't need to cost width on every screen.
+Filtering behavior is unchanged; `render()` and `passes()` don't know or
+care where the control that sets `state.st` lives.
+
 ### v1.6.2
 
 Brand (All/TA/Petro) and type (All types/Exclusive/Primary) filters moved
