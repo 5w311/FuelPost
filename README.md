@@ -107,6 +107,18 @@ follow, not just this one:
 
 ## Version history
 
+### v1.10.1
+
+Fixes the autosuggest dropdown (v1.10.0) overlapping the field it belongs to
+on iOS. `html,body` are `overflow:hidden` in this app, so the page itself
+never scrolls — when the on-screen keyboard opens, iOS instead pans the
+*visual* viewport to keep the focused field visible above it, which fires
+`visualViewport` resize/scroll events, not `window` ones. The dropdown's
+`position:fixed` coordinates were only computed once, when it opened, so
+that pan left them stale and the dropdown ended up drawn over the input
+instead of under it. It now re-syncs its position on `visualViewport`
+resize/scroll while open.
+
 ### v1.10.0
 
 Pickup and delivery fields now show a live address-suggestion dropdown as the

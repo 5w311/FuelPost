@@ -751,7 +751,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.10.0';
+const APP_VERSION = '1.10.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -2112,6 +2112,25 @@ document.addEventListener('click', (e) => {
     if(!list.hidden && e.target !== input && !list.contains(e.target)) hideSuggest(field);
   });
 });
+
+// html,body are overflow:hidden (see above) — this app never scrolls the
+// document, so on iOS the on-screen keyboard opening doesn't scroll the
+// page, it pans the *visual* viewport (WebKit's own keyboard-avoidance,
+// sliding the focused field up above the keyboard). That fires visualViewport
+// resize/scroll events, not window ones. Our dropdown is position:fixed with
+// coordinates snapshotted once from getBoundingClientRect() when it opens —
+// without this, the keyboard's pan leaves that snapshot stale and the
+// dropdown ends up overlapping the field instead of sitting under it.
+function repositionOpenSuggestLists(){
+  ['pickup', 'delivery'].forEach(field => {
+    const { list } = suggestFieldEls(field);
+    if(!list.hidden) positionSuggestList(field);
+  });
+}
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', repositionOpenSuggestLists);
+  window.visualViewport.addEventListener('scroll', repositionOpenSuggestLists);
+}
 // Close on the field losing focus too — delayed so a tap on a suggestion
 // (mousedown above already keeps focus, but this is a second safety net)
 // still has time to register as a click before the list disappears under it.
