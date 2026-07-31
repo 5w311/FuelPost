@@ -803,7 +803,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.11.6';
+const APP_VERSION = '1.11.7';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -993,12 +993,32 @@ function switchTheme(theme){
 // fact instead: baselayerchange fires for every base-layer change,
 // switchTheme()'s own included, so on each one — if the resolved theme is
 // dark and HERE just set the light "Map" layer — swap it straight back to
-// mapnight. That second setBaseLayer() re-fires this same listener, but by
-// then the layer already matches, so it's a no-op and this doesn't loop.
+// mapnight.
+//
+// Deferred rather than applied inline: this fires re-entrantly, from inside
+// HERE's own handling of the very setBaseLayer() call that triggered it —
+// correcting with an immediate second setBaseLayer() right there landed the
+// map visually stuck on the dark tiles if the driver then switched to light
+// mode right after, one setBaseLayer() too many stacked in the same tick for
+// the engine to settle between them. A short setTimeout gives it a beat,
+// and re-checks the theme fresh when it actually runs — a driver's own
+// theme switch landing in that window reads correctly and this backs off
+// instead of fighting it. Cleared and rescheduled on every new
+// baselayerchange so only the latest one still applies.
+//
+// Center/zoom don't carry over across setBaseLayer on their own (see
+// switchTheme() above) — preserved here the same way.
+let baseLayerCorrectionTimer = null;
 map.addEventListener('baselayerchange', () => {
-  if(resolvedTheme() === 'dark' && map.getBaseLayer() === defaultLayers.vector.normal.map){
-    map.setBaseLayer(defaultLayers.vector.normal.mapnight);
-  }
+  clearTimeout(baseLayerCorrectionTimer);
+  baseLayerCorrectionTimer = setTimeout(() => {
+    if(resolvedTheme() === 'dark' && map.getBaseLayer() === defaultLayers.vector.normal.map){
+      const c = map.getCenter(), z = map.getZoom();
+      map.setBaseLayer(defaultLayers.vector.normal.mapnight);
+      map.setCenter(c);
+      map.setZoom(z);
+    }
+  }, 60);
 });
 
 // Only follow live system changes when the driver hasn't made an explicit

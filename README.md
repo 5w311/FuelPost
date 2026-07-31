@@ -107,6 +107,24 @@ follow, not just this one:
 
 ## Version history
 
+### v1.11.7
+
+Fixes a follow-on from v1.11.6's Satellite→Map dark-mode correction: doing
+that switch and then immediately tapping the app's own light-mode toggle
+left the map visually stuck, needing an extra dark→light round trip to
+recover. v1.11.6's correction ran its own `setBaseLayer()` call synchronously
+and re-entrantly, from inside HERE's own handling of the very base-layer
+change that triggered it — landing a second `setBaseLayer()` in the same
+tick as a driver's own follow-up switch was one too many stacked calls for
+the map engine to settle between. The correction now runs after a short
+deferred beat instead (`setTimeout`, cleared and rescheduled on every new
+`baselayerchange` so only the latest one applies), and re-checks the theme
+fresh at that point — a light-mode switch landing in that window reads
+correctly and the correction backs off rather than fighting it. Also now
+preserves center/zoom around its own `setBaseLayer()` call, same as
+`switchTheme()` already does elsewhere, per HERE's own documented guidance
+that neither carries over on a base-layer change automatically.
+
 ### v1.11.6
 
 Fixes the map dropping back to light mode, even with dark mode on, after
