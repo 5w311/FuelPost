@@ -310,25 +310,9 @@
      scrolled to the end while expanded — sits under/against that gesture
      bar instead of clear of it. The 0px fallback is a no-op on devices
      without one. */
-  #routeResults{position:absolute;left:0;right:0;bottom:0;max-height:62%;background:var(--surface);border-radius:16px 16px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.18);z-index:360;display:none;flex-direction:column;overflow:hidden;padding-bottom:env(safe-area-inset-bottom, 0px);transition:right .25s ease;}
+  #routeResults{position:absolute;left:0;right:0;bottom:0;max-height:62%;background:var(--surface);border-radius:16px 16px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.18);z-index:360;display:none;flex-direction:column;overflow:hidden;padding-bottom:env(safe-area-inset-bottom, 0px);}
   #routeResults.show{display:flex;}
   #rrTab[hidden]{display:none;}
-  /* HERE's own zoom + map-settings controls (.H_l_bottom, z-index:390 —
-     see that rule far below) live INSIDE #map, which has no z-index of its
-     own; a child's z-index only competes against elements within its
-     nearest ancestor that actually establishes a stacking context, so that
-     390 never reaches up to outrank #routeResults' 360 at the #mapwrap
-     sibling level — #map's whole subtree just stacks by DOM order
-     underneath it regardless. Full-width, the collapsed tab measures out to
-     really overlap that bottom-right control column by a few px, hiding it
-     entirely. Pulling the collapsed panel's right edge in past HERE's
-     control width (measured ~64px from the true edge) leaves that corner
-     uncovered instead of trying to out-rank a z-index that can't be reached
-     from here. Expanded is left full-width/covering that corner as before
-     — a fully open results panel legitimately owns that space, same as
-     #sheet or #routebar temporarily covering other floating buttons; only
-     the collapsed sliver claims to have given the map back. */
-  #routeResults.rr-collapsed{right:70px;}
   /* Collapsible, same mechanic as #routebar's own tab/body — only offered on
      the final plan/gap result (#rrTab stays hidden otherwise), so a long
      stop list can be tucked away to see the map without leaving Route mode. */
@@ -383,6 +367,20 @@
 
   /* HERE Maps UI: keep default zoom + copyright, just make sure it sits above our map */
   .H_l_bottom{z-index:390;}
+  /* Shifts HERE's own zoom + map-settings controls up, clear of the
+     collapsed fuel-stops tab, instead of letting the tab cover that corner
+     (or, an earlier version of this fix, narrowing the tab to dodge it —
+     this reads better: the driver asked for the controls sitting above a
+     full-width bar, not squeezed beside a narrower one). .H_l_bottom.H_l_right
+     already ships with `transition:all` from HERE's own CSS, so this
+     animates smoothly alongside the tab's own collapse. body.rr-tab-showing
+     is toggled from JS (setRrCollapsed) exactly when #routeResults is both
+     .show and .rr-collapsed — every other state (hidden, expanded) leaves
+     this at HERE's own default 16px, unchanged. 60px clears the tab's own
+     ~38-44px height with room to spare; safe-area-inset-bottom is added on
+     top for devices with a home indicator, matching #routeResults' own
+     padding-bottom below. */
+  body.rr-tab-showing .H_l_bottom.H_l_right{bottom:calc(60px + env(safe-area-inset-bottom, 0px));}
 </style>
 </head>
 <body>
@@ -724,7 +722,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.8.4';
+const APP_VERSION = '1.8.5';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1203,10 +1201,24 @@ let routebarOpen = true;
    optional summary argument. A long stop list can otherwise eat most of the
    screen with no way back to the map short of leaving Route mode. */
 let rrCollapsed = false;
+// Drives body.rr-tab-showing (see the .H_l_bottom.H_l_right CSS rule far
+// above), which shifts HERE's own zoom/map-settings controls up clear of
+// the collapsed tab. Recomputed from the DOM's actual current state rather
+// than trusted to a single call site, because #routeResults' own .show
+// class is toggled directly (not through setRrCollapsed) in a couple of
+// other places — setMode() switching back to Stops, clearTrip() — and
+// without this, the body class could get stuck on from a previous
+// collapsed session and wrongly shift the controls in Stops mode too.
+function syncRrTabShowing(){
+  const rr = $('routeResults');
+  document.body.classList.toggle('rr-tab-showing',
+    rr.classList.contains('show') && rr.classList.contains('rr-collapsed'));
+}
 function setRrCollapsed(collapsed){
   rrCollapsed = collapsed;
   $('routeResults').classList.toggle('rr-collapsed', collapsed);
   $('rrTab').setAttribute('aria-expanded', String(!collapsed));
+  syncRrTabShowing();
 }
 $('rrTab').addEventListener('click', () => setRrCollapsed(!rrCollapsed));
 
@@ -1255,6 +1267,7 @@ function setMode(mode){
   markerGroup.setVisibility(!route);
   routeGroup.setVisibility(route);
   $('routeResults').classList.toggle('show', route && !!$('routeResultsBody').innerHTML);
+  syncRrTabShowing();
   if(route){
     $('listview').classList.remove('show');
     $('legendCard').classList.remove('show');
@@ -1489,6 +1502,7 @@ function clearTrip(){
 
   $('routeResultsBody').innerHTML = '';
   $('routeResults').classList.remove('show');
+  syncRrTabShowing();
   routeGroup.removeAll();   // polyline + endpoint pins + chosen fuel stops
 
   updateClearVisibility();
