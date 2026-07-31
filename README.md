@@ -107,6 +107,26 @@ follow, not just this one:
 
 ## Version history
 
+### v1.8.5
+
+Reworked how the fuel-stop results panel avoids covering HERE's own zoom +
+map-settings controls when collapsed (v1.8.3's fix) — the driver preferred
+the controls sitting above a full-width collapsed bar over a narrower bar
+squeezed beside them. `#routeResults.rr-collapsed` no longer pulls its own
+right edge in; instead, `body.rr-tab-showing` (toggled from JS exactly when
+the panel is both `.show` and `.rr-collapsed`) shifts HERE's own
+`.H_l_bottom.H_l_right` control column up via its own `bottom` CSS
+property, clear of the tab beneath it, using the `transition:all` HERE's
+own CSS already ships on that element so it animates smoothly. Confirmed
+`map.getViewPort().setPadding()` does *not* reposition these controls
+before choosing this approach — it only affects the map's own
+panning/centering reference, not the CSS-anchored UI. Expanded is
+untouched, same as before. The body class is recomputed (not just set once
+per toggle) from every place `#routeResults`' own `.show` state changes
+outside `setRrCollapsed` — `setMode()` switching back to Stops, and
+`clearTrip()` — so it can't get stuck shifting the controls up in Stops
+mode after a session that ended collapsed.
+
 ### v1.8.4
 
 Fixed Clear trip resetting "How far do you run between fuel stops?" to 625
