@@ -1,4 +1,5 @@
 const G = require('../lib/gauge.js');
+const FuelPlan = require('../lib/fuelplan.js');
 let pass = 0, fail = 0;
 const ok = (name, cond, extra = '') => {
   if (cond) { pass++; console.log('  PASS', name); }
@@ -41,6 +42,42 @@ console.log('\n=== startBurned wiring unchanged ===');
 ok('full gauge vs 800 policy -> no burn assumed', G.computeStartBurned(800, G.milesForTick(8)) === 0);
 ok('half gauge (500) vs 800 policy -> burned 300', G.computeStartBurned(800, G.milesForTick(4)) === 300);
 ok('never goes negative', G.computeStartBurned(500, G.milesForTick(8)) === 0);
+
+console.log('\n=== plannableMilesForTick matches both stated numbers exactly ===');
+ok('F (tick 8) = 875 mi', G.plannableMilesForTick(8) === 875);
+ok('1/8 (tick 1) = 0 mi', G.plannableMilesForTick(1) === 0);
+
+console.log('\n=== full table is linear and matches the reserve rule ===');
+const expect = {0:0,1:0,2:125,3:250,4:375,5:500,6:625,7:750,8:875};
+Object.entries(expect).forEach(([t,m]) => ok(`tick ${t} -> ${m} mi`, G.plannableMilesForTick(+t) === m));
+
+console.log('\n=== the withheld reserve is exactly the "limp" figure ===');
+ok('milesForTick(8) - plannableMilesForTick(8) == 125', G.milesForTick(8) - G.plannableMilesForTick(8) === 125);
+ok('milesForTick(1) - plannableMilesForTick(1) == 125', G.milesForTick(1) - G.plannableMilesForTick(1) === 125);
+
+console.log('\n=== edge cases ===');
+ok('clamps below 0', G.plannableMilesForTick(-5) === 0);
+ok('clamps above 8', G.plannableMilesForTick(20) === 875);
+ok('never negative even at the boundary', G.plannableMilesForTick(0) === 0);
+
+console.log('\n=== interaction with computeStartBurned (unchanged function) ===');
+ok('full plannable (875) vs 625 policy -> no burn assumed',
+   G.computeStartBurned(625, G.plannableMilesForTick(8)) === 0);
+ok('1/8 floor (0 plannable) vs 625 policy -> burned = full policy',
+   G.computeStartBurned(625, G.plannableMilesForTick(1)) === 625);
+ok('half-ish (5/8=500) vs 625 policy -> burned 125',
+   G.computeStartBurned(625, G.plannableMilesForTick(5)) === 125);
+
+console.log('\n=== the 1/8 floor feeds the real planner into an immediate zero-width gap ===');
+{
+  const maxRange = 625;
+  const rangeAtPickup = G.plannableMilesForTick(1); // the new selectable floor
+  const startBurned = G.computeStartBurned(maxRange, rangeAtPickup);
+  const result = FuelPlan.planFuel(300, [], maxRange, startBurned);
+  ok('plan is empty', Array.isArray(result.plan) && result.plan.length === 0, JSON.stringify(result));
+  ok('gap is {fromMile:0, deadMile:0}', result.gap && result.gap.fromMile === 0 && result.gap.deadMile === 0, JSON.stringify(result.gap));
+  ok('ok is false', result.ok === false);
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) process.exitCode = 1;

@@ -320,7 +320,7 @@
     <div class="rb-field">
       <label for="rangeInput">How far do you run between fuel stops?</label>
       <div class="rb-range-wrap">
-        <input id="rangeInput" type="number" value="800" min="300" max="1200" step="10" inputmode="numeric">
+        <input id="rangeInput" type="number" value="625" min="300" max="1200" step="10" inputmode="numeric">
         <span class="rb-unit">mi</span>
       </div>
       <div class="rb-help">Set this once. Most drivers leave it alone.</div>
@@ -328,7 +328,7 @@
     <button type="button" id="pickupRangeToggle" class="rb-disclosure" aria-expanded="false" aria-controls="pickupRangeField">Not leaving with a full tank?</button>
     <div class="rb-field" id="pickupRangeField" hidden>
       <label id="gaugeLabel">How far can you run right now?</label>
-      <div class="gauge" id="fuelGauge" tabindex="0" role="slider" aria-labelledby="gaugeLabel" aria-valuemin="2" aria-valuemax="8">
+      <div class="gauge" id="fuelGauge" tabindex="0" role="slider" aria-labelledby="gaugeLabel" aria-valuemin="1" aria-valuemax="8">
         <div class="gauge-labels" id="gaugeLabels"></div>
         <div class="gauge-track" id="gaugeTrack">
           <div class="gauge-danger"></div>
@@ -577,7 +577,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.5.1';
+const APP_VERSION = '1.6.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1167,7 +1167,7 @@ function showShareFallback(text){
    Resets the planner to a blank first-open state: fields, ranges, geocode
    candidates, the results panel AND the route drawn on the map. A stale
    polyline left behind on a cleared trip is worse than no clear button. */
-const ROUTE_DEFAULT_RANGE = 800;
+const ROUTE_DEFAULT_RANGE = 625;
 
 function routeHasSomethingToClear(){
   const gaugeChanged = !$('pickupRangeField').hidden && gaugeTick !== GAUGE_MAX_TICK;
@@ -1339,10 +1339,62 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
   setRoutebarOpen(false);
 }
 
+// The gauge's floor (tick 1, 1/8 tank) reads as 0 plannable miles —
+// planLoad() short-circuits straight here without calling the routing API,
+// because the outcome is already fully determined by rangeAtPickup alone:
+// feeding 0 through the real planner always returns the degenerate
+// {fromMile:0, deadMile:0} gap (verified in test/gauge.test.js), and
+// renderPlan's generic "between mile X and mile Y" phrasing reads wrong at
+// mile 0 to mile 0 — this gets its own copy instead.
+function renderFloorGap(ranges, pickup, delivery, nearPickup){
+  planStops = [];
+  const limpMiles = FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS); // 125 — the one reserved tick
+  lastTrip = {
+    pickupAddr: pickup.label,
+    deliveryAddr: delivery.label,
+    maxRange: ranges.maxRange,
+    rangeAtPickup: ranges.rangeAtPickup,
+    plan: [],
+    gap: { fromMile: 0, deadMile: 0 },
+    finalLegMiles: null,
+    detourMax: null,
+    appVersion: APP_VERSION,
+    fuelBookRev: FUEL_BOOK_REV
+  };
+
+  let h = '<div class="rr-head">Gauge at 1/8 — no plannable range</div>';
+  h += '<div class="rr-sub">0 mi of range leaving the shipper</div>';
+
+  h += `<div class="rr-warn"><b>No network stop is reachable at this fill level</b>
+    The bottom 1/8 tank (about ${limpMiles} mi) is always held back as a safety reserve —
+    it's never counted as plannable range for routing, but it's roughly how far you can
+    still physically limp toward a stop.`;
+  if(nearPickup.length){
+    const namedNear = nearPickup.slice(0, 2).map(nearPickupLine).join('; ');
+    h += ` Nearest network stop to your pickup: <b>${namedNear}</b>.`;
+  } else {
+    h += ` No network stop sits within ${NEAR_PICKUP_RADIUS_GAP} mi of your pickup either.`;
+  }
+  h += ` Out-of-network fuel needs approval first — call Driver Support
+    <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.
+    Raising the gauge above 1/8, or topping off before you roll, will let this load plan.</div>`;
+
+  h += '<button type="button" id="shareTripBtn">Share / save trip</button>';
+
+  showRoutePanel(h);
+  $('shareTripBtn').addEventListener('click', shareTrip);
+
+  // No route to draw at this fill level — clear anything left from a
+  // previous plan rather than leaving a stale polyline/pins on the map.
+  routeGroup.removeAll();
+
+  setRoutebarOpen(false);
+}
+
 /* ---- Ranges ---- */
 function readRanges(){
   let maxRange = Math.round(Number($('rangeInput').value));
-  if(!Number.isFinite(maxRange) || maxRange <= 0) maxRange = 800;
+  if(!Number.isFinite(maxRange) || maxRange <= 0) maxRange = 625;
   maxRange = Math.min(RANGE_MAX, Math.max(RANGE_MIN, maxRange));
   $('rangeInput').value = maxRange;
 
@@ -1350,7 +1402,7 @@ function readRanges(){
   // to policy" — maxRange, startBurned 0 — same as before the gauge existed.
   // Only once the driver says otherwise does the gauge's own reading apply.
   const pickupOpen = !$('pickupRangeField').hidden;
-  const rangeAtPickup = pickupOpen ? FuelGauge.milesForTick(gaugeTick) : maxRange;
+  const rangeAtPickup = pickupOpen ? FuelGauge.plannableMilesForTick(gaugeTick) : maxRange;
 
   // A driver who rolls out with more range than the max is just at max; never
   // let startBurned go negative and hand the planner extra reach.
@@ -1363,10 +1415,15 @@ function readRanges(){
    tick, its own color never changing with position. The E-1/8 segment of
    the TRACK is a fixed danger marking, visible regardless of where the
    needle sits — like a tachometer redline, not a live warning state. The
-   needle's usable range is clamped to ticks 2-8 (1/4 tank through F);
-   isEmergencyZone(tick) in lib/gauge.js stays correct and tested, it's
-   just never true for a tick this control can actually produce. */
-const GAUGE_MIN_TICK = FuelGauge.EMERGENCY_TICK_CEILING; // 2 (1/4 tank) — the floor
+   needle's usable range is clamped to ticks 1-8 (1/8 tank through F); only
+   E (tick 0) is unreachable. A tick of 1 reads as 0 plannable miles — see
+   FuelGauge.plannableMilesForTick — and planLoad() short-circuits straight
+   to the floor-gap message in that case rather than routing. */
+const GAUGE_MIN_TICK = 1; // 1/8 tank — the new floor. Deliberately NOT tied to
+  // EMERGENCY_TICK_CEILING anymore: that constant still correctly classifies
+  // ticks 0-1 as "below 1/4 tank" for isEmergencyZone, which is a fact about
+  // tank fullness. Where the UI lets the needle land is a separate decision
+  // that just changed. Don't re-couple them.
 const GAUGE_MAX_TICK = FuelGauge.TICKS;                  // 8 (F)
 const GAUGE_TICK_LABELS = ['E','1/8','1/4','3/8','1/2','5/8','3/4','7/8','F'];
 let gaugeTick = GAUGE_MAX_TICK;
@@ -1383,14 +1440,15 @@ function buildGaugeMarkup(){
       ticks += `<div class="gauge-tick minor" style="left:${(i + 0.5) / GAUGE_MAX_TICK * 100}%"></div>`;
   }
   $('gaugeTicks').innerHTML = ticks;
-  $('gaugeDangerNote').innerHTML = `Below 1/4 tank isn't selectable here — call Driver Support if
-    you're actually running that low:
+  $('gaugeDangerNote').innerHTML = `Only E is off the gauge. At 1/8 tank you're at 0 plannable
+    miles — about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} miles of physical range left to limp toward a stop.
+    Call Driver Support if you're that low:
     <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.`;
 }
 buildGaugeMarkup();
 
 function gaugeReadoutText(tick){
-  return `${FuelGauge.tickLabel(tick)} — about ${FuelGauge.milesForTick(tick).toLocaleString()} mi`;
+  return `${FuelGauge.tickLabel(tick)} — about ${FuelGauge.plannableMilesForTick(tick).toLocaleString()} mi`;
 }
 
 function renderGauge(){
@@ -1402,8 +1460,8 @@ function renderGauge(){
   $('fuelGauge').setAttribute('aria-valuetext', text);
 }
 
-// The red zone (ticks 0-1) isn't a landing spot — a tap or drag that lands
-// there snaps to the floor (tick 2) instead of wherever was actually tapped.
+// E (tick 0) isn't a landing spot — a tap or drag that lands there snaps to
+// the floor (tick 1, 1/8 tank) instead of wherever was actually tapped.
 function setGaugeTick(rawTick){
   gaugeTick = Math.max(GAUGE_MIN_TICK, Math.min(GAUGE_MAX_TICK, Math.round(rawTick)));
   renderGauge();
@@ -1693,6 +1751,16 @@ async function planLoad(pickup, delivery){
   }
 
   const ranges = readRanges();
+
+  // The gauge floor (1/8 tank) reads as 0 plannable miles — that alone
+  // determines an immediate gap, so skip the routing call entirely.
+  if(ranges.rangeAtPickup === 0){
+    const nearPickup = FuelPlanAdaptive.stopsNearPickup(
+      pickup.lat, pickup.lng, FUEL_STOPS, NEAR_PICKUP_RADIUS_GAP);
+    renderFloorGap(ranges, pickup, delivery, nearPickup);
+    if(btn){ btn.disabled = false; btn.textContent = 'Plan fuel for this load'; }
+    return;
+  }
 
   try {
     const poly = await truckRoute(pickup, delivery);

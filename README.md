@@ -86,6 +86,30 @@ They answer different questions and must not be conflated:
 
 ## Version history
 
+### v1.6.0
+
+The gauge's numbers were wrong in a specific way: reading "F" as 1000 mi
+implied the whole tank is plannable range, when in practice the bottom 1/8
+(125 mi, the existing `MILES_PER_TICK`) should never be routed on — it's the
+margin a driver limps toward a stop on, not miles to plan a leg with. The
+gauge now reports **plannable** range via `plannableMilesForTick` in
+`lib/gauge.js`: `max(0, (tick - 1) * 125)`, so **F reads as 875 mi**, not
+1000, and each tick down is still 125 mi apart. The floor also moves — tick 1
+(1/8 tank) is now selectable, one notch below the old floor of tick 2 (1/4
+tank); only E (tick 0) remains off the gauge. At the new floor the readout is
+honestly **0 plannable miles**: `planLoad()` recognizes `rangeAtPickup === 0`
+and skips the routing call entirely — the outcome is already determined, and
+feeding 0 through the real planner always lands on the same degenerate
+`{fromMile: 0, deadMile: 0}` gap, which is why that state gets its own
+message (`renderFloorGap`) instead of the generic "between mile X and mile
+Y" gap copy, worded around the honest ~125 mi of physical range still left to
+limp toward a stop, with the Driver Support number. `milesForTick` (the raw,
+non-reserve conversion) and `EMERGENCY_TICK_CEILING`/`isEmergencyZone` are
+unchanged and still used elsewhere — only what the UI treats as *plannable*,
+and how low the needle can go, changed. Also, "How far do you run between
+fuel stops?" now defaults to **625 mi**, down from 800; still editable,
+still bounded 300-1200.
+
 ### v1.5.1
 
 Two fixes to the location feature from v1.4.0. The live position dot now
