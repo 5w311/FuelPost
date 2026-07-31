@@ -107,6 +107,30 @@ follow, not just this one:
 
 ## Version history
 
+### v1.11.8
+
+Reported: from Satellite view, switching directly to this app's own Dark or
+Light toggle (not going through HERE's own "Map" entry first) landed on the
+dark map layer either way, regardless of which was tapped. v1.11.6/v1.11.7
+already found and fixed one race in this same family — a driver's own
+theme switch landing right after this app's Satellite-exit correction could
+stack a second `setBaseLayer()` call before HERE's engine settled from the
+first — but that fix only deferred the *correction's* own call, not
+`switchTheme()`'s. This report is the same category of race on the other
+call site: `switchTheme()` was still applying its layer change immediately,
+so a theme switch straight off Satellite could hit the identical timing
+problem. Both now go through one shared, deferred, idempotent
+`setNormalBaseLayer()` — `switchTheme()`'s own layer change and the
+Satellite-exit correction alike — so a `setBaseLayer()` call can no longer
+land back-to-back with another one regardless of which path triggered it.
+Note: this exact interaction couldn't be reproduced in the test harness
+(which mocks HERE's engine synchronously, so the underlying race never
+occurs there in the first place) — the fix generalizes the same defensive
+pattern already confirmed to fix the analogous, verified case, and the new
+tests cover switching directly from Satellite to Dark, to Light, and a
+rapid Dark→Light double-tap with no gap, all landing correctly. Worth a
+recheck on a real device to confirm the actual reported symptom is gone.
+
 ### v1.11.7
 
 Fixes a follow-on from v1.11.6's Satellite→Map dark-mode correction: doing
