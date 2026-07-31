@@ -86,6 +86,12 @@ They answer different questions and must not be conflated:
 
 ## Version history
 
+### v1.6.5
+
+The default value for "How far do you run between fuel stops?" increased from
+625 mi to 850 mi, reflecting a more typical highway-segment planning distance
+for Covenant drivers.
+
 ### v1.6.4
 
 Every marker on the map — all 146 station pins, the current-location dot,
