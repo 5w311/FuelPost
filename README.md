@@ -107,6 +107,23 @@ follow, not just this one:
 
 ## Version history
 
+### v1.10.0
+
+Pickup and delivery fields now show a live address-suggestion dropdown as the
+driver types, backed by HERE's Autosuggest API. Tapping a suggestion fills
+the field and pre-confirms that end — same treatment "use my location"
+already gave a GPS-filled pickup — so plan submission skips forward
+geocoding (and any disambiguation) for that field entirely. Queries are
+debounced 300ms and require a 3-character minimum before firing, and
+stale/out-of-order responses are discarded via a per-field request token, to
+keep call volume sane on a shared key. Suggestions lacking a position
+(category/chain-type results) resolve through a follow-up Lookup call before
+being used; if that also fails, the field just falls back to normal typed-
+address handling. Two new HERE endpoints are now in call rotation alongside
+the existing geocode/route ones — Autosuggest on every qualifying keystroke,
+Lookup only for the occasional suggestion that needs it — worth knowing if
+API dashboard volume looks different going forward.
+
 ### v1.9.1
 
 Copy fix, no logic changed. The gauge-floor gap message ("No network stop
