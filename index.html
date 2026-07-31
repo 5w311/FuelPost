@@ -751,7 +751,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.10.1';
+const APP_VERSION = '1.10.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -2013,12 +2013,25 @@ function hideSuggest(field){
 
 // position:fixed (see the CSS) needs its on-screen spot computed fresh each
 // time it opens, since it's positioned by JS coordinates, not CSS layout.
+//
+// getBoundingClientRect() reports coordinates relative to the *layout*
+// viewport, but on iOS Safari position:fixed is anchored to the *visual*
+// viewport — when the on-screen keyboard pans the visual viewport to bring
+// the focused field into view, those two coordinate spaces diverge by
+// exactly visualViewport.offsetTop/offsetLeft. Without subtracting that
+// offset here, the dropdown renders shifted away from where the field
+// actually sits on screen (this was the real bug behind the reposition-on-
+// resize fix not actually fixing anything — it kept recomputing the same
+// uncompensated value).
 function positionSuggestList(field){
   const { input, list } = suggestFieldEls(field);
   const r = input.getBoundingClientRect();
-  list.style.left = r.left + 'px';
+  const vv = window.visualViewport;
+  const offsetLeft = vv ? vv.offsetLeft : 0;
+  const offsetTop = vv ? vv.offsetTop : 0;
+  list.style.left = (r.left - offsetLeft) + 'px';
   list.style.width = r.width + 'px';
-  list.style.top = (r.bottom + 4) + 'px';
+  list.style.top = (r.bottom + 4 - offsetTop) + 'px';
 }
 
 function queueSuggest(field){
@@ -2113,14 +2126,12 @@ document.addEventListener('click', (e) => {
   });
 });
 
-// html,body are overflow:hidden (see above) — this app never scrolls the
-// document, so on iOS the on-screen keyboard opening doesn't scroll the
-// page, it pans the *visual* viewport (WebKit's own keyboard-avoidance,
-// sliding the focused field up above the keyboard). That fires visualViewport
-// resize/scroll events, not window ones. Our dropdown is position:fixed with
-// coordinates snapshotted once from getBoundingClientRect() when it opens —
-// without this, the keyboard's pan leaves that snapshot stale and the
-// dropdown ends up overlapping the field instead of sitting under it.
+// The visualViewport offset positionSuggestList() compensates for isn't
+// static — it changes live as the keyboard-open animation plays out, and
+// html,body are overflow:hidden (see above) so none of that ever shows up
+// as a window scroll event, only a visualViewport one. Re-run the same
+// calculation whenever it fires so the dropdown tracks the field the whole
+// time the keyboard is animating, not just once it settles.
 function repositionOpenSuggestLists(){
   ['pickup', 'delivery'].forEach(field => {
     const { list } = suggestFieldEls(field);
