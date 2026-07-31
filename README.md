@@ -107,6 +107,20 @@ follow, not just this one:
 
 ## Version history
 
+### v1.11.0
+
+Pickup, delivery, and the cruising-range input ("How far do you run between
+fuel stops?") each get their own small "x" button at the far right of the
+field to clear just that one field, separate from the existing whole-form
+"Clear trip" button below them. Each is hidden until there's actually
+something on that field to clear — typed or selected text for the address
+fields, a value other than the 875mi default for the range field — and
+clearing pickup or delivery also drops any GPS/autosuggest pre-confirmed
+state on it and closes its suggestion dropdown if one's open, the same as
+editing the field by hand would. On pickup, the existing "use my location"
+button shifts one slot left to make room; on the range field, the "mi" unit
+label does the same.
+
 ### v1.10.3
 
 v1.10.1 and v1.10.2 both tried to patch the autosuggest dropdown's
