@@ -107,6 +107,24 @@ follow, not just this one:
 
 ## Version history
 
+### v1.10.3
+
+v1.10.1 and v1.10.2 both tried to patch the autosuggest dropdown's
+`position:fixed` + JS-computed-coordinates approach to stop it drifting out
+of sync with its field on iOS, and neither actually landed — real-device
+testing after v1.10.2 still showed the dropdown covering the field, worse
+than before. Replaces that whole approach: the dropdown is now
+`position:absolute`, positioned by plain CSS (`top:100%` under its field,
+`.rb-field` as the containing block) instead of any JS-computed screen
+coordinates. It shares the input's own coordinate space, so it now pans
+correctly with the field for free — no `visualViewport` math to get right.
+`#routebar`/`.rb-body`'s `overflow:hidden` (needed for the collapse-to-tab
+animation) would otherwise clip it, so that's now lifted only while a
+dropdown is actually open and restored the moment it closes. Also shrunk
+the dropdown's max height (220px → 160px) so it can't cover as much of the
+map/other fields even when it is open, on top of the scrolling it already
+had for lists longer than that.
+
 ### v1.10.2
 
 v1.10.1's fix for the autosuggest dropdown overlapping its field on iOS
