@@ -254,11 +254,17 @@
   /* "Use my location" sits inside the pickup field, right-aligned like the
      mi unit on the range input. The per-field clear ("x") button — see
      .rb-clear-field-btn — always takes the outermost right slot on every
-     field it appears on, so it lands at right:5 here and pushes the locate
-     button one slot further in, rather than the other way around. */
+     field it appears on, pushing the locate button one slot further in,
+     rather than the other way around — but only while it's actually
+     showing. .has-clear (toggled alongside pickupClearBtn's own hidden
+     state in updatePickupClearVisibility()) is what makes that room;
+     without it the locate button sits close to the field's own edge
+     instead of leaving a dead gap where a hidden clear button would go. */
   .rb-locate-wrap{position:relative;}
-  .rb-locate-wrap input{padding-right:66px;}
-  .rb-locate-btn{position:absolute;right:33px;top:50%;transform:translateY(-50%);border:none;background:none;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ta);}
+  .rb-locate-wrap input{padding-right:36px;}
+  .rb-locate-wrap.has-clear input{padding-right:66px;}
+  .rb-locate-btn{position:absolute;right:5px;top:50%;transform:translateY(-50%);border:none;background:none;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ta);}
+  .rb-locate-wrap.has-clear .rb-locate-btn{right:33px;}
   .rb-locate-btn svg{width:17px;height:17px;}
   .rb-locate-btn.busy{opacity:.5;}
   .rb-locate-btn.busy svg{animation:locate-spin 1.1s linear infinite;}
@@ -797,7 +803,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.11.4';
+const APP_VERSION = '1.11.5';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -951,7 +957,11 @@ window.addEventListener('resize', () => map.getViewPort().resize());
 
 const mapEvents = new H.mapevents.MapEvents(map);
 new H.mapevents.Behavior(mapEvents);
-H.ui.UI.createDefault(map, defaultLayers);
+const ui = H.ui.UI.createDefault(map, defaultLayers);
+// HERE's scale bar (and its distance-measurement control) default to
+// metric — this app's drivers and distances are US miles throughout
+// (routing, gauge, plan text), so the scale bar should read the same way.
+ui.setUnitSystem(H.ui.UnitSystem.IMPERIAL);
 
 function updateThemeToggleUI(){
   const mode = storedTheme() || 'system';
@@ -1662,13 +1672,23 @@ function updateClearVisibility(){
 // cruising range back to its default. Hidden until there's something on
 // that specific field to clear, same reasoning as clearTripBtn itself.
 function updatePickupClearVisibility(){
-  $('pickupClearBtn').hidden = !$('pickupInput').value.trim();
+  const hasText = !!$('pickupInput').value.trim();
+  $('pickupClearBtn').hidden = !hasText;
+  // The locate button only needs to shift over and make room for the clear
+  // button while that button is actually showing — see .has-clear in the
+  // CSS above. Without this, the locate button sat in the "make room"
+  // position permanently, leaving a dead gap when there was nothing there
+  // to make room for.
+  $('pickupInput').closest('.rb-locate-wrap').classList.toggle('has-clear', hasText);
 }
 function updateDeliveryClearVisibility(){
   $('deliveryClearBtn').hidden = !$('deliveryInput').value.trim();
 }
 function updateRangeClearVisibility(){
-  $('rangeClearBtn').hidden = Number($('rangeInput').value) === ROUTE_DEFAULT_RANGE;
+  // Same rule as pickup/delivery — "is there something here to clear," not
+  // "does this differ from the default." A field showing 875 has content
+  // in it even though 875 is what it started at.
+  $('rangeClearBtn').hidden = !$('rangeInput').value.trim();
 }
 function updateFieldClearVisibility(){
   updatePickupClearVisibility();

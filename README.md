@@ -107,6 +107,38 @@ follow, not just this one:
 
 ## Version history
 
+### v1.11.5
+
+Three small route-bar/map-chrome fixes:
+
+- The pickup field's locate button used to sit permanently in its
+  "shifted-in" position (with the input's padding reserving room to match),
+  whether or not the clear ("x") button next to it was actually showing —
+  leaving a dead gap when the field was empty. The locate button's position
+  and the input's padding are now conditional on a `.has-clear` class that
+  toggles alongside the clear button's own visibility, so the locate button
+  sits close to the field's edge until there's actually something to clear.
+- The cruising-range field's clear button used "differs from the 875
+  default" as its show/hide rule, unlike pickup and delivery's own "field
+  is non-empty" rule — inconsistent, and looked broken (875 visibly in the
+  box, no x showing). Range now uses the same "is there something here to
+  clear" rule as the other two fields. Its click behavior is unchanged —
+  still resets to 875.
+- HERE's built-in scale bar defaulted to metric (km); `H.ui.UI` is now
+  explicitly set to `H.ui.UnitSystem.IMPERIAL`, so it reads in miles like
+  the rest of the app (routing, gauge, plan text). **Scale bar sharpness**
+  (reported blurry next to the crisp zoom/layers controls) was investigated
+  but not changed: inspecting HERE's own UI module source directly shows
+  the scale bar renders via an inline SVG string (`innerHTML = '<svg
+  height="12">...'`), not a `<canvas>` element — the only `<canvas>` usage
+  anywhere in that module is in an unrelated map-capture/export function.
+  SVG is resolution-independent, so the "canvas backing store needs
+  devicePixelRatio scaling" bug this was suspected to be doesn't apply to
+  this control. Whatever's actually causing the blur (if it's still visible
+  after this release — the units change doesn't touch it either way) has a
+  different root cause that needs on-device inspection to identify; treat
+  this as open, not resolved.
+
 ### v1.11.4
 
 The "tap to check for update" flow only ever ran when a driver happened to
