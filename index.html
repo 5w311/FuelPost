@@ -144,6 +144,7 @@
   #filterCard .seg{width:100%;}
   #filterCard .seg button{flex:1;text-align:center;}
   #filterCard .seg + .seg{margin-top:8px;}
+  #filterCard .stateSel{width:100%;margin-top:8px;}
 
   /* ---- Route mode ---- */
   /* STOPS-mode filters stay in the DOM; they just hide while planning a route. */
@@ -298,7 +299,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
       <span class="filter-badge" id="filterBadge" hidden></span>
     </button>
-    <select class="stateSel stops-only" id="stateSel"><option value="all">All states</option></select>
     <div class="search-wrap stops-only">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="searchInput" placeholder="Search city, state, exit…">
@@ -385,6 +385,7 @@
         <button data-v="excl">Exclusive</button>
         <button data-v="prim">Primary</button>
       </div>
+      <select class="stateSel stops-only" id="stateSel"><option value="all">All states</option></select>
     </div>
   </div>
 
@@ -602,7 +603,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.6.2';
+const APP_VERSION = '1.6.3';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -757,11 +758,13 @@ function render(){
   document.getElementById('countNum').textContent = count;
 }
 
-// Filters button badge — a dot when brand or type isn't 'all', so a driver
-// can tell filters are applied without opening the popover. Same principle
-// as the route panel's collapsed summary: don't lose context when tucked away.
+// Filters button badge — a dot when brand, type or state isn't 'all', so a
+// driver can tell filters are applied without opening the popover. Same
+// principle as the route panel's collapsed summary: don't lose context when
+// tucked away.
 function updateFilterBadge(){
-  document.getElementById('filterBadge').hidden = state.brand==='all' && state.type==='all';
+  document.getElementById('filterBadge').hidden =
+    state.brand==='all' && state.type==='all' && state.st==='all';
 }
 
 document.querySelectorAll('#brandSeg button').forEach(b=>b.addEventListener('click',()=>{
@@ -772,7 +775,7 @@ document.querySelectorAll('#typeSeg button').forEach(b=>b.addEventListener('clic
   document.querySelectorAll('#typeSeg button').forEach(x=>x.classList.remove('active'));
   b.classList.add('active'); state.type=b.dataset.v; render(); updateFilterBadge();
 }));
-stateSel.addEventListener('change', e=>{state.st=e.target.value; render();});
+stateSel.addEventListener('change', e=>{state.st=e.target.value; render(); updateFilterBadge();});
 document.getElementById('searchInput').addEventListener('input', e=>{state.q=e.target.value.trim().toLowerCase(); render();});
 document.getElementById('listToggle').addEventListener('click', ()=>{
   document.getElementById('listview').classList.toggle('show');
