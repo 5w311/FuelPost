@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>FuelPost</title>
 <script>
 // Resolves and sets the theme before the stylesheet below is parsed, so
@@ -302,16 +302,36 @@
   .rr-endaddr{font-size:12.5px;font-weight:600;line-height:1.35;margin-top:1px;}
   .rr-fix{background:none;border:none;padding:0;margin-left:7px;font-size:11px;font-weight:700;color:var(--ta);text-decoration:underline;white-space:nowrap;}
 
-  #routeResults{position:absolute;left:0;right:0;bottom:0;max-height:62%;background:var(--surface);border-radius:16px 16px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.18);z-index:360;display:none;flex-direction:column;overflow:hidden;}
+  /* padding-bottom: env(safe-area-inset-bottom) — this panel sits flush to
+     the true bottom of the screen (bottom:0), which on a phone with a home
+     indicator (needs viewport-fit=cover on the meta viewport tag, set
+     above, for env() to resolve to anything nonzero) means content right at
+     its bottom edge — the collapsed tab's own text, or the last item when
+     scrolled to the end while expanded — sits under/against that gesture
+     bar instead of clear of it. The 0px fallback is a no-op on devices
+     without one. */
+  #routeResults{position:absolute;left:0;right:0;bottom:0;max-height:62%;background:var(--surface);border-radius:16px 16px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.18);z-index:360;display:none;flex-direction:column;overflow:hidden;padding-bottom:env(safe-area-inset-bottom, 0px);}
   #routeResults.show{display:flex;}
   #rrTab[hidden]{display:none;}
   /* Collapsible, same mechanic as #routebar's own tab/body — only offered on
      the final plan/gap result (#rrTab stays hidden otherwise), so a long
      stop list can be tucked away to see the map without leaving Route mode. */
-  .rr-body-wrap{overflow:hidden;max-height:2000px;transition:max-height .25s ease;}
+  /* .rr-body-wrap is itself a flex column (not a plain block) so that
+     .rr-body's flex:1;min-height:0 below can size against a genuinely
+     definite height. A plain block wrapper's rendered size — even though
+     it visibly gets flex-shrunk by ITS OWN parent (#routeResults) to fit
+     under the 62% cap — isn't a "definite height" a block CHILD's
+     percentage/flex sizing can resolve against; only being a flex
+     container itself makes that height available to ITS children. Without
+     this, .rr-body just grows to its own full content height instead of
+     the shrunk space, so its scrollHeight/clientHeight come out equal
+     (nothing to scroll) and this wrapper's overflow:hidden silently clips
+     whatever doesn't fit — which is what made the bottom of a long stop
+     list unreachable. */
+  .rr-body-wrap{display:flex;flex-direction:column;overflow:hidden;max-height:2000px;transition:max-height .25s ease;}
   #routeResults.rr-collapsed .rr-body-wrap{max-height:0;}
   #routeResults.rr-collapsed .rb-tab-chev{transform:rotate(-90deg);}
-  .rr-body{overflow-y:auto;padding:12px 14px 22px;}
+  .rr-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 22px;}
   .rr-head{font-size:15px;font-weight:700;margin:0 0 2px;}
   .rr-sub{font-size:11.5px;color:var(--sub);margin-bottom:8px;}
   .rr-stop{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:flex-start;text-align:left;width:100%;background:none;border-left:none;border-right:none;border-bottom:none;font:inherit;color:inherit;}
@@ -688,7 +708,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.8.1';
+const APP_VERSION = '1.8.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};

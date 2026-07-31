@@ -107,6 +107,39 @@ follow, not just this one:
 
 ## Version history
 
+### v1.8.2
+
+Two more fixes to the fuel-stop results panel introduced in v1.8.0's
+collapsible-panel change.
+
+Once a stop list's content actually exceeded the panel's 62% cap, there was
+no way to scroll to the bottom — the Share trip button and the last stop
+could be entirely unreachable. Root cause: `.rr-body-wrap` (the collapsible
+wrapper added in v1.8.0) is a plain block, and while it does get correctly
+flex-shrunk by its own parent (`#routeResults`) to fit the available space,
+that shrunk *rendered* size isn't a definite `height` a block child's
+percentage/flex sizing can resolve against — only being a flex container
+itself makes a parent's height available to its children that way. Without
+that, `.rr-body` just grew to its own full content height instead of the
+actually-available space, so its `scrollHeight` and `clientHeight` came out
+equal (nothing registered as scrollable) and the wrapper's own
+`overflow:hidden` silently clipped whatever didn't fit, with no way to
+reach it. Fixed by making `.rr-body-wrap` a flex column itself and giving
+`.rr-body` `flex:1;min-height:0` — the standard nested-flex-scroll pattern,
+where every level in the chain needs to be a flex container for internal
+`overflow-y:auto` to work correctly at the innermost level.
+
+Separately, the collapsed tab sat flush against the very bottom of the
+screen with zero clearance, which on a phone with a home indicator collides
+with that gesture area — the app had no safe-area handling anywhere. Added
+`viewport-fit=cover` to the meta viewport tag (required for
+`env(safe-area-inset-*)` to resolve to anything nonzero on a notched/
+gesture-bar device) and `padding-bottom: env(safe-area-inset-bottom, 0px)`
+on `#routeResults`, so the collapsed tab — and the last item when scrolled
+to the end while expanded — gets real clearance from the bottom edge
+instead of sitting right against it. The `0px` fallback is a no-op on
+devices without one.
+
 ### v1.8.1
 
 Two approved-copy fixes, no logic changed. The legend card's out-of-network
