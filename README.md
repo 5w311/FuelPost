@@ -107,6 +107,16 @@ follow, not just this one:
 
 ## Version history
 
+### v1.11.2
+
+Fixes the STOPS search box ("Search city, state, exit…") rendering typed
+text in the browser's default input color instead of the app's own
+theme-aware `--ink`, which every other input field already used. In light
+mode that default happens to be close enough to readable; in dark mode it's
+a dark color on the search bar's own dark background, so typed text was
+nearly invisible. Search now sets `color:var(--ink)` like the rest of the
+app's inputs.
+
 ### v1.11.1
 
 Fixes the legend card's "tap to check for update" button piling up a
