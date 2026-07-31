@@ -257,6 +257,16 @@
   .rb-gps-note[hidden]{display:none;}
   .geo-error{font-size:11.5px;color:#8A1C1C;background:#FDECEC;border:1px solid #F0BEBE;border-radius:9px;padding:7px 9px;margin-top:5px;line-height:1.4;}
   .geo-error[hidden]{display:none;}
+  /* Address autosuggest dropdown. position:fixed (not absolute) — #routebar
+     and .rb-body both have their own overflow:hidden (needed for the
+     collapse-to-a-tab animation elsewhere), which would clip an
+     absolutely-positioned dropdown taller than the field's own remaining
+     space. Fixed escapes that entirely; JS computes its on-screen position
+     from the input's own getBoundingClientRect() each time it opens. */
+  .suggest-list{position:fixed;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.18);z-index:410;max-height:220px;overflow-y:auto;}
+  .suggest-list[hidden]{display:none;}
+  .suggest-item{display:block;width:100%;text-align:left;padding:9px 12px;border:none;border-top:1px solid var(--line);background:none;font:inherit;font-size:12.5px;color:var(--ink);line-height:1.35;}
+  .suggest-item:first-child{border-top:none;}
   /* Range at pickup is the exception, not the routine field — a plain text
      disclosure rather than a second input competing with the habit. */
   .rb-disclosure{align-self:flex-start;background:none;border:none;padding:2px 0;font-size:12.5px;font-weight:700;color:var(--ta);text-decoration:underline;}
@@ -438,6 +448,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><path d="M12 1.5v3.2M12 19.3v3.2M1.5 12h3.2M19.3 12h3.2"/></svg>
         </button>
       </div>
+      <div class="suggest-list" id="pickupSuggest" hidden></div>
       <div class="rb-gps-note" id="pickupGpsNote" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
         Using your current location
@@ -447,6 +458,7 @@
     <div class="rb-field">
       <label for="deliveryInput">Delivery — street, city, state, zip</label>
       <input id="deliveryInput" placeholder="e.g. 4500 Commerce Dr, Fort Worth, TX 76106" autocomplete="off" autocapitalize="words">
+      <div class="suggest-list" id="deliverySuggest" hidden></div>
     </div>
     <div class="rb-field">
       <label for="rangeInput">How far do you run between fuel stops?</label>
@@ -552,6 +564,8 @@
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
 <script src="lib/extract-version.js"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
+<script src="lib/autosuggest.js"></script>
+<script>var AutoSuggest = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
      — real Node syntax. Loading it with a plain src attribute, like the two
@@ -737,7 +751,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.9.1';
+const APP_VERSION = '1.10.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1378,13 +1392,16 @@ async function geocodeCandidates(q){
 // A GPS-sourced candidate is a device fix, not a geocode result to second-guess
 // — it's exact by construction, so it always clears this check.
 function isExactMatch(c){
-  if(c.source === 'gps') return true;
+  // A tapped autosuggest suggestion already resolved the ambiguity a forward
+  // geocode would otherwise need disambiguating — same reasoning as 'gps'.
+  if(c.source === 'gps' || c.source === 'autosuggest') return true;
   const precise = c.resultType === 'houseNumber' || c.resultType === 'place'
                || c.resultType === 'street' || c.resultType === 'postalCodePoint';
   return precise && (c.score === null || c.score >= 0.9);
 }
 function matchKind(c){
   if(c.source === 'gps') return 'Your current location';
+  if(c.source === 'autosuggest') return 'Selected suggestion';
   const kind = {
     houseNumber:'Street address', place:'Named place', street:'Street (no number matched)',
     locality:'City / town centre only', administrativeArea:'Region centre only',
@@ -1949,15 +1966,166 @@ $('pickupLocateBtn').addEventListener('click', () => {
   startWatch();
 });
 
-// Editing the field after a GPS fill means the driver is overriding it —
-// drop the GPS candidate and marker, let normal forward-geocoding on plan
-// take over again.
-$('pickupInput').addEventListener('input', () => {
-  if(geoCands.pickup.length && geoCands.pickup[0].source === 'gps'){
-    geoCands.pickup = [];
-    confirmed.pickup = null;
+// Editing a field after it was pre-confirmed (GPS, or a tapped autosuggest
+// suggestion — see below) means the driver is overriding it — drop the
+// pre-confirmed candidate, let normal forward-geocoding on plan take over
+// again for that field.
+const PRE_CONFIRMED_SOURCES = ['gps', 'autosuggest'];
+function resetPreConfirmed(field){
+  if(geoCands[field].length && PRE_CONFIRMED_SOURCES.includes(geoCands[field][0].source)){
+    geoCands[field] = [];
+    confirmed[field] = null;
   }
+}
+
+/* ---- Pickup/Delivery address autosuggest ----
+   HERE Autosuggest (the current, non-beta endpoint — /autocomplete is
+   explicitly BETA in HERE's own catalog) suggests real matches as the
+   driver types. Tapping one marks that end pre-confirmed the same way "use
+   my location" already pre-confirms a GPS-filled pickup — skipping the
+   forward-geocode-and-maybe-disambiguate step for that field entirely,
+   since picking a specific suggestion already resolved the ambiguity.
+   Debounced 300ms with a 3-char minimum (AutoSuggest.shouldFireQuery)
+   specifically to keep call volume sane on a shared, unlocked key —
+   autosuggest fires far more often than the once-per-plan geocode/route
+   calls elsewhere in this app; don't lower either value without weighing
+   that tradeoff again. */
+const suggestDebounce = { pickup: null, delivery: null };
+// Incrementing per-field token — a classic type-ahead race: if the driver
+// keeps typing, an earlier request's response can land after a later one.
+// Whichever request's token no longer matches current when it resolves is
+// stale and gets dropped rather than rendered as if it were current.
+const suggestToken = { pickup: 0, delivery: 0 };
+let suggestItems = { pickup: [], delivery: [] };
+
+function suggestFieldEls(field){
+  return field === 'pickup'
+    ? { input: $('pickupInput'), list: $('pickupSuggest') }
+    : { input: $('deliveryInput'), list: $('deliverySuggest') };
+}
+
+function hideSuggest(field){
+  const { list } = suggestFieldEls(field);
+  list.hidden = true;
+  list.innerHTML = '';
+  suggestItems[field] = [];
+}
+
+// position:fixed (see the CSS) needs its on-screen spot computed fresh each
+// time it opens, since it's positioned by JS coordinates, not CSS layout.
+function positionSuggestList(field){
+  const { input, list } = suggestFieldEls(field);
+  const r = input.getBoundingClientRect();
+  list.style.left = r.left + 'px';
+  list.style.width = r.width + 'px';
+  list.style.top = (r.bottom + 4) + 'px';
+}
+
+function queueSuggest(field){
+  clearTimeout(suggestDebounce[field]);
+  const { input } = suggestFieldEls(field);
+  const text = input.value;
+  if(!AutoSuggest.shouldFireQuery(text)){
+    hideSuggest(field);
+    return;
+  }
+  suggestDebounce[field] = setTimeout(() => fireSuggest(field, text.trim()), 300);
+}
+
+async function fireSuggest(field, q){
+  const myToken = ++suggestToken[field];
+  const params = new URLSearchParams({ q, apikey: HERE_API_KEY, limit: '5' });
+  // A driver's current position is a reasonable proximity hint for either
+  // end of a load — bias, don't block: no liveFix yet just omits `at`.
+  if(liveFix) params.set('at', `${liveFix.lat},${liveFix.lng}`);
+  let items = [];
+  try {
+    const res = await fetch(`https://autosuggest.search.hereapi.com/v1/autosuggest?${params}`);
+    if(res.ok){
+      const data = await res.json();
+      items = Array.isArray(data.items) ? data.items : [];
+    }
+  } catch(err){
+    items = [];
+  }
+  if(myToken !== suggestToken[field]) return; // superseded by a newer keystroke — drop it
+  renderSuggest(field, items);
+}
+
+function renderSuggest(field, items){
+  const { list } = suggestFieldEls(field);
+  if(!items.length){ hideSuggest(field); return; }
+  suggestItems[field] = items;
+  // Same label resolution as AutoSuggest.candidateFromSuggestItem, so what's
+  // shown in the dropdown always matches what actually fills the field.
+  list.innerHTML = items.map((item, i) => {
+    const label = (item.address && item.address.label) || item.title || '';
+    return `<button type="button" class="suggest-item" data-idx="${i}">${label}</button>`;
+  }).join('');
+  positionSuggestList(field);
+  list.hidden = false;
+  list.querySelectorAll('.suggest-item').forEach(btn => {
+    // mousedown (before click, before the input's own blur) with
+    // preventDefault keeps focus on the input — without this, tapping a
+    // suggestion blurs the field and the dropdown closes before the tap
+    // ever registers as a click on it.
+    btn.addEventListener('mousedown', e => e.preventDefault());
+    btn.addEventListener('click', () => selectSuggestion(field, +btn.dataset.idx));
+  });
+}
+
+async function selectSuggestion(field, idx){
+  const item = suggestItems[field][idx];
+  hideSuggest(field);
+  if(!item) return;
+
+  let cand = AutoSuggest.candidateFromSuggestItem(item);
+  if(!cand) return; // malformed — leave the typed text alone; forward-geocode-on-submit still handles it
+
+  if(cand.needsLookup){
+    // categoryQuery/chainQuery items carry no position of their own — should
+    // be rare for an address field to begin with, so this is a safety net,
+    // not the main path.
+    try {
+      const res = await fetch(`https://lookup.search.hereapi.com/v1/lookup?id=${encodeURIComponent(cand.id)}&apikey=${HERE_API_KEY}`);
+      const data = res.ok ? await res.json() : null;
+      const resolved = data && AutoSuggest.candidateFromSuggestItem(data);
+      if(!resolved || resolved.needsLookup) return; // still no position — never silently plan against one; fall through to typed-text handling
+      cand = resolved;
+    } catch(err){
+      return; // lookup failed — same fall-through
+    }
+  }
+
+  const { input } = suggestFieldEls(field);
+  input.value = cand.label;
+  geoCands[field] = [{ lat: cand.lat, lng: cand.lng, label: cand.label, source: 'autosuggest' }];
+  confirmed[field] = null;
+  if(field === 'pickup') $('pickupGpsNote').hidden = true; // a tapped suggestion, not a GPS fix
+  updateClearVisibility();
+}
+
+// Close on tapping outside the open dropdown — same pattern as #filterCard.
+document.addEventListener('click', (e) => {
+  ['pickup', 'delivery'].forEach(field => {
+    const { input, list } = suggestFieldEls(field);
+    if(!list.hidden && e.target !== input && !list.contains(e.target)) hideSuggest(field);
+  });
+});
+// Close on the field losing focus too — delayed so a tap on a suggestion
+// (mousedown above already keeps focus, but this is a second safety net)
+// still has time to register as a click before the list disappears under it.
+$('pickupInput').addEventListener('blur', () => setTimeout(() => hideSuggest('pickup'), 150));
+$('deliveryInput').addEventListener('blur', () => setTimeout(() => hideSuggest('delivery'), 150));
+
+$('pickupInput').addEventListener('input', () => {
+  resetPreConfirmed('pickup');
   $('pickupGpsNote').hidden = true;
+  queueSuggest('pickup');
+});
+$('deliveryInput').addEventListener('input', () => {
+  resetPreConfirmed('delivery');
+  queueSuggest('delivery');
 });
 
 function offlineNote(lead){
@@ -2077,13 +2245,16 @@ async function startPlan(){
   routeGroup.removeAll();
 
   try {
-    // A pickup filled by "use my location" and left untouched is already a
-    // confirmed candidate — re-running forward geocoding on its label text
-    // would just be searching for the address GPS already gave us directly.
-    const pickupFromGps = geoCands.pickup.length === 1 && geoCands.pickup[0].source === 'gps';
+    // A field filled by "use my location" or a tapped autosuggest suggestion
+    // and left untouched is already a confirmed candidate — re-running forward
+    // geocoding on its label text would just be searching for the address we
+    // were already given directly.
+    const isPreConfirmed = c => c.length === 1 && ['gps','autosuggest'].includes(c[0].source);
+    const pickupPreConfirmed = isPreConfirmed(geoCands.pickup);
+    const deliveryPreConfirmed = isPreConfirmed(geoCands.delivery);
     const [pk, dv] = await Promise.all([
-      pickupFromGps ? Promise.resolve(geoCands.pickup) : geocodeCandidates(pickupQ),
-      geocodeCandidates(deliveryQ)
+      pickupPreConfirmed ? Promise.resolve(geoCands.pickup) : geocodeCandidates(pickupQ),
+      deliveryPreConfirmed ? Promise.resolve(geoCands.delivery) : geocodeCandidates(deliveryQ)
     ]);
     // Name the end that failed; never route from a guess.
     const failed = [];
