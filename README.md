@@ -119,6 +119,30 @@ every other mention already used, rendered from JS (`#legendSupportNote`)
 the same way `#appVer` next to it already is, since the number needed the
 JS-side constant rather than a second hardcoded string in static markup.
 
+### v1.7.2
+
+Three dark-mode visual fixes on top of v1.7.0, none of them logic changes.
+The legend card's Light/Dark/System toggle was overflowing past the card's
+own edge — its three buttons had no `min-width:0`, so flexbox's default
+`min-width:auto` held them to their full content width ("System") instead of
+actually shrinking to fit three-across; fixed by widening `#legendCard`
+(198px → 224px) and giving the toggle's buttons `min-width:0` with tighter
+padding/font-size. The gauge track's tick marks used a hardcoded
+navy-tinted `rgba(11,35,64,...)`, which all but disappeared against the new
+dark track background — now driven by `--gauge-tick`/`--gauge-tick-minor`
+variables, navy-tinted in light mode (unchanged) and white-tinted in dark.
+And "Trip details" (and a couple of other spots — the Legend button, the
+Share trip button) used `var(--navy)` as *text* color, which stayed
+just as dark in dark mode and read as almost invisible against the also-dark
+chrome behind it; introduced `--navy-text` (equal to `--navy` in light mode,
+a lighter `#6EA8FE` in dark) for every place navy is a text/border color
+rather than a filled pin/badge/header background — those keep using `--navy`
+directly and are unaffected. Also gave the legend card's Driver Support
+`<a>` its own color (it was inheriting the browser's default link blue
+instead of the theme, left over from the v1.7.1 tel: link fix). Light mode
+is unchanged in all four cases — confirmed programmatically, not just by
+eye.
+
 ### v1.7.0
 
 Dark theme, covering both the UI chrome and the map tiles themselves. Two new
