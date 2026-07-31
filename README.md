@@ -107,6 +107,22 @@ follow, not just this one:
 
 ## Version history
 
+### v1.11.4
+
+The "tap to check for update" flow only ever ran when a driver happened to
+open the legend card and tap it — closing the app and reopening it later
+landed straight back on whatever stale `index.html` the OS/browser's own
+HTTP cache served for that fresh launch, with nothing surfacing that a
+newer version existed even though the live site had already moved on (no
+service worker here, so nothing runs before that first stale paint either).
+The same cache-busted self-check now also runs automatically on load and
+every time the app returns to the foreground (`visibilitychange`), so a
+real update is detected and ready to show the next time the legend is
+opened, instead of only after remembering to tap "check for update"
+manually. Silent by design — no "Checking…" flash or note for a check
+nobody asked for, and still never reloads on its own; only the explicit
+second tap on "Update available" does that, same as before.
+
 ### v1.11.3
 
 Fixes the Legend button and the Recenter (locate) button floating on top of

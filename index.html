@@ -797,7 +797,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.11.3';
+const APP_VERSION = '1.11.4';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -827,7 +827,42 @@ function renderAppVer(){
 }
 renderAppVer();
 
-appVerBtn.addEventListener('click', async () => {
+// silent=true for the automatic background checks below (see the bottom of
+// this block) — no "Checking…" label flash and no note for a check the
+// driver never asked for, whether it comes back "latest" or fails outright.
+// A real update found either way still persists into appVerUpdateTo and
+// renders via renderAppVer(), silent or not — silent only skips the
+// transient, tap-triggered-feeling feedback.
+async function checkForUpdate(silent){
+  if(appVerChecking || appVerUpdateTo) return;
+  appVerChecking = true;
+  if(!silent){
+    appVerBtn.disabled = true;
+    appVerBtn.textContent = 'Checking…';
+  }
+
+  try {
+    const res = await fetch(location.pathname + '?_cb=' + Date.now(), { cache: 'no-store' });
+    const text = await res.text();
+    const live = ExtractVersion.extractVersion(text);
+
+    if(live === null){
+      if(!silent) showNote(appVerBtn, "Couldn't check for updates");
+    } else if(live === APP_VERSION){
+      if(!silent) showNote(appVerBtn, `You're on the latest (v${APP_VERSION})`);
+    } else {
+      appVerUpdateTo = live; // persists — rendered below, not a transient note
+    }
+  } catch(err){
+    if(!silent) showNote(appVerBtn, "Couldn't check for updates");
+  } finally {
+    appVerChecking = false;
+    if(!silent) appVerBtn.disabled = false;
+    renderAppVer();
+  }
+}
+
+appVerBtn.addEventListener('click', () => {
   if(appVerChecking) return;
 
   if(appVerUpdateTo){
@@ -840,29 +875,21 @@ appVerBtn.addEventListener('click', async () => {
     return;
   }
 
-  appVerChecking = true;
-  appVerBtn.disabled = true;
-  appVerBtn.textContent = 'Checking…';
+  checkForUpdate(false);
+});
 
-  try {
-    const res = await fetch(location.pathname + '?_cb=' + Date.now(), { cache: 'no-store' });
-    const text = await res.text();
-    const live = ExtractVersion.extractVersion(text);
-
-    if(live === null){
-      showNote(appVerBtn, "Couldn't check for updates");
-    } else if(live === APP_VERSION){
-      showNote(appVerBtn, `You're on the latest (v${APP_VERSION})`);
-    } else {
-      appVerUpdateTo = live; // persists — rendered below, not a transient note
-    }
-  } catch(err){
-    showNote(appVerBtn, "Couldn't check for updates");
-  } finally {
-    appVerChecking = false;
-    appVerBtn.disabled = false;
-    renderAppVer();
-  }
+// A driver closing the app (or just backgrounding it) and reopening later
+// doesn't run any of the above — the OS/browser serves whatever index.html
+// it already has cached for that fresh launch, stale or not, with no signal
+// anything is even out of date. Checking automatically on load, and again
+// every time the app comes back to the foreground, surfaces that mismatch
+// (as "Update available" next time the legend is opened) as soon as
+// possible instead of silently sitting on stale content indefinitely — this
+// still only ever detects and offers, exactly like the manual tap; it never
+// reloads on its own.
+checkForUpdate(true);
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') checkForUpdate(true);
 });
 
 // Populate state dropdown
