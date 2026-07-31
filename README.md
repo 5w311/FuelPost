@@ -107,6 +107,19 @@ follow, not just this one:
 
 ## Version history
 
+### v1.11.1
+
+Fixes the legend card's "tap to check for update" button piling up a
+duplicate "You're on the latest" note under itself every time it was
+tapped, instead of showing just the latest one — each tap's `showNote()`
+call inserted its own note with its own independent 2-second removal
+timer and never cleared whatever note a previous tap had left behind, so
+tapping it a few times in a row (well within that 2-second window each)
+stacked several identical notes and made the card grow taller with every
+tap. `showNote()` (shared with the "Copied" note on Share trip) now
+replaces its anchor's existing note instead of adding another one next to
+it, so at most one is ever showing.
+
 ### v1.11.0
 
 Pickup, delivery, and the cruising-range input ("How far do you run between
