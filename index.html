@@ -297,8 +297,15 @@
   .rr-endaddr{font-size:12.5px;font-weight:600;line-height:1.35;margin-top:1px;}
   .rr-fix{background:none;border:none;padding:0;margin-left:7px;font-size:11px;font-weight:700;color:var(--ta);text-decoration:underline;white-space:nowrap;}
 
-  #routeResults{position:absolute;left:0;right:0;bottom:0;max-height:62%;background:var(--surface);border-radius:16px 16px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.18);z-index:360;display:none;flex-direction:column;}
+  #routeResults{position:absolute;left:0;right:0;bottom:0;max-height:62%;background:var(--surface);border-radius:16px 16px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.18);z-index:360;display:none;flex-direction:column;overflow:hidden;}
   #routeResults.show{display:flex;}
+  #rrTab[hidden]{display:none;}
+  /* Collapsible, same mechanic as #routebar's own tab/body — only offered on
+     the final plan/gap result (#rrTab stays hidden otherwise), so a long
+     stop list can be tucked away to see the map without leaving Route mode. */
+  .rr-body-wrap{overflow:hidden;max-height:2000px;transition:max-height .25s ease;}
+  #routeResults.rr-collapsed .rr-body-wrap{max-height:0;}
+  #routeResults.rr-collapsed .rb-tab-chev{transform:rotate(-90deg);}
   .rr-body{overflow-y:auto;padding:12px 14px 22px;}
   .rr-head{font-size:15px;font-weight:700;margin:0 0 2px;}
   .rr-sub{font-size:11.5px;color:var(--sub);margin-bottom:8px;}
@@ -420,7 +427,13 @@
   <div id="mapwrap">
     <div id="map"></div>
     <div id="listview"></div>
-    <div id="routeResults"><div class="rr-body" id="routeResultsBody"></div></div>
+    <div id="routeResults">
+      <button type="button" id="rrTab" class="rb-tab" aria-expanded="true" aria-controls="routeResultsBody" hidden>
+        <span class="rb-tab-label" id="rrSummary"></span>
+        <svg class="rb-tab-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="rr-body-wrap" id="routeResultsBodyWrap"><div class="rr-body" id="routeResultsBody"></div></div>
+    </div>
     <button id="legendBtn">Legend ⓘ</button>
     <button id="locateBtn" class="stops-only" title="Show my location" aria-label="Show my location">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><path d="M12 1.5v3.2M12 19.3v3.2M1.5 12h3.2M19.3 12h3.2"/></svg>
@@ -670,7 +683,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.7.2';
+const APP_VERSION = '1.8.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1142,6 +1155,20 @@ let planStops = [];  // chosen stops from the last plan, for tap-through to open
    hides the way back in, or the way to Clear trip. */
 let routebarOpen = true;
 
+/* ---- Collapsible fuel-stop results ----
+   Same tab/body mechanic as the trip-details drawer above, but only offered
+   on the final plan/gap result (#rrTab stays hidden for every other state —
+   loading notes, errors, the address-confirmation step) via showRoutePanel's
+   optional summary argument. A long stop list can otherwise eat most of the
+   screen with no way back to the map short of leaving Route mode. */
+let rrCollapsed = false;
+function setRrCollapsed(collapsed){
+  rrCollapsed = collapsed;
+  $('routeResults').classList.toggle('rr-collapsed', collapsed);
+  $('rrTab').setAttribute('aria-expanded', String(!collapsed));
+}
+$('rrTab').addEventListener('click', () => setRrCollapsed(!rrCollapsed));
+
 // "1234 South 3200 West, Salt Lake City, UT 84104" -> "Salt Lake City, UT"
 function shortAddr(label){
   if(!label) return '';
@@ -1165,6 +1192,14 @@ function setRoutebarOpen(open){
   $('routebar').classList.toggle('collapsed', !open);
   $('routebarTab').setAttribute('aria-expanded', String(open));
   updateRoutebarSummary();
+  // Collapsing/expanding changes #mapwrap's height (routebar takes less/more
+  // of the flex column), but HERE's own canvas doesn't detect that on its
+  // own — only a real window resize or an explicit call does. Without this,
+  // the map stays rendered at its pre-collapse size and the newly-revealed
+  // area below it is just blank. .rb-body's CSS transition is 250ms; wait
+  // for it to finish rather than resizing mid-animation to a size that's
+  // about to change again.
+  setTimeout(() => map.getViewPort().resize(), 260);
 }
 
 $('routebarTab').addEventListener('click', () => setRoutebarOpen(!routebarOpen));
@@ -1311,10 +1346,19 @@ function tierBadge(tier){
     : '<span class="badge-pill b-prim">Primary</span>';
 }
 
-function showRoutePanel(html){
+// summary: pass a short string (e.g. "4 fuel stops · 3,058 mi") to offer the
+// collapse tab for this render — the final plan/gap result only. Omit it for
+// every other state (loading notes, errors, the confirm-address step) so the
+// tab doesn't show where there's nothing worth collapsing. Every call resets
+// to expanded — a fresh result should be seen, not hidden behind whatever
+// collapse state a previous one was left in.
+function showRoutePanel(html, summary){
   $('routeResultsBody').innerHTML = html;
   $('routeResults').classList.add('show');
   updateClearVisibility();
+  $('rrTab').hidden = !summary;
+  if(summary) $('rrSummary').textContent = summary;
+  setRrCollapsed(false);
 }
 
 /* ---- Share / save trip ----
@@ -1532,7 +1576,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
   // There is a trip worth taking with you now — a plan or a gap, either way.
   h += '<button type="button" id="shareTripBtn">Share / save trip</button>';
 
-  showRoutePanel(h);
+  showRoutePanel(h, `${headline} · ${mi(routeMiles)} mi`);
   $('shareTripBtn').addEventListener('click', shareTrip);
   document.querySelectorAll('.rr-stop').forEach(el =>
     el.addEventListener('click', () => openSheet(planStops[+el.dataset.idx].row)));
@@ -1586,7 +1630,7 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
 
   h += '<button type="button" id="shareTripBtn">Share / save trip</button>';
 
-  showRoutePanel(h);
+  showRoutePanel(h, 'Gauge at 1/8 — no plannable range');
   $('shareTripBtn').addEventListener('click', shareTrip);
 
   // No route to draw at this fill level — clear anything left from a
@@ -1834,8 +1878,13 @@ function renderConfirmStep(ambiguous){
   h += endBlockHTML('delivery', 'Delivery', geoCands.delivery, ambiguous.delivery);
   h += '<button id="confirmBtn">Confirm and plan fuel</button>';
   showRoutePanel(h);
+  // Collapse trip details the same way a finished plan/gap does — otherwise
+  // this card is squeezed into whatever sliver of map is left below the
+  // still-expanded fields, with a chunk of visible map wasted in between.
+  setRoutebarOpen(false);
 
   document.querySelectorAll('.gc-edit').forEach(el => el.addEventListener('click', () => {
+    setRoutebarOpen(true);   // the field being edited is inside the now-collapsed drawer
     $(el.dataset.edit).focus();
     $(el.dataset.edit).select();
   }));
@@ -1870,6 +1919,7 @@ function reopenPicker(key){
   showRoutePanel(h);
 
   document.querySelectorAll('.gc-edit').forEach(el => el.addEventListener('click', () => {
+    setRoutebarOpen(true);   // the field being edited is inside the collapsed drawer
     $(el.dataset.edit).focus();
     $(el.dataset.edit).select();
   }));
