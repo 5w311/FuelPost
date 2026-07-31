@@ -86,6 +86,23 @@ They answer different questions and must not be conflated:
 
 ## Version history
 
+### v1.6.2
+
+Brand (All/TA/Petro) and type (All types/Exclusive/Primary) filters moved
+behind a single Filters button in the STOPS toolbar, following the same
+button-toggles-a-popover-card pattern as the existing Legend button. They
+were the two least-touched controls in a toolbar that was packing mode
+switch, brand, type, state, search and list view into one horizontally-
+scrolling row — most sessions never leave "All", so they're the right ones
+to tuck behind a tap rather than pay their width on every screen. A small
+dot badge appears on the Filters button whenever brand or type isn't "all",
+so a driver can tell a filter is applied without opening the popover — same
+"don't lose context when collapsed" principle as the route panel's summary
+line. The popover closes on a second tap, a tap outside it, or switching to
+Route mode. No filtering behavior changed: `passes()` and `render()`, and
+the two segmented controls' own click handlers, are untouched — only where
+they live moved.
+
 ### v1.6.1
 
 Fixed the STOPS locate button: the first tap started the location watch and

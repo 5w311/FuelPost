@@ -39,6 +39,19 @@
   select.stateSel{padding:8px 10px;border-radius:10px;border:1px solid var(--line);font-size:12.5px;background:var(--bg);color:var(--ink);flex-shrink:0;font-weight:600;}
   .iconbtn{flex-shrink:0;border:1px solid var(--line);background:var(--bg);border-radius:10px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;}
 
+  /* Filters button — brand + type live behind it now (the two least-touched
+     controls in the toolbar; most sessions never leave "All"). #filterCard
+     itself is NOT nested here: .toolbar's overflow-x:auto forces its
+     overflow-y to compute as auto too (a real CSS quirk — one non-visible
+     axis drags the other off "visible"), which would clip a popover taller
+     than the toolbar instead of letting it float over the map. So the card
+     lives in #mapwrap next to #legendCard and uses the same fixed-offset
+     overlay + .show toggle pattern, just anchored bottom-left instead of
+     top-right. */
+  #filterBtn{position:relative;}
+  #filterBtn svg{width:18px;height:18px;}
+  .filter-badge{position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:var(--gold);border:2px solid #fff;}
+
   #mapwrap{flex:1;position:relative;min-height:0;}
   #map{position:absolute;inset:0;}
 
@@ -125,6 +138,12 @@
   #legendCard.show{display:block;}
   #legendCard div{display:flex;align-items:center;gap:7px;margin:5px 0;}
   #legendCard .sw{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
+
+  #filterCard{position:absolute;left:10px;top:8px;z-index:401;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:0 4px 12px rgba(0,0,0,.18);display:none;min-width:210px;}
+  #filterCard.show{display:block;}
+  #filterCard .seg{width:100%;}
+  #filterCard .seg button{flex:1;text-align:center;}
+  #filterCard .seg + .seg{margin-top:8px;}
 
   /* ---- Route mode ---- */
   /* STOPS-mode filters stay in the DOM; they just hide while planning a route. */
@@ -275,16 +294,10 @@
       <button data-v="stops" class="active">Stops</button>
       <button data-v="route">Route</button>
     </div>
-    <div class="seg stops-only" id="brandSeg">
-      <button data-v="all" class="active">All</button>
-      <button data-v="TA">TA</button>
-      <button data-v="Petro">Petro</button>
-    </div>
-    <div class="seg stops-only" id="typeSeg">
-      <button data-v="all" class="active">All types</button>
-      <button data-v="excl">Exclusive</button>
-      <button data-v="prim">Primary</button>
-    </div>
+    <button class="iconbtn stops-only" id="filterBtn" title="Filters" aria-label="Filters" aria-haspopup="true" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      <span class="filter-badge" id="filterBadge" hidden></span>
+    </button>
     <select class="stateSel stops-only" id="stateSel"><option value="all">All states</option></select>
     <div class="search-wrap stops-only">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
@@ -360,6 +373,18 @@
       <div><span class="sw" style="background:var(--gold)"></span> Exclusive (most cost-effective)</div>
       <div style="margin-top:6px;color:#5B6B7D;font-size:10.5px;line-height:1.4;border-top:1px solid #DEE3EA;padding-top:6px;">Fuel only at network stops. Out-of-network fuel: call Driver Support 423-463-3680.</div>
       <div id="appVer" style="margin-top:5px;color:#5B6B7D;font-size:10.5px;line-height:1.4;"></div>
+    </div>
+    <div id="filterCard">
+      <div class="seg stops-only" id="brandSeg">
+        <button data-v="all" class="active">All</button>
+        <button data-v="TA">TA</button>
+        <button data-v="Petro">Petro</button>
+      </div>
+      <div class="seg stops-only" id="typeSeg">
+        <button data-v="all" class="active">All types</button>
+        <button data-v="excl">Exclusive</button>
+        <button data-v="prim">Primary</button>
+      </div>
     </div>
   </div>
 
@@ -577,7 +602,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.6.1';
+const APP_VERSION = '1.6.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -732,13 +757,20 @@ function render(){
   document.getElementById('countNum').textContent = count;
 }
 
+// Filters button badge — a dot when brand or type isn't 'all', so a driver
+// can tell filters are applied without opening the popover. Same principle
+// as the route panel's collapsed summary: don't lose context when tucked away.
+function updateFilterBadge(){
+  document.getElementById('filterBadge').hidden = state.brand==='all' && state.type==='all';
+}
+
 document.querySelectorAll('#brandSeg button').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('#brandSeg button').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active'); state.brand=b.dataset.v; render();
+  b.classList.add('active'); state.brand=b.dataset.v; render(); updateFilterBadge();
 }));
 document.querySelectorAll('#typeSeg button').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('#typeSeg button').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active'); state.type=b.dataset.v; render();
+  b.classList.add('active'); state.type=b.dataset.v; render(); updateFilterBadge();
 }));
 stateSel.addEventListener('change', e=>{state.st=e.target.value; render();});
 document.getElementById('searchInput').addEventListener('input', e=>{state.q=e.target.value.trim().toLowerCase(); render();});
@@ -747,6 +779,20 @@ document.getElementById('listToggle').addEventListener('click', ()=>{
 });
 document.getElementById('legendBtn').addEventListener('click', ()=>{
   document.getElementById('legendCard').classList.toggle('show');
+});
+document.getElementById('filterBtn').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  const open = document.getElementById('filterCard').classList.toggle('show');
+  document.getElementById('filterBtn').setAttribute('aria-expanded', String(open));
+});
+// Tap-outside-to-dismiss — filterBtn's own click stops propagation above, so
+// this only ever sees taps that are genuinely outside the popover.
+document.addEventListener('click', (e)=>{
+  const card = document.getElementById('filterCard');
+  if(card.classList.contains('show') && !card.contains(e.target)){
+    card.classList.remove('show');
+    document.getElementById('filterBtn').setAttribute('aria-expanded', 'false');
+  }
 });
 
 render();
@@ -994,6 +1040,8 @@ function setMode(mode){
   if(route){
     $('listview').classList.remove('show');
     $('legendCard').classList.remove('show');
+    $('filterCard').classList.remove('show');
+    $('filterBtn').setAttribute('aria-expanded', 'false');
     // Re-entering Route: expanded if there's nothing planned yet, collapsed
     // with the summary intact if a plan or gap is still the last result.
     if(enteringRoute) setRoutebarOpen(!$('routeResultsBody').innerHTML);
