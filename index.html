@@ -803,7 +803,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.11.7';
+const APP_VERSION = '1.11.8';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -971,16 +971,46 @@ function updateThemeToggleUI(){
 }
 updateThemeToggleUI(); // map was already constructed on the right layer above — nothing to switch yet
 
+// Applying a light/dark "normal" base layer always goes through here —
+// this app's own theme toggle and the Satellite-exit correction below
+// alike — deferred and idempotent rather than an immediate setBaseLayer().
+// HERE's engine has shown it doesn't reliably settle from one setBaseLayer()
+// call, especially one coming straight off Satellite (a raster layer,
+// structurally heavier to swap out than another vector one), before the
+// very next setBaseLayer() lands: two confirmed cases so far — a driver's
+// own light-mode tap landing right after this app's own Satellite-exit
+// correction left the map visually stuck (fixed by deferring the
+// correction), and switching theme directly from Satellite (skipping
+// HERE's own "Map" entry, going straight from Satellite to this app's Light
+// or Dark toggle) has been reported to land on the dark layer regardless of
+// which was tapped — same root category, this time on switchTheme()'s own
+// call. Routing every "normal" layer change through one deferred,
+// idempotent function closes that race everywhere it can occur rather than
+// patching each occurrence as it's found. Cleared and rescheduled on every
+// call so only the latest target still applies; a check once the deferred
+// beat is up skips redundant work if something else already got there
+// first. Center/zoom don't carry over across setBaseLayer on their own
+// (HERE's own guidance) — preserved here too.
+let baseLayerCorrectionTimer = null;
+function setNormalBaseLayer(layer){
+  clearTimeout(baseLayerCorrectionTimer);
+  baseLayerCorrectionTimer = setTimeout(() => {
+    if(map.getBaseLayer() === layer) return;
+    const c = map.getCenter(), z = map.getZoom();
+    map.setBaseLayer(layer);
+    map.setCenter(c);
+    map.setZoom(z);
+  }, 60);
+}
+
 // Swaps the map's base layer for the resolved theme — used any time the
 // theme changes *after* initial load (toggle tap, live system-preference
-// change). Center/zoom don't carry over across setBaseLayer on their own
-// (HERE's own guidance), so preserve them explicitly.
+// change). data-theme (and everything CSS-driven off it) updates
+// immediately; the map layer itself follows via setNormalBaseLayer() above,
+// which is deferred by design — see its own comment.
 function switchTheme(theme){
   document.documentElement.setAttribute('data-theme', theme);
-  const c = map.getCenter(), z = map.getZoom();
-  map.setBaseLayer(theme === 'dark' ? defaultLayers.vector.normal.mapnight : defaultLayers.vector.normal.map);
-  map.setCenter(c);
-  map.setZoom(z);
+  setNormalBaseLayer(theme === 'dark' ? defaultLayers.vector.normal.mapnight : defaultLayers.vector.normal.map);
   updateThemeToggleUI();
 }
 
@@ -992,33 +1022,12 @@ function switchTheme(theme){
 // expose any way to hand it a dark alternative, so this corrects after the
 // fact instead: baselayerchange fires for every base-layer change,
 // switchTheme()'s own included, so on each one — if the resolved theme is
-// dark and HERE just set the light "Map" layer — swap it straight back to
-// mapnight.
-//
-// Deferred rather than applied inline: this fires re-entrantly, from inside
-// HERE's own handling of the very setBaseLayer() call that triggered it —
-// correcting with an immediate second setBaseLayer() right there landed the
-// map visually stuck on the dark tiles if the driver then switched to light
-// mode right after, one setBaseLayer() too many stacked in the same tick for
-// the engine to settle between them. A short setTimeout gives it a beat,
-// and re-checks the theme fresh when it actually runs — a driver's own
-// theme switch landing in that window reads correctly and this backs off
-// instead of fighting it. Cleared and rescheduled on every new
-// baselayerchange so only the latest one still applies.
-//
-// Center/zoom don't carry over across setBaseLayer on their own (see
-// switchTheme() above) — preserved here the same way.
-let baseLayerCorrectionTimer = null;
+// dark and HERE just set the light "Map" layer — swap it back to mapnight,
+// via the same deferred/idempotent path everything else here uses.
 map.addEventListener('baselayerchange', () => {
-  clearTimeout(baseLayerCorrectionTimer);
-  baseLayerCorrectionTimer = setTimeout(() => {
-    if(resolvedTheme() === 'dark' && map.getBaseLayer() === defaultLayers.vector.normal.map){
-      const c = map.getCenter(), z = map.getZoom();
-      map.setBaseLayer(defaultLayers.vector.normal.mapnight);
-      map.setCenter(c);
-      map.setZoom(z);
-    }
-  }, 60);
+  if(resolvedTheme() === 'dark' && map.getBaseLayer() === defaultLayers.vector.normal.map){
+    setNormalBaseLayer(defaultLayers.vector.normal.mapnight);
+  }
 });
 
 // Only follow live system changes when the driver hasn't made an explicit
