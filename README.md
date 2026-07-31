@@ -107,6 +107,17 @@ follow, not just this one:
 
 ## Version history
 
+### v1.9.1
+
+Copy fix, no logic changed. The gauge-floor gap message ("No network stop
+is reachable at this fill level," shown when the tank reads 1/8 with no
+plannable range) now says "call the Fuel Dept:" in place of "Driver
+Support," matching the wording already used for the legend card and the
+gauge's own 1/8-tank note. Also drops its trailing "Raising the gauge
+above 1/8, or topping off before you roll, will let this load plan"
+sentence — redundant with the driver already being the one who set the
+gauge there.
+
 ### v1.9.0
 
 The build number in the legend card ("FuelPost v1.9.0") is now tappable —
