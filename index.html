@@ -28,14 +28,25 @@
     /* Location dot — must read as its own thing at a glance, not blend into
        the TA-blue/Petro-green/gold/navy/danger-red palette already on screen. */
     --you-are-here:#E4007C;
+    /* Navy used as TEXT/border color on chrome (not as a filled pin/badge/
+       header background, which stay plain --navy in both themes) — needs
+       its own variable so dark mode can lighten it. Navy-on-dark-surface is
+       nearly unreadable; navy-as-a-filled-shape's own white text isn't
+       affected either way. */
+    --navy-text:var(--navy);
+    --gauge-tick:rgba(11,35,64,.3); --gauge-tick-minor:rgba(11,35,64,.18);
   }
   /* Dark palette — WCAG-checked against both --bg and --surface (see README).
      Brand/marker colors (navy, TA, Petro, gold, the location dot) are
      deliberately left unchanged: they're filled shapes on the map itself,
      not on this chrome, and were never placed on a background that's
-     changing. */
+     changing. --navy-text and the gauge tick colors are a separate case —
+     navy-as-TEXT and navy-tinted ticks on a background that IS changing —
+     so they get their own lighter dark-mode values. */
   html[data-theme="dark"]{
     --bg:#0D1117; --surface:#161B22; --ink:#E6E9EF; --sub:#93A0B4; --line:#333E4F;
+    --navy-text:#6EA8FE;
+    --gauge-tick:rgba(255,255,255,.3); --gauge-tick-minor:rgba(255,255,255,.16);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);overflow:hidden;}
@@ -132,7 +143,7 @@
   #scrim{position:absolute;inset:0;background:rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .2s;z-index:550;}
   #scrim.show{opacity:1;pointer-events:auto;}
 
-  #legendBtn{position:absolute;right:10px;top:10px;z-index:400;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-size:11.5px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.15);color:var(--navy);}
+  #legendBtn{position:absolute;right:10px;top:10px;z-index:400;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-size:11.5px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.15);color:var(--navy-text);}
 
   /* Recenter control, bottom-left — top-right is #legendBtn, bottom-right is
      HERE's own settings control. Three visual states: off (grey, no fix yet),
@@ -167,17 +178,23 @@
   @keyframes geo-pulse{0%,100%{opacity:.4;}50%{opacity:.15;}}
   .geo-dot{position:relative;width:16px;height:16px;border-radius:50%;background:var(--you-are-here);border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45);}
 
-  #legendCard{position:absolute;right:10px;top:52px;z-index:401;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:0 4px 12px rgba(0,0,0,.18);font-size:11.5px;display:none;width:198px;}
+  #legendCard{position:absolute;right:10px;top:52px;z-index:401;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:0 4px 12px rgba(0,0,0,.18);font-size:11.5px;display:none;width:224px;}
   #legendCard.show{display:block;}
   #legendCard div{display:flex;align-items:center;gap:7px;margin:5px 0;}
   #legendCard .sw{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
+  /* Unstyled <a> defaults to the browser's own blue/underline, clashing with
+     --sub — same pattern as .gauge-danger-note a below. */
+  #legendSupportNote a{color:var(--navy-text);font-weight:700;}
   /* Theme toggle row — overrides the flat icon-row rule above (higher
      specificity: id + class beats id + type), stacking label over the
      segmented control instead of laying them out side by side. */
   #legendCard .theme-row{display:block;margin:8px 0 0;padding-top:8px;border-top:1px solid var(--line);}
   #legendCard .theme-label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--sub);margin-bottom:5px;}
   #legendCard .theme-row .seg{display:flex;width:100%;}
-  #legendCard .theme-row .seg button{flex:1;text-align:center;}
+  /* min-width:0 overrides flex items' default min-width:auto, which was
+     letting "System" hold the row to its full content width and poke past
+     the card's edge instead of actually shrinking to fit three-across. */
+  #legendCard .theme-row .seg button{flex:1;min-width:0;text-align:center;padding:6px 4px;font-size:11px;}
 
   #filterCard{position:absolute;left:10px;top:8px;z-index:401;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:0 4px 12px rgba(0,0,0,.18);display:none;min-width:210px;}
   #filterCard.show{display:block;}
@@ -197,7 +214,7 @@
      state; the field body's max-height animates like #sheet's transform,
      just for an in-flow element instead of an overlay. */
   .rb-tab{display:flex;align-items:center;gap:8px;width:100%;padding:11px 12px;border:none;background:none;font:inherit;color:inherit;text-align:left;-webkit-tap-highlight-color:transparent;}
-  .rb-tab-label{flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rb-tab-label{flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--navy-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .rb-tab-chev{flex-shrink:0;width:16px;height:16px;color:var(--sub);transition:transform .2s ease;}
   #routebar.collapsed .rb-tab-chev{transform:rotate(-90deg);}
   .rb-body{display:flex;flex-direction:column;gap:8px;padding:0 12px 10px;max-height:560px;opacity:1;overflow:hidden;transition:max-height .25s ease, opacity .2s ease;}
@@ -239,8 +256,8 @@
   .gauge-labels span{position:absolute;top:0;transform:translateX(-50%);font-size:9.5px;font-weight:800;color:var(--sub);white-space:nowrap;}
   .gauge-track{position:relative;height:36px;border:3px solid var(--navy);border-radius:10px;background:var(--bg);touch-action:none;cursor:pointer;}
   .gauge-danger{position:absolute;top:-3px;bottom:-3px;left:-3px;width:calc(12.5% + 3px);background:#F3B4B4;border-radius:8px 0 0 8px;pointer-events:none;}
-  .gauge-tick{position:absolute;top:5px;bottom:5px;width:2px;background:rgba(11,35,64,.3);transform:translateX(-50%);pointer-events:none;}
-  .gauge-tick.minor{top:11px;bottom:11px;width:1px;background:rgba(11,35,64,.18);}
+  .gauge-tick{position:absolute;top:5px;bottom:5px;width:2px;background:var(--gauge-tick);transform:translateX(-50%);pointer-events:none;}
+  .gauge-tick.minor{top:11px;bottom:11px;width:1px;background:var(--gauge-tick-minor);}
   .gauge-needle{position:absolute;top:-4px;bottom:-4px;width:9px;border-radius:5px;background:#C4281C;box-shadow:0 1px 4px rgba(0,0,0,.35);transform:translateX(-50%);pointer-events:none;}
   .gauge-danger-note{font-size:10.5px;color:#8A1C1C;line-height:1.4;margin-top:8px;}
   .gauge-danger-note a{color:#8A1C1C;font-weight:700;}
@@ -252,7 +269,7 @@
      it resets fields, it isn't the thing the driver came here to do. */
   #clearTripBtn{align-self:center;background:none;border:none;padding:4px 2px;font-size:12.5px;font-weight:700;color:var(--sub);text-decoration:underline;}
 
-  #shareTripBtn{width:100%;background:var(--surface);color:var(--navy);border:1.5px solid var(--navy);border-radius:10px;height:40px;font-size:13.5px;font-weight:700;margin-top:14px;}
+  #shareTripBtn{width:100%;background:var(--surface);color:var(--navy-text);border:1.5px solid var(--navy-text);border-radius:10px;height:40px;font-size:13.5px;font-weight:700;margin-top:14px;}
   #shareTripBtn[disabled]{opacity:.55;}
   .share-note{font-size:12px;color:#0F6B33;font-weight:700;text-align:center;margin-top:7px;}
   /* Last-resort fallback when neither the share sheet nor the clipboard API
@@ -653,7 +670,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.7.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
