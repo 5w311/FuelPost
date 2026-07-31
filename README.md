@@ -107,6 +107,30 @@ follow, not just this one:
 
 ## Version history
 
+### v1.8.3
+
+Fixed HERE's own zoom + map-settings controls (bottom-right corner)
+staying hidden even after collapsing the fuel-stop results panel — the
+whole reason collapsing exists is to hand the map back, and this corner
+never actually came back. Root cause, confirmed by walking the actual
+parent chain in a real browser: `.H_l_bottom{z-index:390}` (declared to
+keep HERE's controls above the map) lives *inside* `#map`, but `#map`
+itself has no z-index of its own — a descendant's z-index only competes
+against other elements within the nearest ancestor that actually
+establishes a stacking context, so that 390 never reaches up to outrank
+`#routeResults` (z-index:360) at the `#mapwrap` sibling level. `#map`'s
+entire subtree, regardless of any z-index used inside it, just stacks by
+plain DOM order underneath `#routeResults` — measured, the collapsed tab
+(full width, flush to the bottom) genuinely overlapped that control column
+by 14px. Rather than trying to out-rank a z-index that structurally can't
+be reached from outside `#map` without restructuring the DOM, the fix
+pulls the collapsed panel's own right edge in (`right:70px`) past that
+column, leaving the corner uncovered. Expanded is untouched — still
+full-width, still covering that corner, same as before this fix and same
+as `#sheet` or `#routebar` legitimately covering other floating buttons
+while they're open; only the collapsed sliver was ever claiming to have
+given the map back.
+
 ### v1.8.2
 
 Two more fixes to the fuel-stop results panel introduced in v1.8.0's

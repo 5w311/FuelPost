@@ -310,9 +310,25 @@
      scrolled to the end while expanded — sits under/against that gesture
      bar instead of clear of it. The 0px fallback is a no-op on devices
      without one. */
-  #routeResults{position:absolute;left:0;right:0;bottom:0;max-height:62%;background:var(--surface);border-radius:16px 16px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.18);z-index:360;display:none;flex-direction:column;overflow:hidden;padding-bottom:env(safe-area-inset-bottom, 0px);}
+  #routeResults{position:absolute;left:0;right:0;bottom:0;max-height:62%;background:var(--surface);border-radius:16px 16px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.18);z-index:360;display:none;flex-direction:column;overflow:hidden;padding-bottom:env(safe-area-inset-bottom, 0px);transition:right .25s ease;}
   #routeResults.show{display:flex;}
   #rrTab[hidden]{display:none;}
+  /* HERE's own zoom + map-settings controls (.H_l_bottom, z-index:390 —
+     see that rule far below) live INSIDE #map, which has no z-index of its
+     own; a child's z-index only competes against elements within its
+     nearest ancestor that actually establishes a stacking context, so that
+     390 never reaches up to outrank #routeResults' 360 at the #mapwrap
+     sibling level — #map's whole subtree just stacks by DOM order
+     underneath it regardless. Full-width, the collapsed tab measures out to
+     really overlap that bottom-right control column by a few px, hiding it
+     entirely. Pulling the collapsed panel's right edge in past HERE's
+     control width (measured ~64px from the true edge) leaves that corner
+     uncovered instead of trying to out-rank a z-index that can't be reached
+     from here. Expanded is left full-width/covering that corner as before
+     — a fully open results panel legitimately owns that space, same as
+     #sheet or #routebar temporarily covering other floating buttons; only
+     the collapsed sliver claims to have given the map back. */
+  #routeResults.rr-collapsed{right:70px;}
   /* Collapsible, same mechanic as #routebar's own tab/body — only offered on
      the final plan/gap result (#rrTab stays hidden otherwise), so a long
      stop list can be tucked away to see the map without leaving Route mode. */
@@ -708,7 +724,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.8.2';
+const APP_VERSION = '1.8.3';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
