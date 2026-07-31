@@ -789,7 +789,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.11.0';
+const APP_VERSION = '1.11.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1546,6 +1546,14 @@ function showRoutePanel(html, summary){
    result messages, so it's a shared helper now instead of a second copy of
    the same four lines. */
 function showNote(anchorEl, msg, ms = 2000){
+  // Replace a note already showing for this anchor rather than stacking a
+  // new one below it — spamming the same button (tapping "check for
+  // update" repeatedly, say) used to pile up one note per tap, since each
+  // call inserted its own element with its own independent removal timer
+  // and nothing ever cleared the previous one early.
+  const existing = anchorEl.nextElementSibling;
+  if(existing && existing.classList.contains('share-note')) existing.remove();
+
   const el = document.createElement('div');
   el.className = 'share-note';
   el.textContent = msg;
