@@ -107,6 +107,28 @@ follow, not just this one:
 
 ## Version history
 
+### v1.8.4
+
+Fixed Clear trip resetting "How far do you run between fuel stops?" to 625
+mi — a stale value nobody meant to keep. `ROUTE_DEFAULT_RANGE`, the
+constant Clear trip and the range-validation fallback both read, was never
+updated when the field's own HTML default moved to 850 mi in a previous
+change; it was still hardcoded to the original 625. The same staleness
+had a second, quieter effect: the Clear trip button would show itself on a
+completely untouched fresh page load, since `routeHasSomethingToClear()`
+compares the field's live value against this same constant, and
+850 (the real default) never equalled 625 (the stale one). Both spots now
+read `ROUTE_DEFAULT_RANGE`, one source of truth again instead of a second
+hardcoded number drifting out of sync.
+
+While fixing that, the default itself moved again — 850 mi → 875 mi — to
+match the fuel gauge's own F reading exactly (`FULL_TANK_MILES` reserve
+math already lands F at 875 plannable miles; the two numbers now agree
+instead of a driver seeing 850 in one place and 875 in the other for
+what's meant to be the same "full tank" concept). Updated in both the
+`rangeInput` HTML default and `ROUTE_DEFAULT_RANGE` together, so this
+exact drift can't recur.
+
 ### v1.8.3
 
 Fixed HERE's own zoom + map-settings controls (bottom-right corner)

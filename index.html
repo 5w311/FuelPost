@@ -440,7 +440,7 @@
     <div class="rb-field">
       <label for="rangeInput">How far do you run between fuel stops?</label>
       <div class="rb-range-wrap">
-        <input id="rangeInput" type="number" value="850" min="300" max="1200" step="10" inputmode="numeric">
+        <input id="rangeInput" type="number" value="875" min="300" max="1200" step="10" inputmode="numeric">
         <span class="rb-unit">mi</span>
       </div>
       <div class="rb-help">Set this once. Most drivers leave it alone.</div>
@@ -724,7 +724,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.8.3';
+const APP_VERSION = '1.8.4';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1457,7 +1457,7 @@ function showShareFallback(text){
    Resets the planner to a blank first-open state: fields, ranges, geocode
    candidates, the results panel AND the route drawn on the map. A stale
    polyline left behind on a cleared trip is worse than no clear button. */
-const ROUTE_DEFAULT_RANGE = 625;
+const ROUTE_DEFAULT_RANGE = 875;
 
 function routeHasSomethingToClear(){
   const gaugeChanged = !$('pickupRangeField').hidden && gaugeTick !== GAUGE_MAX_TICK;
@@ -1684,7 +1684,7 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
 /* ---- Ranges ---- */
 function readRanges(){
   let maxRange = Math.round(Number($('rangeInput').value));
-  if(!Number.isFinite(maxRange) || maxRange <= 0) maxRange = 625;
+  if(!Number.isFinite(maxRange) || maxRange <= 0) maxRange = ROUTE_DEFAULT_RANGE;
   maxRange = Math.min(RANGE_MAX, Math.max(RANGE_MIN, maxRange));
   $('rangeInput').value = maxRange;
 
