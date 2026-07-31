@@ -107,6 +107,19 @@ follow, not just this one:
 
 ## Version history
 
+### v1.8.1
+
+Two approved-copy fixes, no logic changed. The legend card's out-of-network
+note now reads "Fuel only at network stops. / Out-of-network fuel: call Fuel
+Dept / 423-463-3680" on three lines instead of one dense sentence, and the
+gauge's 1/8-tank floor note says "Fuel Dept" and "out-of-network fuel stop"
+in place of "Driver Support" and "emergency fuel stop". Both still render
+the number from `DRIVER_SUPPORT` as a `tel:` link, same as before — only the
+label text and line breaks changed, not the underlying constant or how it's
+linked. The three other "Driver Support" mentions elsewhere (the network-gap
+and doesn't-clear results, the floor-gap card) are untouched — this request
+only named these two spots.
+
 ### v1.8.0
 
 Three Route-mode fixes, found testing on a real phone.

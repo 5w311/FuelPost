@@ -184,6 +184,11 @@
   #legendCard .sw{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
   /* Unstyled <a> defaults to the browser's own blue/underline, clashing with
      --sub — same pattern as .gauge-danger-note a below. */
+  /* Overrides the flat icon-row rule above (higher specificity: id+id beats
+     id+type) — this note is multi-line body text with a <br>, not an
+     icon+label row, and the inherited display:flex/gap was inserting a
+     phantom blank line between "Fuel Dept" and the phone number. */
+  #legendCard #legendSupportNote{display:block;}
   #legendSupportNote a{color:var(--navy-text);font-weight:700;}
   /* Theme toggle row — overrides the flat icon-row rule above (higher
      specificity: id + class beats id + type), stacking label over the
@@ -683,7 +688,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.8.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1140,7 +1145,7 @@ const DRIVER_SUPPORT = '423-463-3680';
 // a tel: link like every other Driver Support mention instead of the one
 // remaining plain-text phone number in the app.
 document.getElementById('legendSupportNote').innerHTML =
-  `Fuel only at network stops. Out-of-network fuel: call Driver Support <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.`;
+  `Fuel only at network stops. <br>Out-of-network fuel: call Fuel Dept<br><a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>`;
 
 const routeGroup = new H.map.Group();
 map.addObject(routeGroup);
@@ -1689,8 +1694,8 @@ function buildGaugeMarkup(){
       ticks += `<div class="gauge-tick minor" style="left:${(i + 0.5) / GAUGE_MAX_TICK * 100}%"></div>`;
   }
   $('gaugeTicks').innerHTML = ticks;
-  $('gaugeDangerNote').innerHTML = `E isn't selectable. At 1/8th tank, plannable range is 0 — you likely have about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} miles to limp towards an emergency fuel stop.
-    <br>Call Driver Support if you're this low: <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>`;
+  $('gaugeDangerNote').innerHTML = `E isn't selectable. At an 1/8th tank, plannable range is 0 — you likely have about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} miles to limp towards an out-of-network fuel stop.
+    <br>Call the Fuel Dept if you're this low: <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>`;
 }
 buildGaugeMarkup();
 
