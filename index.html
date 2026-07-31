@@ -803,7 +803,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.11.8';
+const APP_VERSION = '1.11.9';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -963,6 +963,45 @@ const ui = H.ui.UI.createDefault(map, defaultLayers);
 // (routing, gauge, plan text), so the scale bar should read the same way.
 ui.setUnitSystem(H.ui.UnitSystem.IMPERIAL);
 
+// HERE's own built-in layer switcher (the "mapsettings" control behind the
+// layers icon, bottom-right) builds its "Map view" entry once at creation,
+// always pointing at the light defaultLayers.vector.normal.map — this
+// app's dark variant was never one of its options. Every attempt so far at
+// correcting the *map's* layer after HERE's own control changed it
+// (v1.11.6–v1.11.8) fixed the immediate symptom but left the control's own
+// internal bookkeeping of "what's currently selected" out of sync with
+// reality — confirmed on-device across the previous few patches: tapping
+// its "Map view" entry started landing back on Satellite instead of either
+// the light or dark map, not just the wrong one, once enough of those
+// out-of-band corrections had happened. Rather than reacting after HERE's
+// control does something, this
+// keeps its own "Normal Map" entry pointed at whichever of map/mapnight
+// matches the current theme *before* it's ever tapped, so a tap on it is
+// correct the first time and there's nothing left for our own code to
+// react to.
+//
+// This reaches past the public API into an internal, unminified-name-
+// unstable property — verified against this specific mapsjs-ui.js build's
+// own source (H.ui.MapSettingsControl stores its base-layer entries on
+// `.Ke`, an array of {label, layer} objects; index 0 is provably "Normal
+// Map" for this app's HARP engine, since that's the first entry HERE's own
+// internal layer-list builder pushes). ui.getControl('mapsettings') itself
+// is real, documented, public HERE API — only the `.Ke[0].layer` reach-in
+// is unofficial. Wrapped defensively: if a future HERE build's internal
+// shape differs, this silently no-ops rather than throwing, and the
+// setNormalBaseLayer() correction below — kept as-is — is still there as a
+// fallback for whatever this doesn't catch.
+function syncMapSettingsControlLayer(theme){
+  try {
+    const settings = ui.getControl('mapsettings');
+    const target = theme === 'dark' ? defaultLayers.vector.normal.mapnight : defaultLayers.vector.normal.map;
+    if(settings && Array.isArray(settings.Ke) && settings.Ke[0] && settings.Ke[0].layer){
+      settings.Ke[0].layer = target;
+    }
+  } catch(err) {} // best-effort only — see the long comment above
+}
+syncMapSettingsControlLayer(initialTheme);
+
 function updateThemeToggleUI(){
   const mode = storedTheme() || 'system';
   document.querySelectorAll('#themeSeg button').forEach(b=>{
@@ -1010,6 +1049,7 @@ function setNormalBaseLayer(layer){
 // which is deferred by design — see its own comment.
 function switchTheme(theme){
   document.documentElement.setAttribute('data-theme', theme);
+  syncMapSettingsControlLayer(theme);
   setNormalBaseLayer(theme === 'dark' ? defaultLayers.vector.normal.mapnight : defaultLayers.vector.normal.map);
   updateThemeToggleUI();
 }

@@ -107,6 +107,31 @@ follow, not just this one:
 
 ## Version history
 
+### v1.11.9
+
+A screen recording of v1.11.8 confirmed the Satellite/dark-mode symptom was
+still there, and revealed why: HERE's own built-in layer switcher (behind
+the layers icon) keeps its own internal record of "what's currently
+selected," and every correction this app has made so far (v1.11.6–v1.11.8)
+changed the *map's* layer directly without that control ever finding out —
+each one left it a little more out of sync with reality, to the point where
+the recording shows tapping its own "Map view" entry landing on Satellite
+instead of either map style, not just the wrong one.
+
+Rather than reacting after HERE's control does something, this keeps its
+own "Normal Map" entry pointed at whichever of the light or dark layer
+matches the current theme *before* it's ever tapped — on load and on every
+theme switch — so there's nothing left to react to and it's correct the
+first time. This reaches past HERE's public API into an internal,
+version-dependent property (verified against this app's actual loaded
+`mapsjs-ui.js`, wrapped defensively so a future HERE build with a different
+internal shape just no-ops instead of breaking); the existing v1.11.6–8
+correction logic stays in place unchanged underneath it as a fallback.
+Given the depth of undocumented internals involved, this is a best-effort
+fix rather than a guaranteed one — flag it again if the recording's
+specific symptom (tapping Map view lands on the wrong layer, or on
+Satellite) is still reproducible after this ships.
+
 ### v1.11.8
 
 Reported: from Satellite view, switching directly to this app's own Dark or
