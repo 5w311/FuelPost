@@ -62,8 +62,12 @@ ok('#fuelBookRev appears exactly once in the markup',
    (html.match(/id="fuelBookRev"/g) || []).length === 1);
 
 console.log('\n=== both rendered from the constants, never hardcoded twice ===');
-ok('appVer text is built from APP_VERSION',
-   /getElementById\('appVer'\)\.textContent = 'FuelPost v' \+ APP_VERSION/.test(html));
+// v1.9.0 made #appVer tappable (check-for-update), so its idle text now
+// comes from renderAppVer() rather than a single direct assignment — still
+// built from the same 'FuelPost v' + APP_VERSION concatenation, just inside
+// a function that also handles the update-available state.
+ok('appVer idle text is built from APP_VERSION',
+   /appVerBtn\.textContent = appVerUpdateTo[\s\S]{0,160}'FuelPost v' \+ APP_VERSION/.test(html));
 ok('fuelBookRev text is built from FUEL_BOOK_REV',
    /getElementById\('fuelBookRev'\)\.textContent = FUEL_BOOK_REV/.test(html));
 // The literal version must appear only in its own declaration.
