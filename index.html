@@ -737,7 +737,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '1.9.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1754,9 +1754,8 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
   } else {
     h += ` No network stop sits within ${NEAR_PICKUP_RADIUS_GAP} mi of your pickup either.`;
   }
-  h += ` Out-of-network fuel needs approval first — call Driver Support
-    <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.
-    Raising the gauge above 1/8, or topping off before you roll, will let this load plan.</div>`;
+  h += ` Out-of-network fuel needs approval first — call the Fuel Dept:
+    <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a></div>`;
 
   h += '<button type="button" id="shareTripBtn">Share / save trip</button>';
 
