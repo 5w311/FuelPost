@@ -803,7 +803,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.11.5';
+const APP_VERSION = '1.11.6';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -983,6 +983,23 @@ function switchTheme(theme){
   map.setZoom(z);
   updateThemeToggleUI();
 }
+
+// HERE's own built-in layer switcher (the layers icon, bottom-right) offers
+// a "Map" entry that's hardcoded to defaultLayers.vector.normal.map — the
+// *light* style — with no idea this app also has a mapnight variant or is
+// currently in dark mode. Picking Satellite and then Map again from that
+// control silently drops back to light even with dark mode on. It doesn't
+// expose any way to hand it a dark alternative, so this corrects after the
+// fact instead: baselayerchange fires for every base-layer change,
+// switchTheme()'s own included, so on each one — if the resolved theme is
+// dark and HERE just set the light "Map" layer — swap it straight back to
+// mapnight. That second setBaseLayer() re-fires this same listener, but by
+// then the layer already matches, so it's a no-op and this doesn't loop.
+map.addEventListener('baselayerchange', () => {
+  if(resolvedTheme() === 'dark' && map.getBaseLayer() === defaultLayers.vector.normal.map){
+    map.setBaseLayer(defaultLayers.vector.normal.mapnight);
+  }
+});
 
 // Only follow live system changes when the driver hasn't made an explicit
 // choice — once they tap the toggle, that choice sticks until they reset it

@@ -107,6 +107,21 @@ follow, not just this one:
 
 ## Version history
 
+### v1.11.6
+
+Fixes the map dropping back to light mode, even with dark mode on, after
+using HERE's own built-in layer switcher (bottom-right) to pick Satellite
+and then Map again. Confirmed straight from HERE's own UI module source:
+its "Map" entry is hardcoded to the light `vector.normal.map` layer, with
+no awareness this app also has a `.mapnight` variant or is currently in
+dark mode — nothing in HERE's control lets it be handed a dark alternative.
+Fixed by listening for the map's own `baselayerchange` event (fired for
+every base-layer change, this app's own theme toggle included) and
+correcting back to `.mapnight` whenever it fires while resolved theme is
+dark and HERE just set the light layer — self-terminating, since the
+correction's own `setBaseLayer()` call re-fires the same listener but by
+then the layer already matches, so it's a no-op the second time.
+
 ### v1.11.5
 
 Three small route-bar/map-chrome fixes:
