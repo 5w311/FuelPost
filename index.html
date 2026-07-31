@@ -200,6 +200,19 @@
      letting "System" hold the row to its full content width and poke past
      the card's edge instead of actually shrinking to fit three-across. */
   #legendCard .theme-row .seg button{flex:1;min-width:0;text-align:center;padding:6px 4px;font-size:11px;}
+  /* Tap to check for and force an update. Dotted underline is the subtle
+     "this does something" cue — this is a secondary control inside an
+     already-secondary popover, not a primary action. Disabled (mid-check,
+     the in-flight guard below) drops the affordance since it's briefly not
+     tappable. */
+  #appVer{display:block;width:100%;margin-top:5px;padding:0;border:none;background:none;font:inherit;color:var(--sub);font-size:10.5px;line-height:1.4;text-align:left;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;}
+  #appVer:disabled{cursor:default;text-decoration:none;opacity:.75;}
+  /* .share-note (shared with Share trip's own "Copied" note) is normally
+     used outside #legendCard, where it doesn't hit the generic icon-row
+     rule above — same #legendCard div{display:flex} trap as
+     #legendSupportNote, now reachable here too since a version-check
+     result note lands right after #appVer. */
+  #legendCard .share-note{display:block;margin:5px 0 0;}
 
   #filterCard{position:absolute;left:10px;top:8px;z-index:401;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:0 4px 12px rgba(0,0,0,.18);display:none;min-width:210px;}
   #filterCard.show{display:block;}
@@ -491,7 +504,7 @@
           <button type="button" data-v="system">System</button>
         </div>
       </div>
-      <div id="appVer" style="margin-top:5px;color:var(--sub);font-size:10.5px;line-height:1.4;"></div>
+      <button type="button" id="appVer" title="Tap to check for an update"></button>
     </div>
     <div id="filterCard">
       <div class="seg stops-only" id="brandSeg">
@@ -537,6 +550,8 @@
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
 <script src="lib/gauge.js"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
+<script src="lib/extract-version.js"></script>
+<script>var ExtractVersion = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
      — real Node syntax. Loading it with a plain src attribute, like the two
@@ -722,7 +737,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.8.5';
+const APP_VERSION = '1.9.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -733,7 +748,62 @@ const TYPE_LABEL = {excl:"Exclusive — most cost-effective",prim:"Primary netwo
 // station data is current. The build number is a support detail, so it lives in
 // the legend card. Both render from the constants above; neither is hardcoded.
 document.getElementById('fuelBookRev').textContent = FUEL_BOOK_REV;
-document.getElementById('appVer').textContent = 'FuelPost v' + APP_VERSION;
+
+/* ---- Tap the version to check for and force an update ----
+   No service worker in this app — a stale index.html served by ordinary
+   browser/CDN HTTP caching is the actual problem this solves, not an
+   offline-cache layer (a separate, bigger feature for later, with its own
+   cache-bump-per-deploy discipline). This is "let me force a real check
+   right now": a cache-busted fetch of the live file, compared against the
+   version already running — nothing heavier. */
+const appVerBtn = document.getElementById('appVer');
+let appVerChecking = false;         // in-flight guard — ignore a tap mid-check
+let appVerUpdateTo = null;          // non-null once a real update is detected
+
+function renderAppVer(){
+  appVerBtn.textContent = appVerUpdateTo
+    ? `Update available (v${appVerUpdateTo}) — tap to reload`
+    : 'FuelPost v' + APP_VERSION;
+}
+renderAppVer();
+
+appVerBtn.addEventListener('click', async () => {
+  if(appVerChecking) return;
+
+  if(appVerUpdateTo){
+    // Second tap, once an update was found: reload to it, also cache-busted
+    // so the reload itself can't land back on the same stale copy. Only
+    // ever fires from this explicit second tap — never automatically on
+    // detecting a new version, since a driver could be mid-plan with typed
+    // pickup/delivery text an unprompted reload would wipe with no warning.
+    location.href = location.pathname + '?_cb=' + Date.now();
+    return;
+  }
+
+  appVerChecking = true;
+  appVerBtn.disabled = true;
+  appVerBtn.textContent = 'Checking…';
+
+  try {
+    const res = await fetch(location.pathname + '?_cb=' + Date.now(), { cache: 'no-store' });
+    const text = await res.text();
+    const live = ExtractVersion.extractVersion(text);
+
+    if(live === null){
+      showNote(appVerBtn, "Couldn't check for updates");
+    } else if(live === APP_VERSION){
+      showNote(appVerBtn, `You're on the latest (v${APP_VERSION})`);
+    } else {
+      appVerUpdateTo = live; // persists — rendered below, not a transient note
+    }
+  } catch(err){
+    showNote(appVerBtn, "Couldn't check for updates");
+  } finally {
+    appVerChecking = false;
+    appVerBtn.disabled = false;
+    renderAppVer();
+  }
+});
 
 // Populate state dropdown
 const states = [...new Set(DATA.map(r=>r[5]))].sort();
@@ -1415,6 +1485,19 @@ function showRoutePanel(html, summary){
   setRrCollapsed(false);
 }
 
+/* ---- Small transient-message helper ----
+   Was scoped locally inside shareTrip() as its own `note` closure; the
+   version-check feature below needs the exact same pattern for its own
+   result messages, so it's a shared helper now instead of a second copy of
+   the same four lines. */
+function showNote(anchorEl, msg, ms = 2000){
+  const el = document.createElement('div');
+  el.className = 'share-note';
+  el.textContent = msg;
+  anchorEl.insertAdjacentElement('afterend', el);
+  setTimeout(() => el.remove(), ms);
+}
+
 /* ---- Share / save trip ----
    Hands the plan to the phone's native share sheet, so it can land in Notes,
    Messages, Mail or AirDrop in one native flow. Nothing is stored by the app. */
@@ -1427,14 +1510,6 @@ function shareTrip(){
   const text = TripText.formatTripText(lastTrip);
   const btn = $('shareTripBtn');
 
-  const note = msg => {
-    const el = document.createElement('div');
-    el.className = 'share-note';
-    el.textContent = msg;
-    btn.insertAdjacentElement('afterend', el);
-    setTimeout(() => el.remove(), 2000);
-  };
-
   if(navigator.share){
     // A driver dismissing the share sheet is a normal outcome, not an error.
     navigator.share({ title: 'FuelPost trip plan', text }).catch(() => {});
@@ -1442,7 +1517,7 @@ function shareTrip(){
   }
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(text)
-      .then(() => note('Copied'))
+      .then(() => showNote(btn, 'Copied'))
       .catch(() => showShareFallback(text));
     return;
   }

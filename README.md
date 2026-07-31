@@ -107,6 +107,41 @@ follow, not just this one:
 
 ## Version history
 
+### v1.9.0
+
+The build number in the legend card ("FuelPost v1.9.0") is now tappable —
+a manual "check for and force an update" for when ordinary browser/CDN
+HTTP caching serves a stale `index.html` longer than expected. No service
+worker involved; this app has none, and adding one (real offline support,
+install-to-home-screen, its own cache-bump-per-deploy discipline) is a
+deliberately separate, bigger decision for another day — this solves the
+actual immediate problem ("let me force a real check right now") with a
+plain cache-busted `fetch(location.pathname + '?_cb=' + Date.now(),
+{cache:'no-store'})`, nothing heavier.
+
+Tap while idle: "Checking…" immediately, then the fetched source is
+compared against the running `APP_VERSION` via `lib/extract-version.js`'s
+`extractVersion()` — a pure function, no DOM, no network, regex-anchored to
+a line start so a `//` comment that happens to mention `const APP_VERSION
+= ...` (this codebase writes exactly that kind of explanatory comment
+above several constants) can't shadow the real declaration below it and
+report a fake version. A fetch failure or unparseable response shows
+"Couldn't check for updates" via a transient note and returns to the
+normal version text; a match shows "You're on the latest (v...)" the same
+way; a real mismatch switches the text itself (persists, not transient) to
+"Update available (v...) — tap to reload". That second tap is required —
+detecting a new version never auto-reloads, since a driver could be
+mid-plan with typed pickup/delivery text an unprompted reload would wipe
+with no warning. The reload itself is cache-busted too, so it can't land
+back on the same stale copy that triggered the check. A boolean in-flight
+guard (backed by disabling the button itself, belt and suspenders) ignores
+a second tap while a check is already running.
+
+The small "show a message, then remove it after a couple seconds" pattern
+Share trip's own "Copied" confirmation already used was pulled out of
+`shareTrip()` into a shared `showNote(anchorEl, msg, ms=2000)`, now used by
+both, instead of a second copy of the same four lines.
+
 ### v1.8.5
 
 Reworked how the fuel-stop results panel avoids covering HERE's own zoom +
