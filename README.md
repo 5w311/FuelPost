@@ -107,17 +107,35 @@ follow, not just this one:
 
 ## Version history
 
-### v1.7.1
+### v1.8.0
 
-Two copy/markup fixes, no logic changed. The gauge's 1/8-tank floor note has
-new approved wording — still computes its mile figure from
-`FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)` rather than a hardcoded
-125, so it stays correct if the reserve math ever changes. The legend card's
-Driver Support number was the one remaining plain-text phone number in the
-app; it's now a `tel:` link built from the same `DRIVER_SUPPORT` constant
-every other mention already used, rendered from JS (`#legendSupportNote`)
-the same way `#appVer` next to it already is, since the number needed the
-JS-side constant rather than a second hardcoded string in static markup.
+Three Route-mode fixes, found testing on a real phone.
+
+The map stayed visibly cut off — a blank gap where tiles should be — after
+collapsing the trip-details drawer with nothing else done. Collapsing the
+drawer changes `#mapwrap`'s height, but HERE's own canvas doesn't detect
+that on its own; only a real window resize or an explicit
+`map.getViewPort().resize()` call does, and `setRoutebarOpen()` was calling
+neither. It now does, 260ms after toggling — long enough for the drawer's
+own 250ms CSS collapse/expand transition to actually finish before resizing
+to the settled size rather than one that's mid-animation.
+
+The address-confirmation card ("Check the address") rendered while the
+trip-details drawer was still fully expanded above it, squeezed into
+whatever sliver of map was left in between — cramped, with a chunk of
+visible map wasted for no reason. `renderConfirmStep()` now collapses the
+drawer the same way a finished plan or gap result already did (`renderPlan`,
+`renderFloorGap`), so the confirmation card gets the same full space. Tapping
+"edit address" on a candidate reopens the drawer first, since the field
+being edited lives inside it.
+
+The fuel-stop results panel had no way to collapse — a long stop list could
+own most of the screen with no way back to just the map short of leaving
+Route mode entirely. `#routeResults` gets the same tab/collapsible-body
+mechanic the trip-details drawer already uses (`#rrTab`, `.rr-body-wrap`,
+`setRrCollapsed()`), offered only on the final plan/gap result — every other
+state (loading notes, errors, the confirm-address card) keeps the tab hidden
+since there's nothing worth collapsing there.
 
 ### v1.7.2
 
@@ -142,6 +160,18 @@ directly and are unaffected. Also gave the legend card's Driver Support
 instead of the theme, left over from the v1.7.1 tel: link fix). Light mode
 is unchanged in all four cases — confirmed programmatically, not just by
 eye.
+
+### v1.7.1
+
+Two copy/markup fixes, no logic changed. The gauge's 1/8-tank floor note has
+new approved wording — still computes its mile figure from
+`FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)` rather than a hardcoded
+125, so it stays correct if the reserve math ever changes. The legend card's
+Driver Support number was the one remaining plain-text phone number in the
+app; it's now a `tel:` link built from the same `DRIVER_SUPPORT` constant
+every other mention already used, rendered from JS (`#legendSupportNote`)
+the same way `#appVer` next to it already is, since the number needed the
+JS-side constant rather than a second hardcoded string in static markup.
 
 ### v1.7.0
 
