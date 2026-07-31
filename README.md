@@ -86,6 +86,35 @@ They answer different questions and must not be conflated:
 
 ## Version history
 
+### v1.6.4
+
+Every marker on the map — all 146 station pins, the current-location dot,
+and the pickup/delivery/fuel-stop markers on a planned route — was rendering
+visually offset from its true coordinate, always toward the bottom-right.
+Root cause: `H.map.DomIcon` (HERE's DOM-element icon class) has no anchor
+option, unlike Leaflet's `iconAnchor` that the original build used before
+migrating to HERE Maps — that setting had no direct equivalent and was
+dropped rather than replaced. HERE's default is to place an icon element's
+own top-left corner at the coordinate, not any visual center or tip.
+Measured in a real browser: 16px right, 16px down for every marker before
+this fix. Fixed with a CSS `translate()` on a wrapper sized to each marker's
+own box — `translate(-50%,-100%)` (bottom-center) for the rotated teardrop
+station pins, `translate(-50%,-50%)` (dead center) for the circular location
+dot and route markers, which have no rotation and measure an exact 0px error
+both ways. The pins have one small, understood residual — about 6px, from
+how a 45°-rotated square's corner pokes past its own un-rotated edge — left
+as-is rather than chasing an exact fix tied to the pin's current pixel
+dimensions; going from 16px to 6px, in one direction only, is the fix that
+actually matters for reading the map. One implementation wrinkle worth
+recording: HERE writes its own inline `transform: matrix(...)` directly onto
+whatever element is handed to `DomIcon`, which silently overwrites a CSS
+transform declared on that same element — every marker's HTML needed one
+extra neutral wrapper level so HERE's own positioning and this fix's anchor
+offset land on different elements instead of fighting over one `transform`.
+No logic changed — `passes()`, `render()`, `drawRoute()`, group membership
+and marker tap handlers are all untouched; only where within each marker's
+own box the anchor point sits.
+
 ### v1.6.3
 
 The state select ("All states") moved into the Filters popover from v1.6.2,
