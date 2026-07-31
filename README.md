@@ -107,6 +107,20 @@ follow, not just this one:
 
 ## Version history
 
+### v1.10.2
+
+v1.10.1's fix for the autosuggest dropdown overlapping its field on iOS
+addressed the wrong half of the problem — re-syncing on `visualViewport`
+events did nothing because the position it kept recomputing was itself
+wrong. The actual mismatch: `getBoundingClientRect()` reports coordinates
+relative to the *layout* viewport, but iOS anchors `position:fixed` to the
+*visual* viewport, and the on-screen keyboard opening pans one relative to
+the other by `visualViewport.offsetTop`/`offsetLeft`. The dropdown now
+subtracts that offset when computing its position, so it actually lands
+under the field instead of over it. The resync-on-event listener from
+v1.10.1 stays — the offset itself changes live as the keyboard animates
+open, and it still needs to be re-applied as that happens.
+
 ### v1.10.1
 
 Fixes the autosuggest dropdown (v1.10.0) overlapping the field it belongs to
