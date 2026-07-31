@@ -91,6 +91,14 @@
 
   #listview{position:absolute;inset:0;background:var(--surface);overflow-y:auto;display:none;z-index:350;padding-bottom:20px;}
   #listview.show{display:block;}
+  /* The list is a full-cover overlay (inset:0), but #legendBtn/#locateBtn/
+     #legendCard are separate siblings with their own higher z-index (see
+     below) so they'd otherwise still float on top of it, over list items
+     that have nothing to do with them — the list has its own scroll and
+     Recenter/Legend act on the map underneath, which isn't visible right
+     now. Hide them while the list covers the map, same idea as
+     body.route-mode already hiding #locateBtn for a different reason. */
+  #listview.show ~ #legendBtn, #listview.show ~ #locateBtn, #listview.show ~ #legendCard{display:none;}
   .list-item{display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);align-items:flex-start;}
   .list-item .dot{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;margin-top:2px;}
   .list-item .info{flex:1;min-width:0;}
@@ -789,7 +797,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.11.2';
+const APP_VERSION = '1.11.3';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};

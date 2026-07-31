@@ -107,6 +107,18 @@ follow, not just this one:
 
 ## Version history
 
+### v1.11.3
+
+Fixes the Legend button and the Recenter (locate) button floating on top of
+the STOPS list view when it's open, overlapping list entries — both sit at
+a higher z-index than the list itself (needed to stay above the map they
+normally float over), and the list being a separate sibling rather than
+something that visually contains them meant nothing was hiding them once
+it covered the map underneath. They (and the legend popover card, if it
+happened to be open) now hide via CSS while the list is showing and
+reappear as soon as it closes — Recenter and Legend both act on the map,
+which isn't what's on screen while the list is up.
+
 ### v1.11.2
 
 Fixes the STOPS search box ("Search city, state, exit…") rendering typed
