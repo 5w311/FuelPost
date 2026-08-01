@@ -70,7 +70,15 @@
   #app{position:fixed;inset:0;display:flex;flex-direction:column;}
 
   header{background:var(--navy);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;z-index:500;box-shadow:0 2px 8px rgba(0,0,0,.25);flex-shrink:0;}
-  header .badge{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--ta),var(--petro));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;}
+  /* The gauge SVG carries its own navy field and gradient arc, so no
+     background here — and the flex-centering/font rules that positioned the
+     old "FP" text are gone with it. overflow:hidden is what rounds the
+     square SVG: the artwork deliberately has no rx of its own, so this box
+     owns the corner radius and the badge follows if it ever changes.
+     display:block on the svg keeps it off the text baseline, which would
+     otherwise leave descender space and clip the bottom of the mark. */
+  header .badge{width:34px;height:34px;border-radius:8px;overflow:hidden;flex-shrink:0;}
+  header .badge svg{display:block;}
   header .titles{flex:1;min-width:0;}
   header h1{font-size:15px;margin:0;font-weight:700;letter-spacing:.2px;}
   header p{margin:1px 0 0;font-size:11px;color:#B9C6D8;}
@@ -485,7 +493,37 @@
 <div id="app">
 
   <header>
-    <div class="badge">FP</div>
+    <!-- The app-icon gauge, inlined (~600 bytes) rather than <img src>: no
+         render-blocking request for something in the first viewport, and no
+         empty flash on a cold load. This is a BADGE-OPTIMIZED variant of the
+         icon, not the same artwork — at 34px the icon's own needle is ~1.7px
+         and antialiases away to nothing, so the strokes here are thickened
+         (arc 96->150, hub 62->95, dial r 340->380) and the red brightened
+         (#D93025->#FF3B30) to survive at this size. Do not swap this for
+         icons/icon-192.png; that's the un-thickened art and loses the needle,
+         which is the entire point of the mark. Navy field is fixed in both
+         themes — the header is var(--navy) either way. -->
+    <div class="badge">
+      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" aria-hidden="true">
+        <defs>
+          <linearGradient id="fpBadgeArc" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#0057B8"/>
+            <stop offset="1" stop-color="#00843D"/>
+          </linearGradient>
+        </defs>
+        <rect width="1024" height="1024" fill="#0B2340"/>
+        <path d="M 200 800 A 380 380 0 0 1 149 560"
+              fill="none" stroke="#FF3B30" stroke-width="150" stroke-linecap="round"/>
+        <path d="M 149 560 A 380 380 0 1 1 824 800"
+              fill="none" stroke="url(#fpBadgeArc)" stroke-width="150" stroke-linecap="butt"/>
+        <circle cx="824" cy="800" r="75" fill="#00843D"/>
+        <g transform="rotate(120 512 590)">
+          <path d="M 470 590 L 492 300 L 532 300 L 554 590 Z" fill="#FFFFFF"/>
+        </g>
+        <circle cx="512" cy="590" r="95" fill="#FFFFFF"/>
+        <circle cx="512" cy="590" r="42" fill="#0B2340"/>
+      </svg>
+    </div>
     <div class="titles">
       <h1>FuelPost</h1>
       <p>Covenant network fuel stops &middot; <span id="fuelBookRev"></span></p>
@@ -647,23 +685,23 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.13.2"></script>
+<script src="lib/fuelplan.js?v=1.13.3"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.13.2"></script>
+<script src="lib/triptext.js?v=1.13.3"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.13.2"></script>
+<script src="lib/location.js?v=1.13.3"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.13.2"></script>
+<script src="lib/gauge.js?v=1.13.3"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.13.2"></script>
+<script src="lib/extract-version.js?v=1.13.3"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.13.2"></script>
+<script src="lib/autosuggest.js?v=1.13.3"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.13.2"></script>
+<script src="lib/baselayer.js?v=1.13.3"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.13.2"></script>
+<script src="lib/memocache.js?v=1.13.3"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.13.2"></script>
+<script src="lib/routerank.js?v=1.13.3"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -679,7 +717,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.13.2')
+fetch('lib/fuelplan-adaptive.js?v=1.13.3')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -690,7 +728,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.13.2')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.13.2"></script>
+<script src="lib/flexible-polyline.js?v=1.13.3"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -850,7 +888,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.13.2';
+const APP_VERSION = '1.13.3';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
