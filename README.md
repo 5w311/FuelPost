@@ -24,6 +24,7 @@ lib/gauge.js                fuel-gauge tick <-> miles math (no DOM, no network)
 lib/autosuggest.js          query threshold + suggestion-item parsing for the address dropdowns
 lib/baselayer.js            pure nextBaseLayer() — which road layer (if any) a theme change applies
 lib/memocache.js            session-only memo cache for repeat HERE lookups (no DOM, no network)
+lib/routerank.js            orders alternative routes by fuel viability (no DOM, no network)
 lib/extract-version.js      pulls APP_VERSION out of fetched page source for the update check
 lib/flexible-polyline.js    HERE's reference polyline decoder, vendored unmodified (MIT)
 test/*.test.js              plain-node tests, no framework
@@ -111,6 +112,44 @@ follow, not just this one:
   silently produce a result the driver never chose.
 
 ## Version history
+
+### v1.13.0
+
+**Alternative routes, ranked by whether they can actually be fueled.**
+HERE is now asked for two alternatives alongside the optimal route
+(`alternatives=2&return=…,routeLabels`); every route that comes back is
+fuel-planned on identical settings, and `lib/routerank.js` orders them
+by what this app knows and a mapping app doesn't: a route the truck can
+complete on network fuel beats a shorter one that strands it. Miles only
+break ties among routes that all work. That reordering is the feature —
+a route 150 mi longer that fuels cleanly beats a short one that dies in
+New Mexico.
+
+**This costs no additional API calls.** `alternatives=N` is one request
+returning N routes, not N requests, and the fuel planning that ranks
+them is pure client-side math against the `DATA` array. Switching
+between options is a re-render from data already in hand — no refetch,
+which also means it still works after the signal drops. Anyone reading
+this later and assuming alternatives multiplied our call volume against
+the shared key: they didn't.
+
+With two or more distinct options a compact switcher sits above the
+plan: label (`via I-40`, from HERE's own `routeLabels`), miles, and the
+fuel outcome. A gapped option is marked **in the list** — a driver must
+never have to tap one to find out it strands the truck — and is ranked
+last rather than hidden. When the top pick isn't the shortest *and* the
+shortest gaps, one plain line says so. Near-identical alternatives
+(within 2% length and the same fuel stops) collapse to one row.
+Share/save names the selected route when there was a choice.
+
+Honest limits: correct ordering and honest labeling is what this
+guarantees — **not** that an alternative always exists to rescue a bad
+load. Where the network hole is wide enough, every route gaps and the
+app says so. Labels come from `routeLabels` when HERE sends them and
+fall back to `Route 2` / `Route 3` when it doesn't; a plain ordinal is
+better than a guessed highway. With a single route returned, nothing
+changes at all — no switcher, and the shared text is byte-identical to
+before.
 
 ### v1.12.6
 

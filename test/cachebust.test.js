@@ -22,8 +22,13 @@ for (const m of html.matchAll(/(?:src="|fetch\(')(lib\/[a-z-]+\.js)(?:\?v=([^"')
 
 // Count guard: if a refactor changes how libs load and this regex stops
 // matching, the per-ref checks below would vacuously pass on nothing.
-ok(`found all lib references (expected 10, got ${refs.length})`, refs.length === 10,
-   JSON.stringify(refs.map(r => r.path)));
+// Counted against lib/ itself rather than a hardcoded number, so adding a
+// lib updates the expectation automatically — and a lib that exists but is
+// never loaded by the page still fails here, which is worth knowing too.
+const libCount = fs.readdirSync(path.join(__dirname, '..', 'lib'))
+  .filter(f => f.endsWith('.js')).length;
+ok(`every lib/*.js is referenced by index.html (expected ${libCount}, got ${refs.length})`,
+   refs.length === libCount, JSON.stringify(refs.map(r => r.path)));
 
 const unstamped = refs.filter(r => !r.v);
 ok('every lib reference carries a ?v= stamp', unstamped.length === 0,
