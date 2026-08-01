@@ -41,6 +41,13 @@
        nearly unreadable; navy-as-a-filled-shape's own white text isn't
        affected either way. */
     --navy-text:var(--navy);
+    /* Danger red used as TEXT directly on --bg/--surface (the gauge reserve
+       note, a gapped route option's outcome). Same pattern as --navy-text:
+       the #8A1C1C used inside the fixed light-pink chips (.rr-warn,
+       .geo-error, #locateError) stays hardcoded there because those chips
+       keep their light background in both themes — this variable is only
+       for red text whose background DOES change. */
+    --danger-text:#8A1C1C;
     --gauge-tick:rgba(11,35,64,.3); --gauge-tick-minor:rgba(11,35,64,.18);
   }
   /* Dark palette — WCAG-checked against both --bg and --surface (see README).
@@ -53,6 +60,7 @@
   html[data-theme="dark"]{
     --bg:#0D1117; --surface:#161B22; --ink:#E6E9EF; --sub:#93A0B4; --line:#333E4F;
     --navy-text:#6EA8FE;
+    --danger-text:#F2555A; /* 5.6:1 on --bg, 5.1:1 on --surface; #8A1C1C manages only ~1.9:1 here */
     --gauge-tick:rgba(255,255,255,.3); --gauge-tick-minor:rgba(255,255,255,.16);
   }
   *{box-sizing:border-box;}
@@ -335,8 +343,8 @@
   .gauge-tick{position:absolute;top:5px;bottom:5px;width:2px;background:var(--gauge-tick);transform:translateX(-50%);pointer-events:none;}
   .gauge-tick.minor{top:11px;bottom:11px;width:1px;background:var(--gauge-tick-minor);}
   .gauge-needle{position:absolute;top:-4px;bottom:-4px;width:9px;border-radius:5px;background:#C4281C;box-shadow:0 1px 4px rgba(0,0,0,.35);transform:translateX(-50%);pointer-events:none;}
-  .gauge-danger-note{font-size:10.5px;color:#8A1C1C;line-height:1.4;margin-top:8px;}
-  .gauge-danger-note a{color:#8A1C1C;font-weight:700;}
+  .gauge-danger-note{font-size:10.5px;color:var(--danger-text);line-height:1.4;margin-top:8px;}
+  .gauge-danger-note a{color:var(--danger-text);font-weight:700;}
   .gauge-readout{font-size:13px;font-weight:700;color:var(--ink);margin-top:8px;}
 
   #planBtn{width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:0 14px;height:38px;font-size:13.5px;font-weight:700;}
@@ -447,7 +455,7 @@
   .rr-opt.sel .rr-opt-label{color:var(--navy-text);}
   .rr-opt-label{font-size:12.5px;font-weight:700;}
   .rr-opt-meta{font-size:11px;color:var(--sub);}
-  .rr-opt.gapped .rr-opt-meta{color:#8A1C1C;font-weight:700;}
+  .rr-opt.gapped .rr-opt-meta{color:var(--danger-text);font-weight:700;}
   .rr-ranknote{font-size:12px;color:var(--ink);line-height:1.4;margin:2px 0 8px;font-weight:600;}
 
   /* translate(-50%,-50%) anchors these to their coordinate the same way as
@@ -639,23 +647,23 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.13.1"></script>
+<script src="lib/fuelplan.js?v=1.13.2"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.13.1"></script>
+<script src="lib/triptext.js?v=1.13.2"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.13.1"></script>
+<script src="lib/location.js?v=1.13.2"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.13.1"></script>
+<script src="lib/gauge.js?v=1.13.2"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.13.1"></script>
+<script src="lib/extract-version.js?v=1.13.2"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.13.1"></script>
+<script src="lib/autosuggest.js?v=1.13.2"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.13.1"></script>
+<script src="lib/baselayer.js?v=1.13.2"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.13.1"></script>
+<script src="lib/memocache.js?v=1.13.2"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.13.1"></script>
+<script src="lib/routerank.js?v=1.13.2"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -671,7 +679,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.13.1')
+fetch('lib/fuelplan-adaptive.js?v=1.13.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -682,7 +690,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.13.1')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.13.1"></script>
+<script src="lib/flexible-polyline.js?v=1.13.2"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -842,7 +850,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.13.1';
+const APP_VERSION = '1.13.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
