@@ -1338,9 +1338,12 @@ function openSheet(row){
   // How far the truck is from this stop right now — first row, because it's
   // the "should I even consider this one" number. Straight-line miles, same
   // measure as every other "X mi from" figure in the app. Only shown once a
-  // GPS fix exists: the locate button stays the one thing that asks for
-  // location, and a sheet with no distance is just a sheet from before.
-  if(liveFix){
+  // PRECISE fix exists (same GeoLib.isPreciseFix bar the pickup GPS flow
+  // uses): a coarse fix — Precise Location off, IP-derived, cell-tower — can
+  // be miles out, and "2.3 mi from you" built on one is a confident lie. The
+  // locate button stays the one thing that asks for location; without a
+  // precise fix the sheet is just a sheet from before.
+  if(liveFix && GeoLib.isPreciseFix(liveFix.accuracy)){
     const d = FuelPlan.haversine(liveFix.lat, liveFix.lng, lat, lng);
     html += `<div class="row"><div class="k">From you</div><div class="v"><b>${d < 10 ? d.toFixed(1) : mi(d)} mi</b></div></div>`;
   }

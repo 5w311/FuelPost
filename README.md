@@ -121,8 +121,11 @@ list — now shows how far the truck currently is from it: a "From you"
 row at the top of the station sheet, in plain miles (one decimal under
 10 mi). Straight-line, the same measure as every other "X mi from"
 figure in the app, computed from the live GPS fix. The row only exists
-once a fix does — the locate button remains the one thing that asks for
-location, and before a fix the sheet is exactly what it was before.
+once a PRECISE fix does — the same `GeoLib.isPreciseFix` bar (300 m)
+the pickup GPS flow uses, so a coarse fix (Precise Location off,
+IP-derived) never renders a confidently wrong "2.3 mi from you". The
+locate button remains the one thing that asks for location; without a
+precise fix the sheet is exactly what it was before.
 
 ### v1.15.0
 
