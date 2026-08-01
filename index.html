@@ -756,25 +756,25 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.14.0"></script>
+<script src="lib/fuelplan.js?v=1.14.1"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.14.0"></script>
+<script src="lib/triptext.js?v=1.14.1"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.14.0"></script>
+<script src="lib/location.js?v=1.14.1"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.14.0"></script>
+<script src="lib/gauge.js?v=1.14.1"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.14.0"></script>
+<script src="lib/extract-version.js?v=1.14.1"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.14.0"></script>
+<script src="lib/autosuggest.js?v=1.14.1"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.14.0"></script>
+<script src="lib/baselayer.js?v=1.14.1"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.14.0"></script>
+<script src="lib/memocache.js?v=1.14.1"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.14.0"></script>
+<script src="lib/routerank.js?v=1.14.1"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.14.0"></script>
+<script src="lib/vehicleprofile.js?v=1.14.1"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -790,7 +790,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.14.0')
+fetch('lib/fuelplan-adaptive.js?v=1.14.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -801,7 +801,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.14.0')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.14.0"></script>
+<script src="lib/flexible-polyline.js?v=1.14.1"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -961,7 +961,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.14.0';
+const APP_VERSION = '1.14.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1619,7 +1619,15 @@ const FUEL_STOPS = DATA.filter(r => r[11] !== 'term').map(r => ({
 // planAdaptive (lib/fuelplan-adaptive.js) tries these in order and stops at
 // the first that produces a complete plan — 8 mi still solves the vast
 // majority of routes (verified against real corridors: Amarillo, OKC on I-40).
-const DETOUR_TIERS = [8, 15, 30];
+// The 50 tier is the escape hatch for a low tank at pickup: with little
+// range leaving the shipper, the first stop must come early, and "early"
+// sometimes only exists 30-50 mi off route. planAdaptive still tries the
+// tight tiers first and only escalates when the plan otherwise gaps, the
+// caution banner names the widened figure, and routerank prefers routes
+// that complete at tighter tiers — so a 50 mi detour is a last resort the
+// driver is told about, never a silent default. 50 deliberately matches
+// NEAR_PICKUP_RADIUS_GAP: the app's own definition of "reachable at all."
+const DETOUR_TIERS = [8, 15, 30, 50];
 const NEAR_PICKUP_RADIUS_GAP = 50;  // "is anything reachable near the shipper at all"
 const NEAR_PICKUP_RADIUS_TIP = 25;  // "close enough that topping off first is worth mentioning"
 const RANGE_MIN = 300, RANGE_MAX = 1200;
