@@ -113,6 +113,27 @@ follow, not just this one:
 
 ## Version history
 
+### v1.13.1
+
+**Re-lands the label fix that v1.13.0 shipped without.** The deployed
+v1.13.0 showed every route option as `via [object Object], [object
+Object]` — the exact bug the pre-merge double-check had caught and
+fixed. The fix commit was pushed to the PR branch minutes before the
+merge, but the merge went through at the pre-fix head, so main (and the
+Pages deploy) got the feature without it. This entry exists so the
+changelog matches what actually deployed: broken labels went out as
+v1.13.0; this version is the extractor fix (unwrap HERE's nested
+`{name:{language,value}}` label shape), the switcher selection-visibility
+fix, and the 400-fallback in `truckRoute()` — the full contents of that
+orphaned commit, cherry-picked onto the merged main.
+
+One real finding from the broken deploy, worth keeping: the driver's
+screenshot showed three distinct truck-route alternatives, deduped,
+ranked with the completable one selected — and **two labels per route**,
+proving HERE does return `routeLabels` for `transportMode=truck`. The
+feature works; only the label text was mangled. With this fix those same
+rows read "via ‹road›, ‹road›".
+
 ### v1.13.0
 
 **Alternative routes, ranked by whether they can actually be fueled.**
@@ -133,6 +154,17 @@ which also means it still works after the signal drops. Anyone reading
 this later and assuming alternatives multiplied our call volume against
 the shared key: they didn't.
 
+One exception to "one request": if HERE answers the richer request with
+a **400**, `truckRoute()` retries once with the exact parameters this
+app has always sent (`transportMode=truck&return=polyline,summary`). A
+400 means HERE rejected the *request*, not the road — an unsupported
+return-attribute would otherwise take routing down for every load and
+leave drivers unable to plan anything at all. The retry turns that into
+plain single-route behaviour. It also fires on a genuine "no truck route
+exists" 400, where the retry fails identically and the driver sees the
+same message as before; one wasted call on an already-failing plan is a
+fair price for not being able to break routing outright.
+
 With two or more distinct options a compact switcher sits above the
 plan: label (`via I-40`, from HERE's own `routeLabels`), miles, and the
 fuel outcome. A gapped option is marked **in the list** — a driver must
@@ -150,6 +182,15 @@ fall back to `Route 2` / `Route 3` when it doesn't; a plain ordinal is
 better than a guessed highway. With a single route returned, nothing
 changes at all — no switcher, and the shared text is byte-identical to
 before.
+
+On the label shape specifically: HERE nests the text for localisation —
+`{"label_type":"Name","name":{"language":"en","value":"I-40"}}` — so the
+readable string is one level down. Reading `.name` directly hands back an
+object and renders **"via [object Object]"** on the driver's screen; the
+extractor unwraps `.value` and yields `''` for anything it doesn't
+recognise, which then falls through to the ordinal. The browser test
+fixture uses HERE's documented nested shape rather than a convenient flat
+string, precisely so this stays caught.
 
 ### v1.12.6
 
