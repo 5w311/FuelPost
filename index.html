@@ -436,10 +436,15 @@
      A gapped option stays fully readable and tappable — it's marked, not
      hidden, so the driver can see what was rejected and why. */
   .rr-opts{display:flex;flex-direction:column;gap:6px;margin:0 0 10px;}
+  /* The panel itself is --surface, so the rows sit on --bg to read as inset
+     chips against it. Selection is carried by the navy border and label —
+     NOT by a --surface background, which would make the selected row vanish
+     into the panel while the unselected ones stood out. */
   .rr-opt{display:flex;flex-direction:column;align-items:flex-start;gap:1px;
     width:100%;text-align:left;font:inherit;color:inherit;
     background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:7px 10px;}
-  .rr-opt.sel{border-color:var(--navy-text);border-width:1.5px;padding:6.5px 9.5px;background:var(--surface);}
+  .rr-opt.sel{border-color:var(--navy-text);border-width:2px;padding:6px 9px;}
+  .rr-opt.sel .rr-opt-label{color:var(--navy-text);}
   .rr-opt-label{font-size:12.5px;font-weight:700;}
   .rr-opt-meta{font-size:11px;color:var(--sub);}
   .rr-opt.gapped .rr-opt-meta{color:#8A1C1C;font-weight:700;}
@@ -1735,17 +1740,30 @@ function stitchSections(sections){
 
 // routeLabels is HERE's own answer to "what makes these routes different" —
 // the most significant road names/numbers along each one, which is exactly
-// the "via I-40" a driver needs. Read it defensively: the field can arrive
-// per-route or per-section, and entries may be plain strings or objects
-// keyed roadNumber/name. Anything unrecognised falls back to a plain
-// ordinal — "Route 2" is honest, a mislabeled highway is not.
+// the "via I-40" a driver needs.
+//
+// HERE's documented entry shape wraps the text for localisation:
+//   { "label_type": "Name", "name": { "language": "de", "value": "Seestraße" } }
+// so the readable string is one level down. textOf() unwraps that, and also
+// accepts a bare string in case a label arrives flat. Anything it doesn't
+// recognise yields '' rather than an object — otherwise a driver reads
+// "via [object Object]". Whatever isn't understood falls back to a plain
+// ordinal: "Route 2" is honest, a mislabeled highway is not.
 function routeLabelText(route, i){
+  const textOf = v => {
+    if(typeof v === 'string') return v.trim();
+    if(v && typeof v === 'object' && typeof v.value === 'string') return v.value.trim();
+    return '';
+  };
   const names = [];
   const push = l => {
     if(!l) return;
-    const t = typeof l === 'string' ? l : (l.roadNumber || l.name || l.roadName || '');
+    const t = typeof l === 'string' ? l.trim()
+      : (textOf(l.name) || textOf(l.roadNumber) || textOf(l.roadName));
     if(t && !names.includes(t)) names.push(t);
   };
+  // The field is documented per-route; sections are checked too since that's
+  // where several other v8 return-attributes land.
   (route.routeLabels || []).forEach(push);
   (route.sections || []).forEach(sec => (sec.routeLabels || []).forEach(push));
   return names.length ? 'via ' + names.slice(0, 2).join(', ') : `Route ${i + 1}`;
@@ -1756,11 +1774,24 @@ function routeLabelText(route, i){
 // N calls), and the fuel planning that ranks them is client-side math. So
 // the option list costs no extra API volume on the shared key.
 async function truckRoute(orig, dest){
-  const url = 'https://router.hereapi.com/v8/routes'
-    + '?transportMode=truck&alternatives=2&return=polyline,summary,routeLabels'
-    + `&origin=${orig.lat},${orig.lng}&destination=${dest.lat},${dest.lng}`
+  const base = 'https://router.hereapi.com/v8/routes'
+    + `?origin=${orig.lat},${orig.lng}&destination=${dest.lat},${dest.lng}`
     + `&apiKey=${HERE_API_KEY}`;
-  const res = await fetch(url);
+  const withAlts = base + '&transportMode=truck&alternatives=2&return=polyline,summary,routeLabels';
+  // The parameters this app has always sent — one route, no labels.
+  const minimal = base + '&transportMode=truck&return=polyline,summary';
+
+  let res = await fetch(withAlts);
+  // A 400 here means HERE rejected the REQUEST, not the road: an unsupported
+  // return-attribute or alternatives value would take routing down entirely
+  // and leave a driver unable to plan anything. Falling back to the exact
+  // request that has always worked costs one retry in a case that should
+  // never fire, and degrades to single-route behaviour instead of failure.
+  // (A genuine "no truck route exists between these points" is also a 400,
+  // so this retry can fire on real routing failures too — the retry then
+  // fails the same way and the driver gets the same message as before.)
+  if(res.status === 400) res = await fetch(minimal);
+
   if(!res.ok){
     let detail = '';
     try { const e = await res.json(); detail = e.title || e.cause || (e.notices && e.notices[0] && e.notices[0].title) || ''; } catch(_){}
