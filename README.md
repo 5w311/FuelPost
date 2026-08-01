@@ -112,6 +112,13 @@ follow, not just this one:
 
 ## Version history
 
+### v1.12.6
+
+The "how far do you run between fuel stops" help text now suggests the
+default: "Set this once. Most drivers leave it alone. (Recommend: 875)"
+— 875 matches `ROUTE_DEFAULT_RANGE`, the value the field already opens
+with. Copy only; no behavior change.
+
 ### v1.12.5
 
 **Cache-bust the lib scripts — a driver's phone ran a build that existed
