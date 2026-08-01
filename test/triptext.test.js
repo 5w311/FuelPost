@@ -16,7 +16,7 @@ const t1 = formatTripText({
 console.log(t1);
 ok('has header', t1.startsWith('FUELPOST TRIP PLAN'));
 ok('has both addresses', t1.includes('Salt Lake City') && t1.includes('Toledo'));
-ok('shows both ranges when they differ', t1.includes('fuel before 800 mi') && t1.includes('500 mi leaving the shipper'));
+ok('no Range section', !t1.includes('Range:') && !t1.includes('leaving the shipper'));
 ok('numbers stops 1 and 2', t1.includes('1. TA Cheyenne') && t1.includes('2. TA Council Bluffs'));
 ok('includes leg miles', t1.includes('(423 mi leg)'));
 ok('includes widened-detour note', t1.includes('up to 15 mi off'));
@@ -31,7 +31,7 @@ const t2 = formatTripText({
   pickupAddr: 'A', deliveryAddr: 'B', maxRange: 800, rangeAtPickup: 800,
   plan: [], gap: null, finalLegMiles: 380, detourMax: 8
 });
-ok('same-range: only one range line shown', !t2.includes('leaving the shipper'));
+ok('no Range section even when maxRange/rangeAtPickup match', !t2.includes('Range:'));
 ok('states no stop needed', t2.includes('No fuel stop needed'));
 ok('does not print a bogus final-leg line for zero stops', !t2.includes('Final leg to delivery'));
 
