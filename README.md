@@ -112,6 +112,15 @@ follow, not just this one:
 
 ## Version history
 
+### v1.12.4
+
+Dropped the Range line from the shared/saved trip text
+(`lib/triptext.js`) — a driver saving or texting a plan doesn't need
+`Range: fuel before 800 mi | 500 mi leaving the shipper` repeated back
+to them; the fuel stop list is the actionable part. The on-screen route
+panel is untouched — it still shows range figures where they're useful
+for building the plan, this only trims the copy/share output.
+
 ### v1.12.3
 
 **Completes the v1.12.1 autosuggest fix, which was incomplete.** v1.12.1
