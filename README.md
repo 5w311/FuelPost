@@ -114,6 +114,24 @@ follow, not just this one:
 
 ## Version history
 
+### v1.16.1
+
+Press-and-hold was invisible: nothing on screen said the gesture
+existed, and a button's `title` never surfaces on touch. Every tap of
+the locate button now names it — "Hold to turn location off" when
+tracking is on, "Hold to turn location on" when it's off — and both
+toggle confirmations name the reverse gesture too ("Location off — hold
+to turn on", "Location on — hold to turn off"). Short lines, no
+instructions to read in a moving truck.
+
+Hints moved into their own `#locateHint` element rather than sharing
+`#locateError`: the GPS success handler calls `hideLocateError()` on
+every fix, so a hint in that slot was wiped the instant a position
+arrived — exactly when the driver is looking at it. A real error still
+outranks and clears a hint, so the two never stack. Hints auto-dismiss
+after 4s. The route pickup message got the same trim: "Location is off
+— turn it on from Stops, or type the address."
+
 ### v1.16.0
 
 **Press and hold the locate button to switch location off.** No watch

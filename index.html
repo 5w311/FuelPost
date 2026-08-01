@@ -200,8 +200,12 @@
   #locateBtn{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
   @keyframes locate-spin{to{transform:rotate(360deg);}}
   #locateError{position:absolute;left:10px;right:10px;bottom:80px;z-index:401;background:#FDECEC;border:1px solid #F0BEBE;border-radius:9px;padding:8px 11px;font-size:11.5px;color:#8A1C1C;line-height:1.4;box-shadow:0 2px 6px rgba(0,0,0,.15);}
-  /* Same slot, but for a state the driver chose — not a failure. */
-  #locateError.note{background:var(--surface);border-color:var(--line);color:var(--ink);}
+  /* Hints sit just above the button in the same slot, but read as neutral
+     chrome — they report a state the driver chose, not a failure. */
+  #locateHint{position:absolute;left:10px;right:10px;bottom:80px;z-index:401;background:var(--surface);
+    border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:12px;color:var(--ink);
+    line-height:1.35;box-shadow:0 2px 6px rgba(0,0,0,.15);}
+  #locateHint[hidden]{display:none;}
   #locateError[hidden]{display:none;}
 
   /* Live position dot — own H.map.Group so STOPS filter re-renders (which
@@ -783,25 +787,25 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.16.0"></script>
+<script src="lib/fuelplan.js?v=1.16.1"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.16.0"></script>
+<script src="lib/triptext.js?v=1.16.1"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.16.0"></script>
+<script src="lib/location.js?v=1.16.1"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.16.0"></script>
+<script src="lib/gauge.js?v=1.16.1"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.16.0"></script>
+<script src="lib/extract-version.js?v=1.16.1"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.16.0"></script>
+<script src="lib/autosuggest.js?v=1.16.1"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.16.0"></script>
+<script src="lib/baselayer.js?v=1.16.1"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.16.0"></script>
+<script src="lib/memocache.js?v=1.16.1"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.16.0"></script>
+<script src="lib/routerank.js?v=1.16.1"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.16.0"></script>
+<script src="lib/vehicleprofile.js?v=1.16.1"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -817,7 +821,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.16.0')
+fetch('lib/fuelplan-adaptive.js?v=1.16.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -828,7 +832,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.16.0')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.16.0"></script>
+<script src="lib/flexible-polyline.js?v=1.16.1"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -988,7 +992,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.16.0';
+const APP_VERSION = '1.16.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1539,7 +1543,7 @@ function setLocateBtnState(s){
   if(s === 'locating' || s === 'locked') btn.classList.add(s);
 }
 
-function showLocateError(msg, asNote){
+function showLocateError(msg){
   let el = $('locateError');
   if(!el){
     el = document.createElement('div');
@@ -1547,19 +1551,32 @@ function showLocateError(msg, asNote){
     $('mapwrap').appendChild(el);
   }
   el.textContent = msg;
-  // A note is a state the driver chose, not a failure — same placement, but
-  // it must not wear the red error tint.
-  el.classList.toggle('note', !!asNote);
+  hideLocateHint();   // a real failure outranks a hint; never stack the two
   el.hidden = false;
 }
-// "Location is off" is information, not an error. Auto-clears so it doesn't
-// sit on the map forever.
-let locateNoteTimer = null;
-function showLocateNote(msg){
-  showLocateError(msg, true);
-  if(locateNoteTimer) clearTimeout(locateNoteTimer);
-  locateNoteTimer = setTimeout(() => { hideLocateError(); locateNoteTimer = null; }, 4000);
+/* Hints live in their OWN element, not in #locateError. The watch's success
+   handler calls hideLocateError() on every fix, so a hint sharing that
+   element would be wiped the instant a position arrived — which is exactly
+   when the driver is looking at it. Separate elements, no interference. */
+let locateHintTimer = null;
+function showLocateHint(msg){
+  let el = $('locateHint');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'locateHint';
+    $('mapwrap').appendChild(el);
+  }
+  el.textContent = msg;
+  el.hidden = false;
+  if(locateHintTimer) clearTimeout(locateHintTimer);
+  locateHintTimer = setTimeout(() => { el.hidden = true; locateHintTimer = null; }, 4000);
 }
+function hideLocateHint(){
+  const el = $('locateHint');
+  if(el) el.hidden = true;
+  if(locateHintTimer){ clearTimeout(locateHintTimer); locateHintTimer = null; }
+}
+
 function hideLocateError(){
   const el = $('locateError');
   if(el) el.hidden = true;
@@ -1676,13 +1693,12 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-const LOCATE_OFF_HINT = 'Location is off. Press and hold this button to turn it back on.';
+const HINT_TURN_OFF = 'Hold to turn location off';
+const HINT_TURN_ON  = 'Hold to turn location on';
 
 function renderLocateOffState(){
   $('locateBtn').classList.toggle('off', locationOff);
-  $('locateBtn').title = locationOff
-    ? 'Location off — press and hold to turn on'
-    : 'Show my location (press and hold to turn off)';
+  $('locateBtn').title = locationOff ? HINT_TURN_ON : 'Show my location — ' + HINT_TURN_OFF.toLowerCase();
   $('locateBtn').setAttribute('aria-label', $('locateBtn').title);
 }
 
@@ -1703,9 +1719,10 @@ function setLocationOff(off){
     locateGroup.removeAll();
     setLocateBtnState(null);
     hidePickupGeoError();
-    showLocateNote('Location off. Press and hold again to turn it back on.');
+    showLocateHint('Location off \u2014 hold to turn on');
   } else {
     hideLocateError();
+    showLocateHint('Location on \u2014 hold to turn off');
     locateBtnPending = true;   // recenter on the first fix, like a fresh tap
     startWatch();
   }
@@ -1741,11 +1758,15 @@ $('locateBtn').addEventListener('contextmenu', e => e.preventDefault());
 $('locateBtn').addEventListener('click', () => {
   if(locateHoldFired){ locateHoldFired = false; return; }  // the hold already acted
   if(locationOff){
-    // A deliberate "off" is not undone by a tap — say how to undo it instead.
-    showLocateNote(LOCATE_OFF_HINT);
+    // A deliberate "off" is not undone by a tap — name the gesture instead.
+    showLocateHint(HINT_TURN_ON);
     return;
   }
   hideLocateError();
+  // Every tap names the hold gesture. Press-and-hold is invisible otherwise:
+  // a driver has no way to discover it without being told, and the button's
+  // title attribute never surfaces on touch.
+  showLocateHint(HINT_TURN_OFF);
   if(liveFix){
     map.setCenter({ lat: liveFix.lat, lng: liveFix.lng });
     map.setZoom(11);
@@ -2898,7 +2919,7 @@ $('pickupLocateBtn').addEventListener('click', () => {
   // Honour the driver's choice rather than silently overriding it from a
   // different screen — but never dead-end: say exactly how to turn it back on.
   if(locationOff){
-    showPickupGeoError('Location is off. Switch to Stops and press and hold the locate button to turn it back on — or type the pickup address.');
+    showPickupGeoError('Location is off — turn it on from Stops, or type the address.');
     return;
   }
   if(liveFix){
