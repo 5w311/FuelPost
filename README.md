@@ -113,6 +113,27 @@ follow, not just this one:
 
 ## Version history
 
+### v1.13.1
+
+**Re-lands the label fix that v1.13.0 shipped without.** The deployed
+v1.13.0 showed every route option as `via [object Object], [object
+Object]` — the exact bug the pre-merge double-check had caught and
+fixed. The fix commit was pushed to the PR branch minutes before the
+merge, but the merge went through at the pre-fix head, so main (and the
+Pages deploy) got the feature without it. This entry exists so the
+changelog matches what actually deployed: broken labels went out as
+v1.13.0; this version is the extractor fix (unwrap HERE's nested
+`{name:{language,value}}` label shape), the switcher selection-visibility
+fix, and the 400-fallback in `truckRoute()` — the full contents of that
+orphaned commit, cherry-picked onto the merged main.
+
+One real finding from the broken deploy, worth keeping: the driver's
+screenshot showed three distinct truck-route alternatives, deduped,
+ranked with the completable one selected — and **two labels per route**,
+proving HERE does return `routeLabels` for `transportMode=truck`. The
+feature works; only the label text was mangled. With this fix those same
+rows read "via ‹road›, ‹road›".
+
 ### v1.13.0
 
 **Alternative routes, ranked by whether they can actually be fueled.**
