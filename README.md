@@ -111,6 +111,32 @@ follow, not just this one:
 
 ## Version history
 
+### v1.12.1
+
+Reported: address autosuggest did nothing on **either** the pickup or the
+delivery field until the driver tapped the pickup "use my location" button,
+after which both started working.
+
+That "both fields, fixed by one unrelated tap" shape points at shared
+state, and the only thing that tap changes for autosuggest is `liveFix` —
+which is the sole source of the `at` parameter. The autosuggest request was
+going out with **no location context at all** before a GPS fix landed:
+no `at`, and unlike `geocodeCandidates()` — which has always sent
+`in=countryCode:USA` — no `in` either. It was the one search call in the
+app missing a location context, which is exactly why it only started
+working once `at` appeared.
+
+`in=countryCode:USA` is now sent on every autosuggest call, with `at` still
+riding along when a fix exists (country filters, position biases — they
+combine). Side benefit: it also stops the US-only fuel network suggesting
+addresses in Mexico, which was visible in an earlier report's screenshot.
+
+Worth noting how this was found, since it shaped the fix: the existing test
+stub returned `200` regardless of query parameters, so it could never
+reproduce this — the app looked correct locally while failing on-device.
+The regression test now asserts every autosuggest call carries `at` or
+`in`, rather than only asserting that a call was made.
+
 ### v1.12.0
 
 Three maintenance items from a review of v1.11.10.
