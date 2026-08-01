@@ -20,6 +20,10 @@ lib/fuelplan-adaptive.js    widens the detour search before declaring a gap
 lib/triptext.js             formats a plan as plain text for share / save
 lib/location.js             GPS fix labeling and precision checks (no DOM, no network)
 lib/gauge.js                fuel-gauge tick <-> miles math (no DOM, no network)
+lib/autosuggest.js          query threshold + suggestion-item parsing for the address dropdowns
+lib/baselayer.js            pure nextBaseLayer() — which road layer (if any) a theme change applies
+lib/memocache.js            session-only memo cache for repeat HERE lookups (no DOM, no network)
+lib/extract-version.js      pulls APP_VERSION out of fetched page source for the update check
 lib/flexible-polyline.js    HERE's reference polyline decoder, vendored unmodified (MIT)
 test/*.test.js              plain-node tests, no framework
 test/run.js                 runs every test file and reports a combined total
@@ -28,7 +32,7 @@ tools/geocode-report.txt    output of that run
 ```
 
 `lib/` and `tools/` are CommonJS so the tests run under plain `node` with no
-install and no build step. `index.html` loads the two `lib/` files as classic
+install and no build step. `index.html` loads the `lib/` files as classic
 scripts behind a three-line `module.exports` shim.
 
 ## Fuel stop selection

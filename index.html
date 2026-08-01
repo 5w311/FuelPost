@@ -1925,12 +1925,12 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
         which is as far as you can reach${stops.length ? ' after the stop' + (stops.length > 1 ? 's' : '') + ' above' : ' leaving the shipper with ' + mi(rangeAtPickup) + ' mi'}.
         ${stops.length ? 'Fuel as listed above — then you run dry inside that stretch.' : 'No network stop is reachable from the pickup at this range.'}
         No network stop sits within ${NEAR_PICKUP_RADIUS_GAP} mi of your pickup either, so there is no
-        top-off option to suggest. Out-of-network fuel needs approval first — call Driver Support
+        top-off option to suggest. Out-of-network fuel needs approval first — call the Fuel Dept
         <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.
         If the truck can run further than ${mi(maxRange)} mi, raise the range and re-plan.</div>`;
     } else {
       // A real alternative exists near the pickup — lead with it instead of
-      // sending the driver to Driver Support for a load that has an obvious
+      // sending the driver to the Fuel Dept for a load that has an obvious
       // fix. The number still follows, because this plan does not clear: a
       // driver who can't top off is back to needing out-of-network fuel, and
       // that always needs a call first.
@@ -1940,7 +1940,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
         <b>mile ${mi(g.fromMile)}</b> and <b>mile ${mi(g.deadMile)}</b>${stops.length ? ' after the stop' + (stops.length > 1 ? 's' : '') + ' above' : ''}.
         Nearest network stop to your pickup: <b>${namedNear}</b>. Topping off there before you roll,
         or entering a lower number for range leaving the shipper, may close this gap.
-        If you can't, out-of-network fuel still needs approval first — call Driver Support
+        If you can't, out-of-network fuel still needs approval first — call the Fuel Dept
         <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.</div>`;
     }
   }
