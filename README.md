@@ -114,6 +114,36 @@ follow, not just this one:
 
 ## Version history
 
+### v1.14.1
+
+**Detour tiers widened to [8, 15, 30, 50]** after a driver report that a
+partial tank made every alternative show "no network fuel." Investigated
+before changing anything: the v1.14.0 wiring was NOT broken —
+`readRanges`, the planner and the option ranking all behave exactly per
+the gauge's numbers. What the driver hit is real arithmetic: with little
+range leaving the shipper the FIRST stop must come early, and when no
+network stop within 30 mi of the route is that close, every alternative
+gaps — honestly, but unhelpfully. The plan panel does show why ("375 mi
+of range leaving the shipper · 500 mi already burned"), yet the effect
+reads as "alternatives broke."
+
+The new 50-mile tier is the escape hatch for exactly that case.
+Guardrails, unchanged: `planAdaptive` still tries 8/15/30 first and only
+escalates when the plan otherwise gaps; the caution banner names the
+widened figure ("uses stops up to 50 miles off route"); and routerank
+still prefers routes that complete at tighter tiers. 50 deliberately
+equals `NEAR_PICKUP_RADIUS_GAP` — the app's own definition of "reachable
+near the shipper at all."
+
+Verified with a 948-mile corridor built to sit 40 mi from exactly one
+real station (TA Holbrook) and ≥30 mi from every other: it gaps on the
+old tiers and completes through Holbrook on the new ones, with the
+caution naming 50. The genuinely-unfuelable fixture (the Pacific-arc
+route in the alternatives suite) still gaps at 50 — the wider net
+rescues loads a real stop can save, and cannot conjure range: a tank too
+low to reach ANY along-route stop still gaps, where the near-pickup
+top-off guidance already applies.
+
 ### v1.14.0
 
 **Until this version the app applied no vehicle dimensions and no hazmat
