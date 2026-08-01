@@ -107,6 +107,31 @@ follow, not just this one:
 
 ## Version history
 
+### v1.11.10
+
+In Satellite view, changing the theme (Light/Dark/System, or a live system
+preference change) kicked the map off Satellite and back onto the road map.
+It now stays on Satellite — only the app's chrome changes.
+
+Worth stating plainly for whoever reads this history next: **v1.11.6 through
+v1.11.9 all treated this area as a `setBaseLayer()` timing/race problem** and
+kept adding deferral, idempotency guards, and internal bookkeeping to manage
+it. That was the wrong diagnosis. The actual defect was one missing
+conditional — `switchTheme()` called `setNormalBaseLayer()` unconditionally,
+never asking what the map was currently showing, on the assumption it was
+always one of the two themed road layers. It isn't: HERE's own layer
+switcher also offers Satellite and Terrain. No amount of additional
+deferral could fix that, which is why four rounds of it didn't.
+
+The decision now goes through `lib/baselayer.js`'s pure `nextBaseLayer()`,
+which returns "no change at all" both when the map is on a layer that isn't
+ours to touch (Satellite/Terrain/anything HERE adds later) and when it's
+already correct for the theme. The deferral machinery from the earlier
+patches stays exactly as it was — it was never the bug, and it still earns
+its keep on the road-layer transitions that do happen. The
+`baselayerchange` listener already checked the specific layer before
+correcting, so it never had this bug either.
+
 ### v1.11.9
 
 A screen recording of v1.11.8 confirmed the Satellite/dark-mode symptom was
