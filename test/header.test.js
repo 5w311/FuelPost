@@ -70,9 +70,13 @@ ok('appVer idle text is built from APP_VERSION',
    /appVerBtn\.textContent = appVerUpdateTo[\s\S]{0,160}'FuelPost v' \+ APP_VERSION/.test(html));
 ok('fuelBookRev text is built from FUEL_BOOK_REV',
    /getElementById\('fuelBookRev'\)\.textContent = FUEL_BOOK_REV/.test(html));
-// The literal version must appear only in its own declaration.
-ok(`version string "${APP_VERSION}" appears once in index.html`,
-   (html.match(new RegExp(APP_VERSION.replace(/\./g, '\\.'), 'g')) || []).length === 1);
+// The literal version must appear only in its own declaration — plus the
+// deliberate ?v= cache-bust stamps on the lib URLs, which are copies BY
+// DESIGN and are held in sync with APP_VERSION by cachebust.test.js. Strip
+// those first so this guard still catches any OTHER stray hardcoded copy.
+const htmlSansStamps = html.split(`?v=${APP_VERSION}`).join('?v=');
+ok(`version string "${APP_VERSION}" appears once outside the ?v= stamps`,
+   (htmlSansStamps.match(new RegExp(APP_VERSION.replace(/\./g, '\\.'), 'g')) || []).length === 1);
 ok(`revision string "${FUEL_BOOK_REV}" appears once in index.html`,
    (html.match(new RegExp(FUEL_BOOK_REV, 'g')) || []).length === 1);
 
