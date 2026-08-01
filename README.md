@@ -114,6 +114,23 @@ follow, not just this one:
 
 ## Version history
 
+### v1.16.2
+
+Two refinements to the location toggle:
+
+**Turning it back on is just a tap.** v1.16.0 required a press-and-hold
+in both directions, on the reasoning that a stray tap shouldn't undo a
+deliberate choice. That was the wrong trade: getting location *back* is
+the common case and shouldn't need a gesture, while switching it *off*
+is the direction where an accident actually costs something. So: hold
+to turn off, tap to turn on. The off-state hint and button label name
+tap accordingly.
+
+**The hint box hugs its text** instead of spanning the map edge to
+edge — one short line reading as a banner looked heavier than it is.
+`width:max-content` with a `max-width` guard, so a longer message still
+wraps on screen rather than running off it.
+
 ### v1.16.1
 
 Press-and-hold was invisible: nothing on screen said the gesture
