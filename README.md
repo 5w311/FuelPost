@@ -113,6 +113,25 @@ follow, not just this one:
 
 ## Version history
 
+### v1.13.2
+
+Dark-mode readability fix found in a post-release sweep: danger-red text
+sitting directly on the theme backgrounds was nearly invisible in dark
+mode — `#8A1C1C` manages ~1.9:1 contrast on `#0D1117`/`#161B22`, far
+below the 4.5:1 floor the dark palette elsewhere holds to. Two spots
+were affected: the gauge's reserve note (pre-existing) and the new
+route switcher's "no network fuel" marking on a gapped option — the one
+place a driver must absolutely be able to read in the cab at night,
+since it's what tells them an option strands the truck.
+
+New `--danger-text` variable, same pattern as `--navy-text`: `#8A1C1C`
+in light mode (unchanged appearance), `#F2555A` in dark (5.6:1 on
+`--bg`, 5.1:1 on `--surface`). The `#8A1C1C` inside the fixed
+light-pink chips (`.rr-warn`, `.geo-error`, `#locateError`) stays
+hardcoded — those chips keep their light background in both themes, so
+their red always reads. Verified by computed style in a real browser in
+both themes.
+
 ### v1.13.1
 
 **Re-lands the label fix that v1.13.0 shipped without.** The deployed
