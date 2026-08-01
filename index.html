@@ -807,7 +807,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.12.0';
+const APP_VERSION = '1.12.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -2322,7 +2322,19 @@ async function fireSuggest(field, q){
     return;
   }
 
-  const params = new URLSearchParams({ q, apikey: HERE_API_KEY, limit: '5' });
+  // in=countryCode:USA is sent on EVERY call, not just as a fallback.
+  // HERE's search endpoints want a location context, and `at` alone only
+  // exists once a GPS fix has landed — so before the driver tapped "use my
+  // location" this request went out with no context at all and came back
+  // empty, which read as "autosuggest is broken until you hit the locate
+  // button." geocodeCandidates() above has always sent this same filter;
+  // autosuggest was the one search call missing it.
+  // It also keeps results on this side of the border — a US-only fuel
+  // network had no business suggesting Tijuana addresses. `at` still rides
+  // along when there's a fix: country filters, position biases.
+  const params = new URLSearchParams({
+    q, apikey: HERE_API_KEY, limit: '5', in: 'countryCode:USA'
+  });
   if(at) params.set('at', at);
   let items = [];
   let ok = false;   // only a genuinely parsed response is cacheable
