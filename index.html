@@ -618,6 +618,8 @@
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
 <script src="lib/autosuggest.js"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
+<script src="lib/baselayer.js"></script>
+<script>var BaseLayer = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
      — real Node syntax. Loading it with a plain src attribute, like the two
@@ -803,7 +805,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.11.9';
+const APP_VERSION = '1.11.10';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1047,10 +1049,26 @@ function setNormalBaseLayer(layer){
 // change). data-theme (and everything CSS-driven off it) updates
 // immediately; the map layer itself follows via setNormalBaseLayer() above,
 // which is deferred by design — see its own comment.
+//
+// The base-layer change is conditional, and that condition is the whole
+// point: HERE's own layer switcher also offers Satellite (and Terrain), and
+// a theme change must not yank the driver off one of those and back onto a
+// road map — only the app's chrome changes there, not the imagery.
+// BaseLayer.nextBaseLayer() returns null both for "not on a themed road
+// layer at all, leave it alone" and "already correct for this theme".
+// Without that check this called setNormalBaseLayer() unconditionally, on
+// the assumption the map is always showing one of the two road layers.
 function switchTheme(theme){
   document.documentElement.setAttribute('data-theme', theme);
+  // Runs regardless of which layer is showing: HERE's own "Map view" entry
+  // should point at the right themed layer for whenever it IS tapped, even
+  // if the map is on Satellite right now and we're not touching it.
   syncMapSettingsControlLayer(theme);
-  setNormalBaseLayer(theme === 'dark' ? defaultLayers.vector.normal.mapnight : defaultLayers.vector.normal.map);
+  const next = BaseLayer.nextBaseLayer(map.getBaseLayer(), theme, {
+    light: defaultLayers.vector.normal.map,
+    dark:  defaultLayers.vector.normal.mapnight
+  });
+  if(next) setNormalBaseLayer(next);
   updateThemeToggleUI();
 }
 
