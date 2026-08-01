@@ -15,6 +15,7 @@ Two modes:
 
 ```
 index.html                  the app — markup, styles, DATA array, map + UI wiring
+icons/                      favicon / home-screen icon PNGs
 lib/fuelplan.js             pure fuel-planning logic (no DOM, no network)
 lib/fuelplan-adaptive.js    widens the detour search before declaring a gap
 lib/triptext.js             formats a plan as plain text for share / save
@@ -110,6 +111,29 @@ follow, not just this one:
   silently produce a result the driver never chose.
 
 ## Version history
+
+### v1.12.2
+
+Wired in an app icon: `icons/icon-192.png`, `icons/icon-512.png`, and
+`icons/icon-180.png` (apple-touch-icon), linked from `index.html`'s
+`<head>` with relative paths (the app is served from a `/FuelPost/`
+subpath on GitHub Pages, so absolute `/icons/...` paths would 404).
+
+The brief called for two variants — a theme-switching SVG favicon (navy
+`#0B2340` for light mode, `#0D1117` for dark, via a `prefers-color-scheme`
+media query inside the SVG) plus matching light/dark PNG sets. Only one
+PNG set (1024/512/192/180, dark field) made it through as attachments;
+the SVG source and the light/navy PNG set couldn't be transferred. Rather
+than freehand a replacement for a vector file with brief-specified pixel
+geometry (an exact needle angle verified against a 30° target) that was
+never actually seen, this ships the dark set alone for every icon role —
+`#0D1117` is the app's own dark-mode `--bg`, close enough to navy that
+brand identity doesn't shift, and reads as effectively neutral chrome on
+both light and dark browser/OS surfaces. No `<link rel="icon"
+type="image/svg+xml">` tag yet; add it once the SVG arrives.
+
+No web app manifest, no `theme-color` meta tag — out of scope for this
+change, deferred with the rest of the PWA work.
 
 ### v1.12.1
 
