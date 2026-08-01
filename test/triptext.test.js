@@ -51,6 +51,18 @@ console.log('\n=== exclusive tier tag ===');
 ok('tags Exclusive stops', t3.includes('[Exclusive]'));
 ok('does not tag primary stops', !t1.includes('[Exclusive]'));
 
+console.log('\n=== optional routeLabel (only set when alternatives existed) ===');
+const t5 = formatTripText({
+  pickupAddr: 'A', deliveryAddr: 'B', routeLabel: 'via I-40',
+  plan: [{name:'TA Holbrook', mile:220, legMiles:220, tier:'prim'}],
+  gap: null, finalLegMiles: 100, detourMax: 8
+});
+ok('names the route when a label is given', t5.includes('Route:    via I-40'));
+ok('the label sits with the addresses, above the stops',
+   t5.indexOf('Route:') > t5.indexOf('Delivery:') && t5.indexOf('Route:') < t5.indexOf('FUEL STOPS'));
+ok('no Route line when no label (the single-route case is unchanged)',
+   !t1.includes('Route:') && !t2.includes('Route:') && !t3.includes('Route:'));
+
 console.log('\n=== missing optional fields do not throw or print garbage ===');
 const t4 = formatTripText({ pickupAddr:'A', deliveryAddr:'B', maxRange:800, plan:[], gap:null });
 ok('minimal input does not throw', typeof t4 === 'string');

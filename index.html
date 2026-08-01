@@ -431,6 +431,20 @@
      option the driver can take or ignore, never a problem to be flagged. */
   .rr-tip{font-size:12px;color:var(--sub);line-height:1.4;margin-top:6px;}
 
+  /* Alternative-route switcher. Themed off the CSS variables (unlike the
+     fixed-tint .rr-ok/.rr-warn callouts) since it's chrome, not a callout.
+     A gapped option stays fully readable and tappable — it's marked, not
+     hidden, so the driver can see what was rejected and why. */
+  .rr-opts{display:flex;flex-direction:column;gap:6px;margin:0 0 10px;}
+  .rr-opt{display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+    width:100%;text-align:left;font:inherit;color:inherit;
+    background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:7px 10px;}
+  .rr-opt.sel{border-color:var(--navy-text);border-width:1.5px;padding:6.5px 9.5px;background:var(--surface);}
+  .rr-opt-label{font-size:12.5px;font-weight:700;}
+  .rr-opt-meta{font-size:11px;color:var(--sub);}
+  .rr-opt.gapped .rr-opt-meta{color:#8A1C1C;font-weight:700;}
+  .rr-ranknote{font-size:12px;color:var(--ink);line-height:1.4;margin:2px 0 8px;font-weight:600;}
+
   /* translate(-50%,-50%) anchors these to their coordinate the same way as
      .geo-dot-wrap above — circular, no rotation, no residual. */
   .rpin{width:30px;height:30px;border-radius:50%;background:var(--gold);border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12.5px;color:#4A3200;transform:translate(-50%,-50%);}
@@ -620,22 +634,24 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.12.6"></script>
+<script src="lib/fuelplan.js?v=1.13.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.12.6"></script>
+<script src="lib/triptext.js?v=1.13.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.12.6"></script>
+<script src="lib/location.js?v=1.13.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.12.6"></script>
+<script src="lib/gauge.js?v=1.13.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.12.6"></script>
+<script src="lib/extract-version.js?v=1.13.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.12.6"></script>
+<script src="lib/autosuggest.js?v=1.13.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.12.6"></script>
+<script src="lib/baselayer.js?v=1.13.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.12.6"></script>
+<script src="lib/memocache.js?v=1.13.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
+<script src="lib/routerank.js?v=1.13.0"></script>
+<script>var RouteRank = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
      — real Node syntax. Loading it with a plain src attribute, like the two
@@ -650,7 +666,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.12.6')
+fetch('lib/fuelplan-adaptive.js?v=1.13.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -661,7 +677,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.12.6')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.12.6"></script>
+<script src="lib/flexible-polyline.js?v=1.13.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -821,7 +837,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.12.6';
+const APP_VERSION = '1.13.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1496,6 +1512,66 @@ routeGroup.setVisibility(false);
 
 let planStops = [];  // chosen stops from the last plan, for tap-through to openSheet
 
+/* ---- Alternative routes ----
+   Every route HERE returned for the current load, each already fuel-planned
+   and ranked by whether it can actually be fueled on the network (see
+   lib/routerank.js — a route that completes beats a shorter one that gaps).
+   All of them are in hand from the single routing request, so switching
+   between them is pure re-render: no refetch, no extra API call, and it
+   still works with the signal gone.
+   routeOptionCtx holds the inputs renderPlan needs that don't vary by
+   route — the ranges and confirmed endpoints the whole set was planned on. */
+let routeOptions = [];
+let routeOptionIdx = 0;
+let routeOptionCtx = null;
+
+function clearRouteOptions(){
+  routeOptions = [];
+  routeOptionIdx = 0;
+  routeOptionCtx = null;
+}
+
+function selectRouteOption(idx){
+  const o = routeOptions[idx];
+  if(!o || !routeOptionCtx) return;
+  routeOptionIdx = idx;
+  const { ranges, pickup, delivery, nearPickup } = routeOptionCtx;
+  drawRoute(o.poly, o.result.plan);
+  renderPlan(o.result, o.routeMiles, ranges, pickup, delivery, nearPickup);
+}
+
+// One row per option: label, miles, and its fuel outcome stated up front.
+// A gapped route is marked in the list itself — a driver must never have to
+// tap an option to discover it strands the truck.
+function routeSwitcherHtml(){
+  if(routeOptions.length < 2) return '';
+  let h = '';
+
+  // Only when it's literally true: the pick isn't the shortest, and the
+  // shortest one gaps. That reordering is the whole point of the feature,
+  // so name it — but never imply an alternative always rescues a bad load.
+  const shortest = routeOptions.reduce((a, b) => b.routeMiles < a.routeMiles ? b : a);
+  const sel = routeOptions[routeOptionIdx];
+  if(sel !== shortest && sel.result.ok && !shortest.result.ok){
+    h += `<div class="rr-ranknote">The shortest route can't be fueled on the network — the option below can.</div>`;
+  }
+
+  h += '<div class="rr-opts">';
+  routeOptions.forEach((o, i) => {
+    const stops = o.result.plan.length;
+    const outcome = o.result.ok
+      ? (stops === 0 ? 'no stop needed' : stops + (stops === 1 ? ' stop' : ' stops'))
+      : 'no network fuel';
+    h += `<button type="button" class="rr-opt${i === routeOptionIdx ? ' sel' : ''}${
+      o.result.ok ? '' : ' gapped'}" data-opt="${i}" aria-pressed="${i === routeOptionIdx}">
+      <div class="rr-opt-label">${o.label}</div>
+      <div class="rr-opt-meta">${mi(o.routeMiles)} mi &middot; ${outcome}</div>
+    </button>`;
+  });
+  h += '</div>';
+  return h;
+}
+
 /* ---- Collapsible trip-details drawer ----
    Once a plan exists, the driver's attention is on the map and the fuel
    stop list, not the fields that produced it. The tab row (and its
@@ -1643,9 +1719,45 @@ function matchKind(c){
 }
 
 /* ---- HERE Routing v8, truck mode (respects height/weight/hazmat) ---- */
+
+// Decode each section and stitch, dropping the duplicated joint vertex.
+function stitchSections(sections){
+  const poly = [];
+  for(const sec of sections){
+    const pts = FlexPolyline.decode(sec.polyline).polyline;
+    for(let i = 0; i < pts.length; i++){
+      if(i === 0 && poly.length) continue;
+      poly.push([pts[i][0], pts[i][1]]);
+    }
+  }
+  return poly;
+}
+
+// routeLabels is HERE's own answer to "what makes these routes different" —
+// the most significant road names/numbers along each one, which is exactly
+// the "via I-40" a driver needs. Read it defensively: the field can arrive
+// per-route or per-section, and entries may be plain strings or objects
+// keyed roadNumber/name. Anything unrecognised falls back to a plain
+// ordinal — "Route 2" is honest, a mislabeled highway is not.
+function routeLabelText(route, i){
+  const names = [];
+  const push = l => {
+    if(!l) return;
+    const t = typeof l === 'string' ? l : (l.roadNumber || l.name || l.roadName || '');
+    if(t && !names.includes(t)) names.push(t);
+  };
+  (route.routeLabels || []).forEach(push);
+  (route.sections || []).forEach(sec => (sec.routeLabels || []).forEach(push));
+  return names.length ? 'via ' + names.slice(0, 2).join(', ') : `Route ${i + 1}`;
+}
+
+// Returns EVERY route HERE offers, not just the optimal one — alternatives
+// ride along in this same single request (alternatives=N is one call, not
+// N calls), and the fuel planning that ranks them is client-side math. So
+// the option list costs no extra API volume on the shared key.
 async function truckRoute(orig, dest){
   const url = 'https://router.hereapi.com/v8/routes'
-    + '?transportMode=truck&return=polyline,summary'
+    + '?transportMode=truck&alternatives=2&return=polyline,summary,routeLabels'
     + `&origin=${orig.lat},${orig.lng}&destination=${dest.lat},${dest.lng}`
     + `&apiKey=${HERE_API_KEY}`;
   const res = await fetch(url);
@@ -1656,21 +1768,17 @@ async function truckRoute(orig, dest){
     throw new Error(`Routing failed (HTTP ${res.status}).`);
   }
   const j = await res.json();
-  const route = j.routes && j.routes[0];
-  if(!route || !route.sections || !route.sections.length)
+  const routes = (j.routes || []).filter(r => r.sections && r.sections.length);
+  if(!routes.length)
     throw new Error('No truck route exists between those two points.');
 
-  // Decode each section and stitch, dropping the duplicated joint vertex.
-  const poly = [];
-  for(const sec of route.sections){
-    const pts = FlexPolyline.decode(sec.polyline).polyline;
-    for(let i = 0; i < pts.length; i++){
-      if(i === 0 && poly.length) continue;
-      poly.push([pts[i][0], pts[i][1]]);
-    }
-  }
-  if(poly.length < 2) throw new Error('Route came back empty.');
-  return poly;
+  const out = [];
+  routes.forEach((route, i) => {
+    const poly = stitchSections(route.sections);
+    if(poly.length >= 2) out.push({ poly, label: routeLabelText(route, i) });
+  });
+  if(!out.length) throw new Error('Route came back empty.');
+  return out;
 }
 
 /* ---- Map drawing ---- */
@@ -1860,6 +1968,7 @@ function clearTrip(){
   confirmed = { pickup: null, delivery: null };
   lastTrip = null;
   planStops = [];
+  clearRouteOptions();
 
   $('routeResultsBody').innerHTML = '';
   $('routeResults').classList.remove('show');
@@ -1899,6 +2008,9 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
     gap: result.ok ? null : result.gap,
     finalLegMiles: result.ok ? Math.round(result.finalLegMiles) : null,
     detourMax: result.detourMax,
+    // Only when there was a choice to make — with one route there's nothing
+    // to disambiguate, and the shared text stays exactly as it was.
+    routeLabel: routeOptions.length > 1 ? routeOptions[routeOptionIdx].label : undefined,
     appVersion: APP_VERSION,
     fuelBookRev: FUEL_BOOK_REV
   };
@@ -1917,6 +2029,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
   let h = `<div class="rr-head">${headline}</div>`;
   h += `<div class="rr-sub">${mi(routeMiles)} mi loaded miles &middot; ${mi(rangeAtPickup)} mi of range leaving the shipper`
      + `${startBurned > 0 ? ` &middot; ${mi(startBurned)} mi already burned` : ''}</div>`;
+  h += routeSwitcherHtml();
 
   // Say so above the plan, plainly — the driver is being asked to drive extra
   // miles for fuel and should know before scanning the stop list.
@@ -1999,6 +2112,12 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
     el.addEventListener('click', () => openSheet(planStops[+el.dataset.idx].row)));
   document.querySelectorAll('.rr-fix').forEach(el =>
     el.addEventListener('click', () => reopenPicker(el.dataset.end)));
+  // Re-render only — every option was planned when the load was routed.
+  document.querySelectorAll('.rr-opt').forEach(el =>
+    el.addEventListener('click', () => {
+      const i = +el.dataset.opt;
+      if(i !== routeOptionIdx) selectRouteOption(i);
+    }));
 
   // A plan or gap result is now showing — the map and the stop list are
   // what matter next, not the fields that produced them.
@@ -2014,6 +2133,8 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
 // mile 0 to mile 0 — this gets its own copy instead.
 function renderFloorGap(ranges, pickup, delivery, nearPickup){
   planStops = [];
+  // No routing call was made, so there are no alternatives to offer.
+  clearRouteOptions();
   const limpMiles = FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS); // 125 — the one reserved tick
   lastTrip = {
     pickupAddr: pickup.label,
@@ -2652,20 +2773,32 @@ async function planLoad(pickup, delivery){
   }
 
   try {
-    const poly = await truckRoute(pickup, delivery);
-
-    // routeMiles from the polyline, not HERE's summary, so the total and the
-    // mile markers are measured the same way.
-    const cum = FuelPlan.cumulativeMiles(poly);
-    const routeMiles = cum[cum.length - 1];
-
-    const result = FuelPlanAdaptive.planAdaptive(
-      poly, routeMiles, FUEL_STOPS, ranges.maxRange, ranges.startBurned, DETOUR_TIERS);
+    const routes = await truckRoute(pickup, delivery);
     const nearPickup = FuelPlanAdaptive.stopsNearPickup(
       pickup.lat, pickup.lng, FUEL_STOPS, NEAR_PICKUP_RADIUS_GAP);
 
-    drawRoute(poly, result.plan);
-    renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup);
+    // Fuel-plan every route HERE offered, on identical settings, then let
+    // routerank order them by what this app knows and a mapping app doesn't:
+    // which of these the truck can actually finish on network fuel.
+    const options = routes.map(r => {
+      // routeMiles from the polyline, not HERE's summary, so the total and the
+      // mile markers are measured the same way.
+      const cum = FuelPlan.cumulativeMiles(r.poly);
+      const routeMiles = cum[cum.length - 1];
+      return {
+        poly: r.poly,
+        label: r.label,
+        routeMiles,
+        result: FuelPlanAdaptive.planAdaptive(
+          r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, ranges.startBurned, DETOUR_TIERS)
+      };
+    });
+
+    routeOptions = RouteRank.dedupeOptions(RouteRank.rankRouteOptions(options));
+    routeOptionCtx = { ranges, pickup, delivery, nearPickup };
+    // With a single route this is byte-identical to the old path: the
+    // switcher renders nothing and ranked[0] is the only plan there was.
+    selectRouteOption(0);
   } catch(err){
     setRoutebarOpen(true);
     showRoutePanel(!navigator.onLine ? offlineNote('Lost signal mid-plan.')
@@ -2673,6 +2806,7 @@ async function planLoad(pickup, delivery){
           err && err.message ? err.message : 'Unknown error.'}<br><br>
         Switch back to <b>Stops</b> — the map and all ${DATA.length} locations still work.</div>`);
     routeGroup.removeAll();
+    clearRouteOptions();
   }
 }
 
