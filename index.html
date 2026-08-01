@@ -92,7 +92,9 @@
   .seg button.active{background:var(--navy);color:#fff;}
   .search-wrap{position:relative;flex:1;min-width:150px;}
   .search-wrap input{width:100%;padding:8px 10px 8px 30px;border-radius:10px;border:1px solid var(--line);font-size:13px;background:var(--bg);color:var(--ink);}
-  .search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--sub);}
+  .search-wrap > svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--sub);}
+  /* Room for the clear button so text never runs underneath it. */
+  .search-wrap input{padding-right:32px;}
   select.stateSel{padding:8px 10px;border-radius:10px;border:1px solid var(--line);font-size:12.5px;background:var(--bg);color:var(--ink);flex-shrink:0;font-weight:600;}
   .iconbtn{flex-shrink:0;border:1px solid var(--line);background:var(--bg);border-radius:10px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;}
 
@@ -576,6 +578,9 @@
     <div class="search-wrap stops-only">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="searchInput" placeholder="Search city, state, exit…">
+      <button type="button" id="searchClearBtn" class="rb-clear-field-btn" title="Clear search" aria-label="Clear search" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
     </div>
     <button class="iconbtn stops-only" id="listToggle" title="List view">☰</button>
   </div>
@@ -769,25 +774,25 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.15.1"></script>
+<script src="lib/fuelplan.js?v=1.15.2"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.15.1"></script>
+<script src="lib/triptext.js?v=1.15.2"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.15.1"></script>
+<script src="lib/location.js?v=1.15.2"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.15.1"></script>
+<script src="lib/gauge.js?v=1.15.2"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.15.1"></script>
+<script src="lib/extract-version.js?v=1.15.2"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.15.1"></script>
+<script src="lib/autosuggest.js?v=1.15.2"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.15.1"></script>
+<script src="lib/baselayer.js?v=1.15.2"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.15.1"></script>
+<script src="lib/memocache.js?v=1.15.2"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.15.1"></script>
+<script src="lib/routerank.js?v=1.15.2"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.15.1"></script>
+<script src="lib/vehicleprofile.js?v=1.15.2"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -803,7 +808,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.15.1')
+fetch('lib/fuelplan-adaptive.js?v=1.15.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -814,7 +819,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.15.1')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.15.1"></script>
+<script src="lib/flexible-polyline.js?v=1.15.2"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -974,7 +979,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.15.1';
+const APP_VERSION = '1.15.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1434,7 +1439,19 @@ document.querySelectorAll('#typeSeg button').forEach(b=>b.addEventListener('clic
   b.classList.add('active'); state.type=b.dataset.v; render(); updateFilterBadge();
 }));
 stateSel.addEventListener('change', e=>{state.st=e.target.value; render(); updateFilterBadge();});
-document.getElementById('searchInput').addEventListener('input', e=>{state.q=e.target.value.trim().toLowerCase(); render();});
+document.getElementById('searchInput').addEventListener('input', e=>{
+  state.q=e.target.value.trim().toLowerCase();
+  document.getElementById('searchClearBtn').hidden = !e.target.value.trim();
+  render();
+});
+document.getElementById('searchClearBtn').addEventListener('click', ()=>{
+  const inp=document.getElementById('searchInput');
+  inp.value='';
+  state.q='';
+  document.getElementById('searchClearBtn').hidden = true;
+  render();
+  inp.focus();
+});
 document.getElementById('listToggle').addEventListener('click', ()=>{
   document.getElementById('listview').classList.toggle('show');
 });

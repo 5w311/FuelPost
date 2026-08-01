@@ -114,6 +114,16 @@ follow, not just this one:
 
 ## Version history
 
+### v1.15.2
+
+The Stops-tab search box clears like the route fields do: an × appears
+inside the box whenever there's text, and tapping it empties the box,
+restores the full stop list, and refocuses the input for the next
+search. Same `rb-clear-field-btn` pattern the pickup/delivery/range
+fields established — one clearing gesture everywhere. (The magnifier
+rule needed scoping to the wrap's direct child so it stopped grabbing
+the ×'s own icon.)
+
 ### v1.15.1
 
 Tapping a station — map pin or list row, Stops tab or a plan's stop
