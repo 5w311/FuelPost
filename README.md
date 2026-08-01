@@ -25,6 +25,7 @@ lib/autosuggest.js          query threshold + suggestion-item parsing for the ad
 lib/baselayer.js            pure nextBaseLayer() — which road layer (if any) a theme change applies
 lib/memocache.js            session-only memo cache for repeat HERE lookups (no DOM, no network)
 lib/routerank.js            orders alternative routes by fuel viability (no DOM, no network)
+lib/vehicleprofile.js       vehicle dimensions/weight/hazmat -> HERE vehicle[...] params (no DOM, no network)
 lib/extract-version.js      pulls APP_VERSION out of fetched page source for the update check
 lib/flexible-polyline.js    HERE's reference polyline decoder, vendored unmodified (MIT)
 test/*.test.js              plain-node tests, no framework
@@ -112,6 +113,79 @@ follow, not just this one:
   silently produce a result the driver never chose.
 
 ## Version history
+
+### v1.14.0
+
+**Until this version the app applied no vehicle dimensions and no hazmat
+restrictions at all.** Earlier entries here said `transportMode=truck`
+"respects height, weight and hazmat restrictions." That was wrong. The
+shipped code sent `transportMode=truck` and no vehicle parameters, and
+HERE's documentation is explicit about what that means: absent vehicle
+parameters default to "0 or none," so general truck access restrictions
+applied — no car-only roads, no residential shortcuts — and nothing
+dimensional. Low bridges, posted weight limits and every hazmat
+restriction were invisible to it. A 13'6" truck could be routed under a
+12' bridge. This is not a refinement of something that worked; it is the
+first version where those restrictions exist.
+
+Three profiles, in the trip drawer under **Vehicle**:
+
+- **Standard** (default) — 13'6" × 8'6" × 70 ft, 80,000 lb, the federal
+  maximums for a 5-axle rig. A driver who never opens this control now
+  gets full dimensional routing.
+- **Hazmat** — same dimensions plus declared hazard classes.
+- **Custom** — your own height/width/length/gross weight; blanks fall
+  back to the standard value, so changing one number doesn't mean typing
+  four.
+
+Notes on decisions that look like details but aren't:
+
+**Conversions round UP, never to nearest.** HERE wants centimeters and
+kilograms; drivers think in inches and pounds. Under-declaring makes
+HERE believe the truck fits where it doesn't; over-declaring at worst
+costs a slightly longer legal route. Those errors are not symmetric.
+102 in ceils to 260 cm — which is exactly the 2.6 m that 23 CFR 658.15
+itself names as the metric equivalent of the 102-inch limit, so
+rounding to nearest would under-declare against the regulation's own
+wording.
+
+**Hazmat is a class multi-select, not a toggle, and defaults to all
+classes on.** HERE does not infer between classes — its docs state that
+declaring combustible or gas does not exclude roads prohibited for
+flammable materials. A blanket "hazmat: yes" therefore cannot route
+correctly. All classes start selected because over-declaring yields a
+longer legal route while under-declaring yields one the truck is barred
+from; deselecting the last remaining class re-selects them all rather
+than silently sending none.
+
+**The 400 fallback never drops the vehicle profile.** `truckRoute()`
+retries without `alternatives`/`routeLabels` on a 400. The vehicle
+params are appended to *both* request variants deliberately: a retry
+that dropped them would return a route with no dimensional or hazmat
+restriction applied, rendered as an ordinary successful plan, with
+nothing on screen saying it was illegal for that truck. There is no
+third fallback that strips the profile — failing loudly beats routing
+an unrestricted truck. The two URLs look redundantly similar for this
+reason; do not "simplify" them.
+
+Validation (sanity rails, not legal limits — the app does not pretend to
+know every state's permit rules) blocks planning outright rather than
+warning, since a typo'd height is exactly the input that produces a
+confident illegal route. Profile and values persist under
+`fuelpost.vehicle.v1`; anything malformed falls back to Standard without
+throwing. Non-Standard profiles are named in the plan panel and in
+Share/save, so two pasted plans for one lane explain why their roads
+differ.
+
+The `shippedHazardousGoods` enum was checked against HERE's live
+OpenAPI spec at implementation time (all 11 values, exact match), as
+were the `vehicle[height|width|length]` centimeter and
+`vehicle[grossWeight]` kilogram units.
+
+Standard's numbers are federal maximums for typical equipment — correct
+for most Covenant freight, but assumptions, not a measurement of any
+specific tractor-trailer. The UI says so, and points heavy-haul,
+oversize or permitted equipment at Custom.
 
 ### v1.13.3
 

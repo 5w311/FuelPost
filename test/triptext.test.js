@@ -63,6 +63,15 @@ ok('the label sits with the addresses, above the stops',
 ok('no Route line when no label (the single-route case is unchanged)',
    !t1.includes('Route:') && !t2.includes('Route:') && !t3.includes('Route:'));
 
+console.log('\n=== optional vehicle profile (only set when not Standard) ===');
+const t6 = formatTripText({
+  pickupAddr: 'A', deliveryAddr: 'B', vehicle: 'Hazmat — all classes declared',
+  plan: [], gap: null, finalLegMiles: 200, detourMax: 8
+});
+ok('names the vehicle profile when given', t6.includes('Vehicle:  Hazmat — all classes declared'));
+ok('no Vehicle line on a Standard plan (existing output unchanged)',
+   !t1.includes('Vehicle:') && !t2.includes('Vehicle:') && !t3.includes('Vehicle:'));
+
 console.log('\n=== missing optional fields do not throw or print garbage ===');
 const t4 = formatTripText({ pickupAddr:'A', deliveryAddr:'B', maxRange:800, plan:[], gap:null });
 ok('minimal input does not throw', typeof t4 === 'string');
