@@ -266,7 +266,12 @@
   .rb-tab-label{flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--navy-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .rb-tab-chev{flex-shrink:0;width:16px;height:16px;color:var(--sub);transition:transform .2s ease;}
   #routebar.collapsed .rb-tab-chev{transform:rotate(-90deg);}
-  .rb-body{display:flex;flex-direction:column;gap:8px;padding:0 12px 10px;max-height:560px;opacity:1;overflow:hidden;transition:max-height .25s ease, opacity .2s ease;}
+  /* max-height is both the collapse-animation cap and the real ceiling. 560px
+     predates the vehicle section; with it the content overflows the cap and
+     overflow:hidden CLIPPED the bottom of the drawer — Clear trip half cut
+     off. 75vh keeps the drawer inside any screen; overflow-y lets the drawer
+     scroll on short screens instead of silently eating its own buttons. */
+  .rb-body{display:flex;flex-direction:column;gap:8px;padding:0 12px 14px;max-height:75vh;opacity:1;overflow:hidden;overflow-y:auto;transition:max-height .25s ease, opacity .2s ease;}
   #routebar.collapsed .rb-body{max-height:0;opacity:0;padding-top:0;padding-bottom:0;}
 
   .rb-field{flex:1;min-width:0;position:relative;}
@@ -355,11 +360,11 @@
   .gauge-danger-note a{color:var(--danger-text);font-weight:700;}
   .gauge-readout{font-size:13px;font-weight:700;color:var(--ink);margin-top:8px;}
 
-  #planBtn{width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:0 14px;height:38px;font-size:13.5px;font-weight:700;}
+  #planBtn{width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:0 14px;height:40px;font-size:13.5px;font-weight:700;margin-top:6px;flex-shrink:0;}
   #planBtn[disabled]{opacity:.55;}
   /* Clear is a text button, not a second filled button competing with Plan —
      it resets fields, it isn't the thing the driver came here to do. */
-  #clearTripBtn{align-self:center;background:none;border:none;padding:4px 2px;font-size:12.5px;font-weight:700;color:var(--sub);text-decoration:underline;}
+  #clearTripBtn{align-self:center;background:none;border:none;padding:8px 12px;font-size:12.5px;font-weight:700;color:var(--sub);text-decoration:underline;flex-shrink:0;}
 
   #shareTripBtn{width:100%;background:var(--surface);color:var(--navy-text);border:1.5px solid var(--navy-text);border-radius:10px;height:40px;font-size:13.5px;font-weight:700;margin-top:14px;}
   #shareTripBtn[disabled]{opacity:.55;}
@@ -485,10 +490,18 @@
   .rr-ranknote{font-size:12px;color:var(--ink);line-height:1.4;margin:2px 0 8px;font-weight:600;}
   .rr-veh{font-size:11.5px;color:var(--sub);line-height:1.4;margin:0 0 8px;}
   .rr-veh b{color:var(--ink);}
+  /* The post-gap continuation: readable but visibly secondary to the
+     reachable plan, and its stop rows are slightly faded to match their
+     dashed map pins. */
+  .rr-resume-head{font-size:12px;color:var(--ink);font-weight:600;line-height:1.45;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);}
+  .rr-stop-resume{opacity:.75;}
 
   /* translate(-50%,-50%) anchors these to their coordinate the same way as
      .geo-dot-wrap above — circular, no rotation, no residual. */
   .rpin{width:30px;height:30px;border-radius:50%;background:var(--gold);border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12.5px;color:#4A3200;transform:translate(-50%,-50%);}
+  /* Post-gap stops on a gapped route: real stations, but past the dry line —
+     faded and dashed so the map never makes a gapped route look routine. */
+  .rpin.resume{opacity:.6;border-style:dashed;background:#E8D9B0;}
   .rpin.endpt{background:var(--navy);color:#fff;font-size:9.5px;letter-spacing:.3px;}
 
   /* HERE Maps UI: keep default zoom + copyright, just make sure it sits above our map */
@@ -756,25 +769,25 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.14.1"></script>
+<script src="lib/fuelplan.js?v=1.15.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.14.1"></script>
+<script src="lib/triptext.js?v=1.15.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.14.1"></script>
+<script src="lib/location.js?v=1.15.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.14.1"></script>
+<script src="lib/gauge.js?v=1.15.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.14.1"></script>
+<script src="lib/extract-version.js?v=1.15.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.14.1"></script>
+<script src="lib/autosuggest.js?v=1.15.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.14.1"></script>
+<script src="lib/baselayer.js?v=1.15.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.14.1"></script>
+<script src="lib/memocache.js?v=1.15.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.14.1"></script>
+<script src="lib/routerank.js?v=1.15.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.14.1"></script>
+<script src="lib/vehicleprofile.js?v=1.15.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -790,7 +803,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.14.1')
+fetch('lib/fuelplan-adaptive.js?v=1.15.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -801,7 +814,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.14.1')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.14.1"></script>
+<script src="lib/flexible-polyline.js?v=1.15.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -961,7 +974,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.14.1';
+const APP_VERSION = '1.15.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1668,7 +1681,7 @@ function selectRouteOption(idx){
   if(!o || !routeOptionCtx) return;
   routeOptionIdx = idx;
   const { ranges, pickup, delivery, nearPickup } = routeOptionCtx;
-  drawRoute(o.poly, o.result.plan);
+  drawRoute(o.poly, o.result.plan, o.result.resume && o.result.resume.plan);
   renderPlan(o.result, o.routeMiles, ranges, pickup, delivery, nearPickup);
 }
 
@@ -1958,7 +1971,7 @@ async function truckRoute(orig, dest){
 }
 
 /* ---- Map drawing ---- */
-function drawRoute(poly, chosen){
+function drawRoute(poly, chosen, resumeStops){
   routeGroup.removeAll();
 
   const ls = new H.geo.LineString();
@@ -1985,6 +1998,19 @@ function drawRoute(poly, chosen){
   chosen.forEach((s, i) => {
     const w = document.createElement('div');
     w.innerHTML = `<div><div class="rpin">${i+1}</div></div>`;
+    const m = new H.map.DomMarker({ lat: s.lat, lng: s.lng },
+      { icon: new H.map.DomIcon(w.firstElementChild) });
+    m.addEventListener('tap', () => openSheet(s.row));
+    routeGroup.addObject(m);
+  });
+
+  // Post-gap stops (a gapped route's remainder) get pins too — numbering
+  // continues from the reachable stops, and the faded style keeps them
+  // visually distinct from stops the truck can actually reach: the map must
+  // never make a gapped route look routine at a glance.
+  (resumeStops || []).forEach((s, i) => {
+    const w = document.createElement('div');
+    w.innerHTML = `<div><div class="rpin resume">${chosen.length + i + 1}</div></div>`;
     const m = new H.map.DomMarker({ lat: s.lat, lng: s.lng },
       { icon: new H.map.DomIcon(w.firstElementChild) });
     m.addEventListener('tap', () => openSheet(s.row));
@@ -2167,7 +2193,9 @@ function nearPickupLine(stop){
 // because it also drives the quiet top-off tip on a successful plan.
 function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
   const stops = result.plan;
-  planStops = stops;
+  // Post-gap stops ride along in planStops so their rows tap through to the
+  // same station sheet — indices continue after the reachable stops.
+  planStops = result.resume ? stops.concat(result.resume.plan) : stops;
   // Everything Share trip needs, captured at render time from the values
   // actually planned on — including the CONFIRMED matched addresses rather
   // than the raw text the driver typed.
@@ -2183,6 +2211,15 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
     plan: stops.map(s => ({ ...s, legMiles: Math.round(s.legMiles) })),
     gap: result.ok ? null : result.gap,
     finalLegMiles: result.ok ? Math.round(result.finalLegMiles) : null,
+    // The post-gap remainder of a gapped route, when one exists — so a
+    // shared gap plan carries the same "here's what the rest fuels like"
+    // information the screen shows. Omitted entirely on completable plans.
+    postGapPlan: (!result.ok && result.resume)
+      ? result.resume.plan.map(s => ({ ...s, legMiles: Math.round(s.legMiles) })) : undefined,
+    postGapFinalLegMiles: (!result.ok && result.resume && result.resume.ok)
+      ? Math.round(result.resume.finalLegMiles) : undefined,
+    postGapSecondGap: (!result.ok && result.resume && !result.resume.ok)
+      ? result.resume.gap : undefined,
     detourMax: result.detourMax,
     // Only when there was a choice to make — with one route there's nothing
     // to disambiguate, and the shared text stays exactly as it was.
@@ -2284,6 +2321,35 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
         or entering a lower number for range leaving the shipper, may close this gap.
         If you can't, out-of-network fuel still needs approval first — call the Fuel Dept
         <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.</div>`;
+    }
+
+    // The rest of the route, past the dry line. A gapped route usually still
+    // runs through fuel country — the driver can SEE those stops on the map,
+    // and a plan that ends at "gap" reads as if the whole remainder were
+    // empty. This is information for the approval call, not permission: the
+    // warning above stays exactly as loud.
+    const resume = result.resume;
+    if(resume && resume.plan.length){
+      h += `<div class="rr-resume-head">After the gap — if approved out-of-network fuel gets you
+        through that stretch, the rest of the run fuels on network:</div>`;
+      resume.plan.forEach((s, i) => {
+        const idx = stops.length + i;   // planStops index for tap-through
+        h += `<button class="rr-stop rr-stop-resume" data-idx="${idx}">
+          <div class="rr-mile"><b>${mi(s.mile)}</b><span>mile</span></div>
+          <div class="rr-info">
+            <div class="rr-name">${stops.length + i + 1}. ${s.name} ${tierBadge(s.tier)}</div>
+            <div class="rr-meta mono">${mi(s.legMiles)} mi this leg &middot; ${s.detour.toFixed(1)} mi off route</div>
+            <div class="rr-meta">${s.row[7] || ''}</div>
+          </div>
+          <div class="rr-chev">›</div>
+        </button>`;
+      });
+      if(resume.ok){
+        h += `<div class="rr-final">Final leg <b>${mi(resume.finalLegMiles)} mi</b> from the last stop to delivery.</div>`;
+      } else {
+        h += `<div class="rr-resume-head">…then a second gap between <b>mile ${mi(resume.gap.fromMile)}</b>
+          and <b>mile ${mi(resume.gap.deadMile)}</b> — this route needs out-of-network fuel more than once.</div>`;
+      }
     }
   }
 
@@ -3126,13 +3192,16 @@ async function planLoad(pickup, delivery){
       // mile markers are measured the same way.
       const cum = FuelPlan.cumulativeMiles(r.poly);
       const routeMiles = cum[cum.length - 1];
-      return {
-        poly: r.poly,
-        label: r.label,
-        routeMiles,
-        result: FuelPlanAdaptive.planAdaptive(
-          r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, ranges.startBurned, DETOUR_TIERS)
-      };
+      const result = FuelPlanAdaptive.planAdaptive(
+        r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, ranges.startBurned, DETOUR_TIERS);
+      // A gapped route usually doesn't stay empty past the dry line — show
+      // what the rest of the run fuels like, so the driver comparing the map
+      // against the plan isn't left wondering where all that Texas fuel went.
+      if(!result.ok){
+        result.resume = FuelPlanAdaptive.planBeyondGap(
+          r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, result.gap, result.detourMax);
+      }
+      return { poly: r.poly, label: r.label, routeMiles, result };
     });
 
     routeOptions = RouteRank.dedupeOptions(RouteRank.rankRouteOptions(options));

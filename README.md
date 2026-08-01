@@ -114,6 +114,42 @@ follow, not just this one:
 
 ## Version history
 
+### v1.15.0
+
+Two driver reports off the same ID → FL load, both addressed:
+
+**The trip drawer was clipping its own buttons.** The v1.14.0 vehicle
+section pushed the drawer content past `.rb-body`'s old 560px cap, and
+`overflow:hidden` quietly cut off the bottom — Clear trip half-visible,
+Plan cramped against the vehicle help text. The cap is now 75vh with
+`overflow-y:auto`, so on short screens the drawer scrolls instead of
+eating its buttons, and the plan/clear buttons got real margins.
+
+**A gapped route now shows what lies past the dry line.** The report:
+"I feel like you can get more fuel stops on that route" — looking at a
+route whose plan said "1 fuel stop, then a gap" while the map showed it
+running straight through Amarillo, Lubbock and Dallas. The driver was
+right that the fuel exists; it's all past the mile where the truck runs
+dry, and the plan ending at "gap" read as if the whole remainder were
+empty — a different and wrong claim.
+
+`planBeyondGap()` (in `lib/fuelplan-adaptive.js`) now continues the
+plan past a gap: assume the driver clears the dry stretch on approved
+out-of-network fuel, anchor at the first network stop past the dead
+line, and run the normal fewest-stops planner from there. The plan
+panel renders it under "After the gap — if approved out-of-network fuel
+gets you through that stretch, the rest of the run fuels on network:",
+with numbering continuing from the reachable stops, faded dashed map
+pins so a gapped route never looks routine at a glance, and a second
+gap further on reported honestly when there is one. Share/save carries
+the same section ("AFTER THE GAP (needs the approved out-of-network
+fuel above first)").
+
+This is information for the Fuel Dept approval call, not permission:
+the red/amber gap warning and its phone number are unchanged, the
+option row still says "no network fuel", and completable plans are
+untouched — the continuation only ever exists alongside a gap.
+
 ### v1.14.1
 
 **Detour tiers widened to [8, 15, 30, 50]** after a driver report that a

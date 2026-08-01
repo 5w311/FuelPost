@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const { splitDataBlock, parseRowLine } = require('../tools/geocode.js');
-const { planAdaptive, stopsNearPickup } = require('../lib/fuelplan-adaptive.js');
+const { planAdaptive, stopsNearPickup, planBeyondGap } = require('../lib/fuelplan-adaptive.js');
 const { cumulativeMiles } = require('../lib/fuelplan.js');
 
 let p = 0, f = 0;
@@ -92,6 +92,58 @@ console.log('\n=== default tiers is exactly [8, 15, 30] ===');
 
   ok('a route solvable at 8mi reports detourMax===8 (UI must not call this "widened")',
      a40.detourMax === 8 && !(a40.detourMax > 8), 'used ' + a40.detourMax);
+}
+
+console.log('\n=== planBeyondGap: the rest of a gapped route, past the dry line ===');
+{
+  // The reported ID -> FL shape, in miniature: real corridor through real
+  // stations where the FIRST leg gaps (only Tooele-like early stop, then a
+  // dry stretch) but the back half is full of fuel. Built from the same
+  // I-40-ish chain used elsewhere: Ontario CA -> Holbrook -> Amarillo ->
+  // Joplin, planned with too little starting range to reach Holbrook.
+  const { projectStops } = require('../lib/fuelplan.js');
+  const FPx = require('../lib/fuelplan.js');
+  const densify = (wps, step=5) => {
+    const out=[wps[0]];
+    for(let i=1;i<wps.length;i++){const a=wps[i-1],b=wps[i];
+      const n=Math.max(1,Math.round(FPx.haversine(a[0],a[1],b[0],b[1])/step));
+      for(let k=1;k<=n;k++)out.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n]);}
+    return out;
+  };
+  const corridor = densify([[34.0645,-117.56],[34.9055,-110.2111],[35.1916,-101.7589],[37.007,-94.5523]]);
+  const cm = FPx.cumulativeMiles(corridor).at(-1);
+
+  // 375 mi at pickup (half tank against 875): first stop (Holbrook, ~mile 423)
+  // is out of reach -> the primary plan gaps at {0, 375}.
+  const primary = planAdaptive(corridor, cm, stops, 875, 500, [8,15,30,50]);
+  ok('fixture: the primary plan gaps', !primary.ok && primary.plan.length === 0,
+     JSON.stringify(primary.gap));
+
+  const resume = planBeyondGap(corridor, cm, stops, 875, primary.gap, primary.detourMax);
+  ok('a continuation exists past the dry line', !!resume && resume.plan.length > 0,
+     JSON.stringify(resume));
+  ok('anchor is the first stop past the gap (Holbrook)',
+     resume.plan[0].id === 'AZ4', resume.plan[0] && resume.plan[0].id);
+  ok('the remainder completes on network fuel', resume.ok === true && resume.gap === null,
+     JSON.stringify({ok:resume.ok, gap:resume.gap}));
+  ok('continuation stops are in route-absolute miles, ascending past the dry line',
+     resume.plan.every((s,i) => s.mile > primary.gap.deadMile && (i===0 || s.mile > resume.plan[i-1].mile)),
+     JSON.stringify(resume.plan.map(s=>({id:s.id,mile:Math.round(s.mile)}))));
+  ok('anchor leg measures from the last on-network position (gap.fromMile)',
+     Math.abs(resume.plan[0].legMiles - (resume.plan[0].mile - primary.gap.fromMile)) < 0.11,
+     `leg=${resume.plan[0].legMiles} vs ${resume.plan[0].mile - primary.gap.fromMile}`);
+  ok('final leg to delivery reported', resume.finalLegMiles > 0, String(resume.finalLegMiles));
+
+  // A stop sitting AT the delivery is still "beyond the dry line" and is
+  // legitimately shown — with a zero-ish final leg. (First written expecting
+  // null here; that premise was wrong, the info is real.)
+  const atEnd = planBeyondGap(corridor, cm, stops, 875, { fromMile: cm - 5, deadMile: cm - 1 }, 50);
+  ok('a stop at the delivery itself still yields a (1-stop, 0-final-leg) continuation',
+     atEnd && atEnd.plan.length === 1 && atEnd.ok && atEnd.finalLegMiles < 1,
+     JSON.stringify(atEnd && {n:atEnd.plan.length, ok:atEnd.ok, fin:atEnd.finalLegMiles}));
+  ok('gap dead line at/past the delivery returns null (nothing to continue to)',
+     planBeyondGap(corridor, cm, stops, 875, { fromMile: cm - 5, deadMile: cm }, 50) === null);
+  ok('null gap returns null', planBeyondGap(corridor, cm, stops, 875, null, 50) === null);
 }
 
 console.log(`\n${p} passed, ${f} failed`);

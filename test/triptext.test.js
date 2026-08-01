@@ -72,6 +72,35 @@ ok('names the vehicle profile when given', t6.includes('Vehicle:  Hazmat — all
 ok('no Vehicle line on a Standard plan (existing output unchanged)',
    !t1.includes('Vehicle:') && !t2.includes('Vehicle:') && !t3.includes('Vehicle:'));
 
+console.log('\n=== post-gap continuation (only ever set alongside a gap) ===');
+const t7 = formatTripText({
+  pickupAddr: 'Wendell ID', deliveryAddr: 'Gainesville FL',
+  plan: [{name:'TA Tooele', mile:241, legMiles:241, tier:'excl'}],
+  gap: {fromMile:242, deadMile:1117},
+  postGapPlan: [
+    {name:'TA Amarillo', mile:1150, legMiles:908, tier:'prim'},
+    {name:'TA Dallas South', mile:1520, legMiles:370, tier:'prim'}
+  ],
+  postGapFinalLegMiles: 300, finalLegMiles: null, detourMax: 50
+});
+ok('names the after-the-gap section and its precondition',
+   t7.includes('AFTER THE GAP') && t7.includes('out-of-network fuel above first'));
+ok('post-gap numbering continues from the reachable stops',
+   t7.includes('2. TA Amarillo — mile 1150') && t7.includes('3. TA Dallas South'));
+ok('post-gap section sits after the gap warning',
+   t7.indexOf('AFTER THE GAP') > t7.indexOf('WARNING'));
+ok('post-gap final leg reported', t7.includes('Final leg to delivery: 300 mi'));
+ok('gapped trips without a continuation are unchanged',
+   !t3.includes('AFTER THE GAP'));
+const t8 = formatTripText({
+  pickupAddr: 'A', deliveryAddr: 'B',
+  plan: [], gap: {fromMile:0, deadMile:400},
+  postGapPlan: [{name:'S1', mile:450, legMiles:450, tier:'prim'}],
+  postGapSecondGap: {fromMile:450, deadMile:1325}, detourMax: 50
+});
+ok('a second gap after the continuation is named',
+   t8.includes('SECOND gap between mile 450 and mile 1325'));
+
 console.log('\n=== missing optional fields do not throw or print garbage ===');
 const t4 = formatTripText({ pickupAddr:'A', deliveryAddr:'B', maxRange:800, plan:[], gap:null });
 ok('minimal input does not throw', typeof t4 === 'string');
