@@ -620,6 +620,8 @@
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
 <script src="lib/baselayer.js"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
+<script src="lib/memocache.js"></script>
+<script>var MemoCache = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
      — real Node syntax. Loading it with a plain src attribute, like the two
@@ -805,7 +807,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.11.10';
+const APP_VERSION = '1.12.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -907,6 +909,28 @@ states.forEach(s=>{const o=document.createElement('option');o.value=s;o.textCont
 
 // Map init — HERE Maps JS API
 const HERE_API_KEY = 'C7r-EHfOixmC3imxi1ATMEUnt_Fx9P7Cc1-0_UsJ0Uo';
+
+// Session-only memo for repeat HERE lookups — re-planning the same load,
+// retyping the same address, or the autosuggest debounce landing on the
+// same text twice would otherwise re-fire byte-identical requests against
+// a shared, fleet-wide key for an answer this page already has.
+//
+// Scope is deliberate, not unfinished (see lib/memocache.js):
+//   - in-memory only, no localStorage. A reload is the freshness boundary;
+//     persisting responses raises staleness/versioning questions this
+//     avoids entirely.
+//   - covers the four cheap, high-repeat lookups: geocode, reverse-geocode,
+//     autosuggest, lookup-by-id. truckRoute() is deliberately NOT cached —
+//     routes can legitimately differ over time (traffic-aware truck
+//     routing), the response is large, and a driver re-planning usually
+//     changed an input anyway. The update-check fetch isn't cached either;
+//     bypassing caches is its whole purpose.
+//   - only successful responses are stored. A thrown HTTP error must stay
+//     uncached so the next attempt genuinely retries.
+// Always gate on hereCache.has(key), never on the truthiness of get() — an
+// empty result (a geocode that legitimately matched nothing) is a real
+// answer worth caching, and truthiness would re-fetch it forever.
+const hereCache = MemoCache.createMemoCache(200);
 
 // The engine type has to be set in BOTH places or the map half-works:
 //   - createDefaultLayers({engineType}) builds layers whose styles the engine
@@ -1559,19 +1583,26 @@ document.querySelectorAll('#modeSeg button').forEach(b =>
    warehouses and DCs; a silent wrong match produces a confidently wrong fuel
    plan, which is worse than failing. */
 async function geocodeCandidates(q){
+  const key = MemoCache.cacheKey('geo', q);
+  if(hereCache.has(key)) return hereCache.get(key);
+
   const url = 'https://geocode.search.hereapi.com/v1/geocode'
     + `?q=${encodeURIComponent(q)}&in=countryCode:USA&limit=5&apiKey=${HERE_API_KEY}`;
   const res = await fetch(url);
+  // Thrown before any cache write — a failed lookup must stay uncached so
+  // the next attempt is a real retry.
   if(!res.ok) throw new Error(`Address lookup failed (HTTP ${res.status}).`);
   const j = await res.json();
   const items = (j.items || []).filter(it => it && it.position);
-  return items.map(it => ({
+  const cands = items.map(it => ({
     lat: it.position.lat,
     lng: it.position.lng,
     label: (it.address && it.address.label) || q,
     resultType: it.resultType || '',
     score: it.scoring && typeof it.scoring.queryScore === 'number' ? it.scoring.queryScore : null
   }));
+  hereCache.set(key, cands); // the processed array, not the raw JSON
+  return cands;
 }
 
 // A match is only trustworthy if HERE resolved it to an actual address point
@@ -1925,12 +1956,12 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
         which is as far as you can reach${stops.length ? ' after the stop' + (stops.length > 1 ? 's' : '') + ' above' : ' leaving the shipper with ' + mi(rangeAtPickup) + ' mi'}.
         ${stops.length ? 'Fuel as listed above — then you run dry inside that stretch.' : 'No network stop is reachable from the pickup at this range.'}
         No network stop sits within ${NEAR_PICKUP_RADIUS_GAP} mi of your pickup either, so there is no
-        top-off option to suggest. Out-of-network fuel needs approval first — call Driver Support
+        top-off option to suggest. Out-of-network fuel needs approval first — call the Fuel Dept
         <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.
         If the truck can run further than ${mi(maxRange)} mi, raise the range and re-plan.</div>`;
     } else {
       // A real alternative exists near the pickup — lead with it instead of
-      // sending the driver to Driver Support for a load that has an obvious
+      // sending the driver to the Fuel Dept for a load that has an obvious
       // fix. The number still follows, because this plan does not clear: a
       // driver who can't top off is back to needing out-of-network fuel, and
       // that always needs a call first.
@@ -1940,7 +1971,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
         <b>mile ${mi(g.fromMile)}</b> and <b>mile ${mi(g.deadMile)}</b>${stops.length ? ' after the stop' + (stops.length > 1 ? 's' : '') + ' above' : ''}.
         Nearest network stop to your pickup: <b>${namedNear}</b>. Topping off there before you roll,
         or entering a lower number for range leaving the shipper, may close this gap.
-        If you can't, out-of-network fuel still needs approval first — call Driver Support
+        If you can't, out-of-network fuel still needs approval first — call the Fuel Dept
         <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>.</div>`;
     }
   }
@@ -2143,13 +2174,21 @@ let confirmed = { pickup: null, delivery: null };
    immediately — no second permission prompt. */
 
 async function reverseGeocode(lat, lng){
+  // Coordinates are rounded into the key on purpose: successive GPS fixes at
+  // the same stop differ only in the noise digits, and 4 decimals (~11 m) is
+  // the right bucket for "same place, same address."
+  const key = MemoCache.cacheKey('rev', lat.toFixed(4), lng.toFixed(4));
+  if(hereCache.has(key)) return hereCache.get(key);
+
   const url = 'https://revgeocode.search.hereapi.com/v1/revgeocode'
     + `?at=${lat},${lng}&apikey=${HERE_API_KEY}`;
   const res = await fetch(url);
+  // Both throws below happen before the cache write — failures stay uncached.
   if(!res.ok) throw new Error(`Reverse geocode failed (HTTP ${res.status}).`);
   const j = await res.json();
   const label = j.items && j.items[0] && j.items[0].address && j.items[0].address.label;
   if(!label) throw new Error('No reverse geocode match.');
+  hereCache.set(key, label);
   return label;
 }
 
@@ -2262,21 +2301,45 @@ function queueSuggest(field){
 }
 
 async function fireSuggest(field, q){
-  const myToken = ++suggestToken[field];
-  const params = new URLSearchParams({ q, apikey: HERE_API_KEY, limit: '5' });
   // A driver's current position is a reasonable proximity hint for either
   // end of a load — bias, don't block: no liveFix yet just omits `at`.
-  if(liveFix) params.set('at', `${liveFix.lat},${liveFix.lng}`);
+  const at = liveFix ? `${liveFix.lat},${liveFix.lng}` : null;
+  // Key on everything that shapes the response, `at` included — the same
+  // text with and without a proximity bias are genuinely different answers.
+  const key = MemoCache.cacheKey('sug', q, at || 'noat');
+
+  // Claim a token even on the cache path. The brief called for checking the
+  // cache before touching the token machinery, and the *comparison* below
+  // is indeed skipped here — there's no await to race across. But the
+  // counter still has to advance: the debounce is 300ms and a slow fetch
+  // can outlive it, so an older in-flight request would otherwise still
+  // match the current token when it lands and overwrite this fresher
+  // cache-rendered result. Claiming the token invalidates that older work.
+  const myToken = ++suggestToken[field];
+
+  if(hereCache.has(key)){
+    renderSuggest(field, hereCache.get(key));
+    return;
+  }
+
+  const params = new URLSearchParams({ q, apikey: HERE_API_KEY, limit: '5' });
+  if(at) params.set('at', at);
   let items = [];
+  let ok = false;   // only a genuinely parsed response is cacheable
   try {
     const res = await fetch(`https://autosuggest.search.hereapi.com/v1/autosuggest?${params}`);
     if(res.ok){
       const data = await res.json();
       items = Array.isArray(data.items) ? data.items : [];
+      ok = true;
     }
   } catch(err){
     items = [];
   }
+  // An empty array from a successful response IS a real answer and gets
+  // cached; an empty array standing in for a failure does not, so the next
+  // attempt genuinely retries.
+  if(ok) hereCache.set(key, items);
   if(myToken !== suggestToken[field]) return; // superseded by a newer keystroke — drop it
   renderSuggest(field, items);
 }
@@ -2315,14 +2378,22 @@ async function selectSuggestion(field, idx){
     // categoryQuery/chainQuery items carry no position of their own — should
     // be rare for an address field to begin with, so this is a safety net,
     // not the main path.
-    try {
-      const res = await fetch(`https://lookup.search.hereapi.com/v1/lookup?id=${encodeURIComponent(cand.id)}&apikey=${HERE_API_KEY}`);
-      const data = res.ok ? await res.json() : null;
-      const resolved = data && AutoSuggest.candidateFromSuggestItem(data);
-      if(!resolved || resolved.needsLookup) return; // still no position — never silently plan against one; fall through to typed-text handling
-      cand = resolved;
-    } catch(err){
-      return; // lookup failed — same fall-through
+    const key = MemoCache.cacheKey('lookup', cand.id);
+    if(hereCache.has(key)){
+      cand = hereCache.get(key);
+    } else {
+      try {
+        const res = await fetch(`https://lookup.search.hereapi.com/v1/lookup?id=${encodeURIComponent(cand.id)}&apikey=${HERE_API_KEY}`);
+        const data = res.ok ? await res.json() : null;
+        const resolved = data && AutoSuggest.candidateFromSuggestItem(data);
+        // Only a resolved candidate with a real position is cached — the
+        // fall-through cases below stay uncached so a retry is a real retry.
+        if(!resolved || resolved.needsLookup) return; // still no position — never silently plan against one; fall through to typed-text handling
+        hereCache.set(key, resolved);
+        cand = resolved;
+      } catch(err){
+        return; // lookup failed — same fall-through
+      }
     }
   }
 

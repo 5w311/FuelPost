@@ -20,6 +20,10 @@ lib/fuelplan-adaptive.js    widens the detour search before declaring a gap
 lib/triptext.js             formats a plan as plain text for share / save
 lib/location.js             GPS fix labeling and precision checks (no DOM, no network)
 lib/gauge.js                fuel-gauge tick <-> miles math (no DOM, no network)
+lib/autosuggest.js          query threshold + suggestion-item parsing for the address dropdowns
+lib/baselayer.js            pure nextBaseLayer() — which road layer (if any) a theme change applies
+lib/memocache.js            session-only memo cache for repeat HERE lookups (no DOM, no network)
+lib/extract-version.js      pulls APP_VERSION out of fetched page source for the update check
 lib/flexible-polyline.js    HERE's reference polyline decoder, vendored unmodified (MIT)
 test/*.test.js              plain-node tests, no framework
 test/run.js                 runs every test file and reports a combined total
@@ -28,7 +32,7 @@ tools/geocode-report.txt    output of that run
 ```
 
 `lib/` and `tools/` are CommonJS so the tests run under plain `node` with no
-install and no build step. `index.html` loads the two `lib/` files as classic
+install and no build step. `index.html` loads the `lib/` files as classic
 scripts behind a three-line `module.exports` shim.
 
 ## Fuel stop selection
@@ -106,6 +110,52 @@ follow, not just this one:
   silently produce a result the driver never chose.
 
 ## Version history
+
+### v1.12.0
+
+Three maintenance items from a review of v1.11.10.
+
+**Fuel Dept rename finished.** Two gap warnings in the plan results still
+said "Driver Support" — the highest-stress moments in the app and the worst
+place for a stale department name. Both now say "call the Fuel Dept",
+matching the legend card, gauge floor note and floor-gap message. The
+`DRIVER_SUPPORT` constant and every `tel:` link are unchanged — the
+constant's name is internal, renaming it buys nothing visible and risks a
+missed reference.
+
+**README drift fixed.** The Layout block listed six `lib/` files against
+nine on disk; `autosuggest.js`, `baselayer.js` and `extract-version.js` were
+missing, and `memocache.js` below makes ten. The loader sentence also still
+said "the two `lib/` files" — now count-free so it can't drift again.
+
+**Repeat HERE lookups are cached for the session.** Re-planning the same
+load, retyping the same address, or the autosuggest debounce landing on the
+same text twice all re-fired byte-identical requests against a shared,
+fleet-wide API key for answers the page already had. `lib/memocache.js` adds
+a small FIFO-capped memo in front of four lookups: geocode, reverse-geocode,
+autosuggest, and lookup-by-id.
+
+The scope limits are considered decisions, not an unfinished job:
+
+- **In-memory only, no `localStorage`.** A reload is the natural freshness
+  boundary. Persisting responses would raise staleness and versioning
+  questions this deliberately avoids — don't "finish" it into persistent
+  storage without reopening that call.
+- **Routing is deliberately not cached.** Truck routes can legitimately
+  differ over time (traffic-aware routing), the response is large, and a
+  driver re-planning has usually changed an input. The update-check fetch
+  isn't cached either — bypassing caches is its entire purpose.
+- **Only successful responses are stored.** A failed lookup stays uncached
+  so the next attempt is a real retry. An *empty* result from a successful
+  response is a legitimate answer and does cache, which is why every call
+  site gates on `has()` rather than the truthiness of `get()`.
+
+One deviation from the brief worth recording: it asked that a cache hit
+return before touching the autosuggest request token. The token *comparison*
+is indeed skipped on that path — there's no `await` to race across — but the
+counter still advances. The debounce is 300 ms and a slow fetch can outlive
+it, so an older in-flight request would otherwise still match the current
+token when it lands and overwrite the fresher cache-rendered result.
 
 ### v1.11.10
 
