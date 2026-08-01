@@ -113,6 +113,37 @@ follow, not just this one:
 
 ## Version history
 
+### v1.13.3
+
+The header badge is the gauge now, not "FP" on a blue-green gradient —
+so the app introduces itself the same way on the home screen and once
+you're inside. The SVG is inlined in `index.html` (~600 bytes) rather
+than referenced as a file: no render-blocking request for something in
+the first viewport, and no empty flash on a cold load.
+
+It is a **badge-optimized variant** of the icon, not the same artwork,
+and that difference is load-bearing. At 34px the icon's own needle is
+about 1.7px wide and antialiases into the navy; the needle pointing at F
+is the whole idea of the mark, so the badge thickens the strokes (arc
+96→150, hub 62→95, dial radius 340→380) and brightens the red
+(`#D93025`→`#FF3B30`) to survive at size. **Do not repoint this at
+`icons/icon-192.png`** — that's the un-thickened art.
+
+Measured rather than eyeballed, and worth recording how: an inline SVG
+rasterizes at *device* resolution, so a phone at DPR 3 paints this 34px
+box with 102 device pixels. Counting needle pixels with the hub disc
+masked out (the hub survives at any size and otherwise flatters the
+result): **78 needle pixels at DPR 3**, and still non-zero at a 1x
+34-pixel floor. Red zone and green F-cap both read at 1x too. Needle
+angle computes to 30.0° against an F-cap at 33.9° — pointing at F,
+inside the arc band.
+
+The navy field is fixed in both themes deliberately: the header is
+`var(--navy)` in light and dark alike, so a navy-field badge sits
+correctly on it either way and matches the light-mode app icon. CSS owns
+the corner rounding via `overflow:hidden` — the artwork has no `rx` of
+its own, so the badge follows if the radius ever changes.
+
 ### v1.13.2
 
 Dark-mode readability fix found in a post-release sweep: danger-red text
