@@ -814,7 +814,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.12.2';
+const APP_VERSION = '1.12.3';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -2264,6 +2264,11 @@ function resetPreConfirmed(field){
    calls elsewhere in this app; don't lower either value without weighing
    that tradeoff again. */
 const suggestDebounce = { pickup: null, delivery: null };
+// Where autosuggest looks from when there's no GPS fix yet. Deliberately
+// mirrors the map's own initial center (the H.Map constructor above) — the
+// network's geographic center is already the app's "no better information"
+// viewpoint; if one ever moves, move both.
+const SUGGEST_FALLBACK_AT = '39.5000,-98.3500';
 // Incrementing per-field token — a classic type-ahead race: if the driver
 // keeps typing, an earlier request's response can land after a later one.
 // Whichever request's token no longer matches current when it resolves is
@@ -2308,12 +2313,22 @@ function queueSuggest(field){
 }
 
 async function fireSuggest(field, q){
-  // A driver's current position is a reasonable proximity hint for either
-  // end of a load — bias, don't block: no liveFix yet just omits `at`.
-  const at = liveFix ? `${liveFix.lat},${liveFix.lng}` : null;
+  // `at` is UNCONDITIONAL. HERE's autosuggest rejects a context-free call
+  // outright — its own 400 enumerates what satisfies the requirement:
+  // "One of mutual exclusive parameters 'at', 'in=bbox', 'in=circle',
+  // 'in=ring' should be present". countryCode isn't on that list; it's a
+  // filter that rides alongside a context, which is why v1.12.1's
+  // in=countryCode:USA alone still left pre-GPS autosuggest dead. So: the
+  // fix when we have one, the network's center when we don't. The center
+  // bias is a shrug for full addresses (the text pins the location) and
+  // merely imperfect ranking for short queries — strictly better than no
+  // suggestions, and it snaps to the truck the moment a fix lands.
+  const at = liveFix
+    ? `${liveFix.lat.toFixed(4)},${liveFix.lng.toFixed(4)}`
+    : SUGGEST_FALLBACK_AT;
   // Key on everything that shapes the response, `at` included — the same
-  // text with and without a proximity bias are genuinely different answers.
-  const key = MemoCache.cacheKey('sug', q, at || 'noat');
+  // text biased from different positions are genuinely different answers.
+  const key = MemoCache.cacheKey('sug', q, at);
 
   // Claim a token even on the cache path. The brief called for checking the
   // cache before touching the token machinery, and the *comparison* below
@@ -2329,20 +2344,13 @@ async function fireSuggest(field, q){
     return;
   }
 
-  // in=countryCode:USA is sent on EVERY call, not just as a fallback.
-  // HERE's search endpoints want a location context, and `at` alone only
-  // exists once a GPS fix has landed — so before the driver tapped "use my
-  // location" this request went out with no context at all and came back
-  // empty, which read as "autosuggest is broken until you hit the locate
-  // button." geocodeCandidates() above has always sent this same filter;
-  // autosuggest was the one search call missing it.
-  // It also keeps results on this side of the border — a US-only fuel
-  // network had no business suggesting Tijuana addresses. `at` still rides
-  // along when there's a fix: country filters, position biases.
+  // in=countryCode:USA stays — it can't satisfy the context requirement
+  // (see the `at` comment above) but it does real filtering work: a
+  // US-only fuel network has no business suggesting Tijuana addresses.
+  // Country filters, `at` positions; they combine.
   const params = new URLSearchParams({
-    q, apikey: HERE_API_KEY, limit: '5', in: 'countryCode:USA'
+    q, apikey: HERE_API_KEY, limit: '5', in: 'countryCode:USA', at
   });
-  if(at) params.set('at', at);
   let items = [];
   let ok = false;   // only a genuinely parsed response is cacheable
   try {

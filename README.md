@@ -112,6 +112,45 @@ follow, not just this one:
 
 ## Version history
 
+### v1.12.3
+
+**Completes the v1.12.1 autosuggest fix, which was incomplete.** v1.12.1
+diagnosed the right disease — HERE's autosuggest requires a location
+context, and `at` only existed after a GPS fix — but shipped half the
+cure. It added `in=countryCode:USA` to every call, reasoning that country
+filters and position biases combine. They do combine, but countryCode is
+not itself an accepted context: HERE's own 400 for a context-free call
+enumerates exactly what is — "One of mutual exclusive parameters 'at',
+'in=bbox', 'in=circle', 'in=ring' should be present". countryCode is a
+filter that rides alongside one of those; alone it doesn't satisfy the
+requirement. So pre-GPS autosuggest still went out context-free in HERE's
+eyes and still looked dead until the locate button happened to supply an
+`at` — the changelog below shouldn't be read as v1.12.1 having resolved
+what it didn't.
+
+Now `at` is unconditional: the GPS fix when one exists (4-decimal), else
+`SUGGEST_FALLBACK_AT` (39.5000,-98.3500) — the network's geographic
+center, deliberately the same point the map itself opens on.
+`in=countryCode:USA` stays for the real filtering work it does (the
+Tijuana-suggestions complaint). Accepted tradeoff: pre-permission
+suggestions are biased from the center of the US rather than the truck —
+irrelevant for full street addresses, imperfect ranking for short
+queries, strictly better than no suggestions at all, and it snaps to the
+truck the moment a fix lands. The permission ask stays tied to the
+driver's own explicit locate actions.
+
+The memo cache key dropped its `'noat'` branch — with a constant
+fallback, "no at" can no longer occur.
+
+Why v1.12.1's test didn't catch this: its stub returned 200 for any
+parameters, so it verified the request shape changed, not that HERE
+accepts it. The regression stub now enforces HERE's contract — no `at`
+means a 400 with HERE's verbatim error — and asserts `at` is present on
+every call (not "at or in"), that it's the fallback with no fix and the
+fix's coordinates with one, and that a re-typed query hits the memo
+cache. Run against v1.12.1 unmodified, that test now fails 5 checks and
+reproduces the reported symptom exactly; against this fix it passes.
+
 ### v1.12.2
 
 Wired in an app icon: `icons/icon-192.png`, `icons/icon-512.png`, and
