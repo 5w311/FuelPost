@@ -191,8 +191,17 @@
   #locateBtn.locating{color:var(--ta);}
   #locateBtn.locating svg{animation:locate-spin 1.1s linear infinite;}
   #locateBtn.locked{color:#fff;background:var(--ta);border-color:var(--ta);}
+  /* Switched off by press-and-hold: muted, with a slash through the icon so
+     it reads as "off" at a glance rather than merely "idle". */
+  #locateBtn.off{color:var(--sub);opacity:.75;}
+  #locateBtn.off::after{content:'';position:absolute;left:50%;top:50%;width:24px;height:2px;
+    background:currentColor;transform:translate(-50%,-50%) rotate(-45deg);border-radius:1px;}
+  /* A long press must not select text or raise the OS callout menu. */
+  #locateBtn{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
   @keyframes locate-spin{to{transform:rotate(360deg);}}
   #locateError{position:absolute;left:10px;right:10px;bottom:80px;z-index:401;background:#FDECEC;border:1px solid #F0BEBE;border-radius:9px;padding:8px 11px;font-size:11.5px;color:#8A1C1C;line-height:1.4;box-shadow:0 2px 6px rgba(0,0,0,.15);}
+  /* Same slot, but for a state the driver chose — not a failure. */
+  #locateError.note{background:var(--surface);border-color:var(--line);color:var(--ink);}
   #locateError[hidden]{display:none;}
 
   /* Live position dot — own H.map.Group so STOPS filter re-renders (which
@@ -774,25 +783,25 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.15.2"></script>
+<script src="lib/fuelplan.js?v=1.16.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.15.2"></script>
+<script src="lib/triptext.js?v=1.16.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.15.2"></script>
+<script src="lib/location.js?v=1.16.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.15.2"></script>
+<script src="lib/gauge.js?v=1.16.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.15.2"></script>
+<script src="lib/extract-version.js?v=1.16.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.15.2"></script>
+<script src="lib/autosuggest.js?v=1.16.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.15.2"></script>
+<script src="lib/baselayer.js?v=1.16.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.15.2"></script>
+<script src="lib/memocache.js?v=1.16.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.15.2"></script>
+<script src="lib/routerank.js?v=1.16.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.15.2"></script>
+<script src="lib/vehicleprofile.js?v=1.16.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -808,7 +817,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.15.2')
+fetch('lib/fuelplan-adaptive.js?v=1.16.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -819,7 +828,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.15.2')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.15.2"></script>
+<script src="lib/flexible-polyline.js?v=1.16.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -979,7 +988,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.15.2';
+const APP_VERSION = '1.16.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1487,6 +1496,23 @@ const $ = id => document.getElementById(id);
 let liveFix = null;        // {lat, lng, accuracy} or null
 let watchId = null;
 let watchPaused = false;   // true only if visibilitychange paused a running watch
+
+/* Press and hold the locate button to switch location off entirely — no
+   watch, no dot, no stored fix. A deliberate choice (battery on a long haul,
+   or simply not wanting the truck tracked), so it PERSISTS across reloads:
+   silently re-enabling something a driver turned off is the one behaviour
+   that would make this untrustworthy. Only another press-and-hold turns it
+   back on; a stray tap must never undo it. */
+const LOCATE_KEY = 'fuelpost.locate.v1';
+let locationOff = false;
+
+function loadLocatePref(){
+  try { locationOff = localStorage.getItem(LOCATE_KEY) === 'off'; }
+  catch(_){ locationOff = false; }
+}
+function saveLocatePref(){
+  try { localStorage.setItem(LOCATE_KEY, locationOff ? 'off' : 'on'); } catch(_){}
+}
 let pickupLocatePending = false;  // pickup's "use my location" is waiting on startWatch()'s first fix
 let locateBtnPending = false;     // STOPS locate button is waiting on startWatch()'s first fix, to recenter once
 
@@ -1513,7 +1539,7 @@ function setLocateBtnState(s){
   if(s === 'locating' || s === 'locked') btn.classList.add(s);
 }
 
-function showLocateError(msg){
+function showLocateError(msg, asNote){
   let el = $('locateError');
   if(!el){
     el = document.createElement('div');
@@ -1521,7 +1547,18 @@ function showLocateError(msg){
     $('mapwrap').appendChild(el);
   }
   el.textContent = msg;
+  // A note is a state the driver chose, not a failure — same placement, but
+  // it must not wear the red error tint.
+  el.classList.toggle('note', !!asNote);
   el.hidden = false;
+}
+// "Location is off" is information, not an error. Auto-clears so it doesn't
+// sit on the map forever.
+let locateNoteTimer = null;
+function showLocateNote(msg){
+  showLocateError(msg, true);
+  if(locateNoteTimer) clearTimeout(locateNoteTimer);
+  locateNoteTimer = setTimeout(() => { hideLocateError(); locateNoteTimer = null; }, 4000);
 }
 function hideLocateError(){
   const el = $('locateError');
@@ -1590,6 +1627,10 @@ function renderLocationDot(){
 
 function startWatch(){
   if(watchId != null) return;
+  // Single choke point: nothing — not the visibilitychange resume, not the
+  // pickup button, not a first-fix retry — can start tracking while the
+  // driver has it switched off.
+  if(locationOff) return;
   if(!window.isSecureContext || !navigator.geolocation){
     failLocation(geoErrorMessage(null));
     return;
@@ -1635,7 +1676,75 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+const LOCATE_OFF_HINT = 'Location is off. Press and hold this button to turn it back on.';
+
+function renderLocateOffState(){
+  $('locateBtn').classList.toggle('off', locationOff);
+  $('locateBtn').title = locationOff
+    ? 'Location off — press and hold to turn on'
+    : 'Show my location (press and hold to turn off)';
+  $('locateBtn').setAttribute('aria-label', $('locateBtn').title);
+}
+
+function setLocationOff(off){
+  locationOff = off;
+  saveLocatePref();
+  renderLocateOffState();
+  if(off){
+    // Leave nothing behind: no watch draining battery, no dot on the map,
+    // and no cached position for anything else to read. The station sheet's
+    // "From you" row and the pickup GPS button both key off liveFix, so
+    // clearing it is what actually makes "off" mean off.
+    clearWatch();
+    watchPaused = false;
+    locateBtnPending = false;
+    pickupLocatePending = false;
+    liveFix = null;
+    locateGroup.removeAll();
+    setLocateBtnState(null);
+    hidePickupGeoError();
+    showLocateNote('Location off. Press and hold again to turn it back on.');
+  } else {
+    hideLocateError();
+    locateBtnPending = true;   // recenter on the first fix, like a fresh tap
+    startWatch();
+  }
+}
+
+// Press and hold ~600ms. pointer* covers touch and mouse; the timer is
+// cancelled if the finger leaves or the gesture is interrupted, and the
+// click that follows a completed hold is swallowed so releasing can't also
+// trigger the recenter/hint underneath it.
+let locateHoldTimer = null;
+let locateHoldFired = false;
+const LOCATE_HOLD_MS = 600;
+
+function cancelLocateHold(){
+  if(locateHoldTimer){ clearTimeout(locateHoldTimer); locateHoldTimer = null; }
+}
+
+$('locateBtn').addEventListener('pointerdown', e => {
+  if(e.button != null && e.button !== 0) return;
+  locateHoldFired = false;
+  cancelLocateHold();
+  locateHoldTimer = setTimeout(() => {
+    locateHoldTimer = null;
+    locateHoldFired = true;
+    setLocationOff(!locationOff);
+  }, LOCATE_HOLD_MS);
+});
+['pointerup','pointercancel','pointerleave'].forEach(ev =>
+  $('locateBtn').addEventListener(ev, cancelLocateHold));
+// A long press on touch otherwise raises the OS text/callout menu over it.
+$('locateBtn').addEventListener('contextmenu', e => e.preventDefault());
+
 $('locateBtn').addEventListener('click', () => {
+  if(locateHoldFired){ locateHoldFired = false; return; }  // the hold already acted
+  if(locationOff){
+    // A deliberate "off" is not undone by a tap — say how to undo it instead.
+    showLocateNote(LOCATE_OFF_HINT);
+    return;
+  }
   hideLocateError();
   if(liveFix){
     map.setCenter({ lat: liveFix.lat, lng: liveFix.lng });
@@ -1645,6 +1754,9 @@ $('locateBtn').addEventListener('click', () => {
   locateBtnPending = true;
   startWatch();
 });
+
+loadLocatePref();
+renderLocateOffState();
 
 /* ============================================================================
    ROUTE MODE — origin/destination truck route, auto-selected network fuel stops
@@ -2783,6 +2895,12 @@ function resolvePickupLocate(){
 
 $('pickupLocateBtn').addEventListener('click', () => {
   hidePickupGeoError();
+  // Honour the driver's choice rather than silently overriding it from a
+  // different screen — but never dead-end: say exactly how to turn it back on.
+  if(locationOff){
+    showPickupGeoError('Location is off. Switch to Stops and press and hold the locate button to turn it back on — or type the pickup address.');
+    return;
+  }
   if(liveFix){
     setPickupLocateBusy(true);
     applyPickupGpsFix();

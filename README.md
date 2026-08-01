@@ -114,6 +114,37 @@ follow, not just this one:
 
 ## Version history
 
+### v1.16.0
+
+**Press and hold the locate button to switch location off.** No watch
+running, no dot on the map, no stored fix — the button shows a slashed
+crosshair and a neutral note says how to undo it. Another press-and-hold
+turns it back on and re-acquires.
+
+Decisions worth stating, because they're what make it trustworthy:
+
+- **It persists** (`fuelpost.locate.v1`). Silently re-enabling something
+  a driver deliberately switched off is the one behaviour that would
+  make this feature untrustworthy, so an explicit choice survives
+  reloads.
+- **A stray tap can't undo it.** While off, tapping the button shows
+  "press and hold to turn it back on" rather than re-enabling — a
+  deliberate choice shouldn't fall to a mis-tap on a 40px target in a
+  moving truck.
+- **`startWatch()` is the single choke point.** The visibility-change
+  resume, the pickup GPS button and first-fix retries all route through
+  it, so nothing can restart tracking behind the driver's back.
+- **`liveFix` is cleared, not just hidden.** The station sheet's "From
+  you" distance and the route pickup button both read it, so clearing
+  it is what makes "off" actually mean off.
+- **No dead ends.** Route mode's "use my location" doesn't silently
+  override the choice from another screen — it says location is off,
+  names the gesture that restores it, and points at typing the address.
+
+600 ms hold, with the trailing click swallowed so releasing can't also
+fire the recenter underneath it, and the OS text-callout menu
+suppressed on the button.
+
 ### v1.15.2
 
 The Stops-tab search box clears like the route fields do: an × appears
