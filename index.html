@@ -447,6 +447,24 @@
      option the driver can take or ignore, never a problem to be flagged. */
   .rr-tip{font-size:12px;color:var(--sub);line-height:1.4;margin-top:6px;}
 
+  /* Vehicle profile controls. The segmented control reuses .seg; these only
+     add the wrapping/sizing the three-up row needs inside the narrow panel. */
+  .vp-seg{width:100%;}
+  .vp-seg button{flex:1;padding:7px 6px;}
+  .vp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+  .vp-cell label{font-size:9.5px;}
+  .vp-cell input{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);font-size:13px;background:var(--bg);color:var(--ink);}
+  .vp-errors{margin-top:7px;font-size:11.5px;color:#8A1C1C;background:#FDECEC;border:1px solid #F0BEBE;border-radius:9px;padding:7px 9px;line-height:1.4;}
+  .vp-errors div{margin:1px 0;}
+  .vp-haz-head{font-size:11.5px;font-weight:700;color:var(--ink);margin:9px 0 5px;}
+  .vp-haz{display:flex;flex-wrap:wrap;gap:6px;}
+  /* A hazard class is a toggle, so it reads as pressed/unpressed rather than
+     as a link — selected is filled, unselected is a plain outline. */
+  .vp-haz button{font-size:11px;font-weight:700;padding:5px 9px;border-radius:20px;
+    border:1px solid var(--line);background:var(--bg);color:var(--sub);text-align:left;}
+  .vp-haz button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff;}
+  #vehicleHazmat, #vehicleCustom{margin-top:2px;}
+
   /* Alternative-route switcher. Themed off the CSS variables (unlike the
      fixed-tint .rr-ok/.rr-warn callouts) since it's chrome, not a callout.
      A gapped option stays fully readable and tappable — it's marked, not
@@ -465,6 +483,8 @@
   .rr-opt-meta{font-size:11px;color:var(--sub);}
   .rr-opt.gapped .rr-opt-meta{color:var(--danger-text);font-weight:700;}
   .rr-ranknote{font-size:12px;color:var(--ink);line-height:1.4;margin:2px 0 8px;font-weight:600;}
+  .rr-veh{font-size:11.5px;color:var(--sub);line-height:1.4;margin:0 0 8px;}
+  .rr-veh b{color:var(--ink);}
 
   /* translate(-50%,-50%) anchors these to their coordinate the same way as
      .geo-dot-wrap above — circular, no rotation, no residual. */
@@ -607,6 +627,57 @@
       <div class="gauge-readout" id="gaugeReadout"></div>
       <div class="rb-help">Tap or drag to where your gauge sits.</div>
     </div>
+    <!-- Vehicle profile. Feeds real dimensions/weight/hazmat into the routing
+         call — before this existed the app sent transportMode=truck and no
+         vehicle parameters at all, so HERE applied general truck access rules
+         and nothing dimensional. Standard is the default and must behave like
+         a driver expects without ever opening this. -->
+    <div class="rb-field">
+      <label id="vehLabel">Vehicle</label>
+      <div class="seg vp-seg" id="vehicleSeg" role="group" aria-labelledby="vehLabel">
+        <button type="button" data-vp="standard" class="active">Standard</button>
+        <button type="button" data-vp="hazmat">Hazmat</button>
+        <button type="button" data-vp="custom">Custom</button>
+      </div>
+      <div class="rb-help" id="vehicleHelp"></div>
+
+      <!-- Custom dimensions. Blank means "use the standard value" — changing
+           one number must not force a driver to fill in the other three. -->
+      <div id="vehicleCustom" hidden>
+        <div class="vp-grid">
+          <div class="vp-cell">
+            <label for="vpHeight">Height (inches)</label>
+            <input id="vpHeight" type="number" inputmode="numeric" placeholder="162" min="0" step="1">
+          </div>
+          <div class="vp-cell">
+            <label for="vpWidth">Width (inches)</label>
+            <input id="vpWidth" type="number" inputmode="numeric" placeholder="102" min="0" step="1">
+          </div>
+          <div class="vp-cell">
+            <label for="vpLength">Length (inches)</label>
+            <input id="vpLength" type="number" inputmode="numeric" placeholder="840" min="0" step="1">
+          </div>
+          <div class="vp-cell">
+            <label for="vpWeight">Gross weight (lb)</label>
+            <input id="vpWeight" type="number" inputmode="numeric" placeholder="80000" min="0" step="100">
+          </div>
+        </div>
+        <div class="rb-help">Leave a box empty to use the standard value for it. 162 in is 13'6"; 840 in is 70 ft.</div>
+        <div class="vp-errors" id="vehicleErrors" hidden></div>
+      </div>
+
+      <!-- Hazard classes. NOT a single on/off: HERE does not infer between
+           classes ("roads prohibited for flammable materials are not excluded"
+           just because you declared gas), so each one has to be declared.
+           All start selected on purpose — over-declaring costs a longer legal
+           route, under-declaring routes a placarded truck somewhere it's
+           barred from. Those errors are not symmetric. -->
+      <div id="vehicleHazmat" hidden>
+        <div class="vp-haz-head">Which placards are aboard?</div>
+        <div class="vp-haz" id="hazList" role="group" aria-label="Hazard classes aboard"></div>
+        <div class="rb-help">All classes are on by default — that routes you legally whatever you're hauling. Narrowing it to your actual placards may open up shorter roads.</div>
+      </div>
+    </div>
     <button id="planBtn">Plan fuel for this load</button>
     <button type="button" id="clearTripBtn" hidden>Clear trip</button>
     </div>
@@ -685,24 +756,26 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.13.3"></script>
+<script src="lib/fuelplan.js?v=1.14.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.13.3"></script>
+<script src="lib/triptext.js?v=1.14.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.13.3"></script>
+<script src="lib/location.js?v=1.14.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.13.3"></script>
+<script src="lib/gauge.js?v=1.14.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.13.3"></script>
+<script src="lib/extract-version.js?v=1.14.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.13.3"></script>
+<script src="lib/autosuggest.js?v=1.14.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.13.3"></script>
+<script src="lib/baselayer.js?v=1.14.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.13.3"></script>
+<script src="lib/memocache.js?v=1.14.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.13.3"></script>
+<script src="lib/routerank.js?v=1.14.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
+<script src="lib/vehicleprofile.js?v=1.14.0"></script>
+<script>var VehicleProfile = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
      — real Node syntax. Loading it with a plain src attribute, like the two
@@ -717,7 +790,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.13.3')
+fetch('lib/fuelplan-adaptive.js?v=1.14.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -728,7 +801,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.13.3')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.13.3"></script>
+<script src="lib/flexible-polyline.js?v=1.14.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -888,7 +961,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.13.3';
+const APP_VERSION = '1.14.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1823,9 +1896,17 @@ async function truckRoute(orig, dest){
   const base = 'https://router.hereapi.com/v8/routes'
     + `?origin=${orig.lat},${orig.lng}&destination=${dest.lat},${dest.lng}`
     + `&apiKey=${HERE_API_KEY}`;
-  const withAlts = base + '&transportMode=truck&alternatives=2&return=polyline,summary,routeLabels';
-  // The parameters this app has always sent — one route, no labels.
-  const minimal = base + '&transportMode=truck&return=polyline,summary';
+  // vehicle[...] parameters: real dimensions/weight/hazmat, so HERE can apply
+  // bridge heights, posted weight limits and hazmat road bans. The names
+  // contain square brackets and this query string is built by hand, so encode
+  // both halves rather than trusting the brackets to survive.
+  const vparams = Object.entries(VehicleProfile.vehicleParams(activeVehicleProfile()))
+    .map(([k, v]) => `&${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('');
+
+  const withAlts = base + '&transportMode=truck&alternatives=2&return=polyline,summary,routeLabels' + vparams;
+  // The parameters this app has always sent — one route, no labels — PLUS the
+  // vehicle profile, which is not optional. See the fallback note below.
+  const minimal = base + '&transportMode=truck&return=polyline,summary' + vparams;
 
   let res = await fetch(withAlts);
   // A 400 here means HERE rejected the REQUEST, not the road: an unsupported
@@ -1836,6 +1917,16 @@ async function truckRoute(orig, dest){
   // (A genuine "no truck route exists between these points" is also a 400,
   // so this retry can fire on real routing failures too — the retry then
   // fails the same way and the driver gets the same message as before.)
+  //
+  // !!! THE FALLBACK MUST NEVER DROP `vparams`. !!!
+  // It exists to shed `alternatives`/`routeLabels` — nothing else. `minimal`
+  // deliberately still carries the vehicle profile even though that makes the
+  // two URLs look redundantly similar; do not "simplify" that away. Retrying
+  // without the profile would hand back a route with no height, weight or
+  // hazmat restriction applied, rendered as a perfectly normal successful
+  // plan, with nothing on screen telling the driver it's illegal for their
+  // truck. If the profile itself is what HERE rejects, we fail loudly below
+  // instead — there is no third fallback that strips it.
   if(res.status === 400) res = await fetch(minimal);
 
   if(!res.ok){
@@ -2088,6 +2179,10 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
     // Only when there was a choice to make — with one route there's nothing
     // to disambiguate, and the shared text stays exactly as it was.
     routeLabel: routeOptions.length > 1 ? routeOptions[routeOptionIdx].label : undefined,
+    // Only when it isn't Standard: a plan routed for a placarded load has to
+    // say so, or a driver comparing two pasted plans can't tell why the roads
+    // differ. Undefined on Standard keeps the existing output untouched.
+    vehicle: vehicleSummary() || undefined,
     appVersion: APP_VERSION,
     fuelBookRev: FUEL_BOOK_REV
   };
@@ -2106,6 +2201,10 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
   let h = `<div class="rr-head">${headline}</div>`;
   h += `<div class="rr-sub">${mi(routeMiles)} mi loaded miles &middot; ${mi(rangeAtPickup)} mi of range leaving the shipper`
      + `${startBurned > 0 ? ` &middot; ${mi(startBurned)} mi already burned` : ''}</div>`;
+  // Name the profile the roads were chosen for — silence would imply Standard.
+  if(vehicleSummary()){
+    h += `<div class="rr-veh">Routed for: <b>${vehicleSummary()}</b></div>`;
+  }
   h += routeSwitcherHtml();
 
   // Say so above the plan, plainly — the driver is being asked to drive extra
@@ -2273,6 +2372,152 @@ function readRanges(){
   const startBurned = FuelGauge.computeStartBurned(maxRange, rangeAtPickup);
   return { maxRange, rangeAtPickup, startBurned };
 }
+
+/* ---- Vehicle profile (dimensions, weight, hazmat) ----
+   Feeds real vehicle[...] parameters into the routing call. Before this
+   existed the app sent transportMode=truck and NOTHING else, which per
+   HERE's own docs means vehicle defaults of "0 or none": general truck
+   access restrictions applied, but no bridge heights, no posted weight
+   limits, and no hazmat restrictions whatsoever.
+
+   Deliberately NOT coupled to readRanges/the fuel gauge: gross weight and
+   fuel range are unrelated concepts. A profile changes which ROADS come
+   back; the fuel planner then works on whatever polyline it's given. */
+const VEHICLE_KEY = 'fuelpost.vehicle.v1';
+
+// Driver language first, HERE's enum second. The DOT class number is what's
+// actually on the placard the driver is looking at.
+const HAZ_LABELS = {
+  explosive: 'Explosives (1)', gas: 'Gases (2)', flammable: 'Flammable (3)',
+  combustible: 'Combustible (3)', organic: 'Organic peroxide (5)',
+  poison: 'Poison / Toxic (6)', poisonousInhalation: 'Toxic inhalation (6)',
+  radioactive: 'Radioactive (7)', corrosive: 'Corrosive (8)',
+  harmfulToWater: 'Water pollutant', other: 'Other hazmat'
+};
+
+let vehicle = { mode: 'standard', heightIn: '', widthIn: '', lengthIn: '', weightLb: '',
+                hazmat: VehicleProfile.HAZMAT_CLASSES.slice() };
+
+// Never throw, never apply a half-parsed profile: anything unrecognised
+// falls all the way back to standard, which is the safe default because it
+// still declares full federal-maximum dimensions.
+function loadVehicle(){
+  try {
+    const raw = JSON.parse(localStorage.getItem(VEHICLE_KEY) || 'null');
+    if(!raw || typeof raw !== 'object') return;
+    if(!['standard','hazmat','custom'].includes(raw.mode)) return;
+    const num = v => (v === '' || v === null || v === undefined) ? '' : (Number.isFinite(Number(v)) ? String(v) : '');
+    const haz = Array.isArray(raw.hazmat)
+      ? raw.hazmat.filter(h => VehicleProfile.HAZMAT_CLASSES.includes(h)) : null;
+    vehicle = {
+      mode: raw.mode,
+      heightIn: num(raw.heightIn), widthIn: num(raw.widthIn),
+      lengthIn: num(raw.lengthIn), weightLb: num(raw.weightLb),
+      hazmat: (haz && haz.length) ? haz : VehicleProfile.HAZMAT_CLASSES.slice()
+    };
+  } catch(_){ /* malformed or unavailable storage — keep the standard default */ }
+}
+
+function saveVehicle(){
+  try { localStorage.setItem(VEHICLE_KEY, JSON.stringify(vehicle)); } catch(_){}
+}
+
+// The profile object handed to VehicleProfile.vehicleParams(). Hazmat and
+// dimensions are independent — a Custom rig can be carrying placards too, so
+// hazmat rides along whenever the driver declared it on either profile.
+function activeVehicleProfile(){
+  const p = {};
+  if(vehicle.mode === 'custom'){
+    const n = v => v === '' ? undefined : Number(v);
+    if(n(vehicle.heightIn) !== undefined) p.heightIn = n(vehicle.heightIn);
+    if(n(vehicle.widthIn)  !== undefined) p.widthIn  = n(vehicle.widthIn);
+    if(n(vehicle.lengthIn) !== undefined) p.lengthIn = n(vehicle.lengthIn);
+    if(n(vehicle.weightLb) !== undefined) p.weightLb = n(vehicle.weightLb);
+  }
+  if(vehicle.mode === 'hazmat') p.hazmat = vehicle.hazmat.slice();
+  return p;
+}
+
+// Short human label for the plan panel and the shared text. Standard returns
+// '' — nothing to say when nothing was changed.
+function vehicleSummary(){
+  if(vehicle.mode === 'standard') return '';
+  if(vehicle.mode === 'hazmat'){
+    const n = vehicle.hazmat.length;
+    return n === VehicleProfile.HAZMAT_CLASSES.length
+      ? 'Hazmat — all classes declared'
+      : 'Hazmat — ' + vehicle.hazmat.map(h => HAZ_LABELS[h] || h).join(', ');
+  }
+  const S = VehicleProfile.STANDARD;
+  const f = (v, std, unit) => `${v === '' ? std : v}${unit}${v === '' ? '' : ''}`;
+  return `Custom — ${f(vehicle.heightIn, S.heightIn, 'in')} h · ${f(vehicle.widthIn, S.widthIn, 'in')} w · `
+       + `${f(vehicle.lengthIn, S.lengthIn, 'in')} l · ${f(vehicle.weightLb, S.weightLb, 'lb')}`;
+}
+
+function vehicleErrors(){
+  return vehicle.mode === 'custom' ? VehicleProfile.validateCustom({
+    heightIn: vehicle.heightIn, widthIn: vehicle.widthIn,
+    lengthIn: vehicle.lengthIn, weightLb: vehicle.weightLb
+  }) : [];
+}
+
+function renderHazList(){
+  $('hazList').innerHTML = VehicleProfile.HAZMAT_CLASSES.map(h =>
+    `<button type="button" data-haz="${h}" aria-pressed="${vehicle.hazmat.includes(h)}">${HAZ_LABELS[h] || h}</button>`
+  ).join('');
+  $('hazList').querySelectorAll('button').forEach(b =>
+    b.addEventListener('click', () => {
+      const h = b.dataset.haz;
+      const i = vehicle.hazmat.indexOf(h);
+      if(i >= 0) vehicle.hazmat.splice(i, 1); else vehicle.hazmat.push(h);
+      // Never leave hazmat mode with nothing declared — that would send no
+      // hazmat parameter at all and quietly route as a non-placarded truck.
+      if(!vehicle.hazmat.length) vehicle.hazmat = VehicleProfile.HAZMAT_CLASSES.slice();
+      saveVehicle(); renderVehicle();
+    }));
+}
+
+// Help text follows the mode. The standard-dimensions blurb is only true on
+// Standard/Hazmat — leaving it up on Custom told a driver already using
+// Custom to "use Custom", while describing numbers they were replacing.
+const VEHICLE_HELP = {
+  standard: `13'6" high &middot; 8'6" wide &middot; 70 ft &middot; 80,000 lb — federal maximums for a
+    standard 5-axle rig. These are assumptions about typical equipment, not a measurement of your
+    truck. Running permitted, heavy-haul or oversize? Use Custom.`,
+  hazmat: `Same standard dimensions, plus the placards you declare below — routes then avoid roads
+    barred to those classes.`,
+  custom: `Your rig's own numbers. Each one you fill in replaces the standard value for it.`
+};
+
+function renderVehicle(){
+  document.querySelectorAll('#vehicleSeg button').forEach(b =>
+    b.classList.toggle('active', b.dataset.vp === vehicle.mode));
+  $('vehicleHelp').innerHTML = VEHICLE_HELP[vehicle.mode] || VEHICLE_HELP.standard;
+  $('vehicleCustom').hidden = vehicle.mode !== 'custom';
+  $('vehicleHazmat').hidden = vehicle.mode !== 'hazmat';
+  $('vpHeight').value = vehicle.heightIn;
+  $('vpWidth').value  = vehicle.widthIn;
+  $('vpLength').value = vehicle.lengthIn;
+  $('vpWeight').value = vehicle.weightLb;
+  renderHazList();
+  const errs = vehicleErrors();
+  $('vehicleErrors').hidden = !errs.length;
+  $('vehicleErrors').innerHTML = errs.map(e => `<div>${e}</div>`).join('');
+}
+
+document.querySelectorAll('#vehicleSeg button').forEach(b =>
+  b.addEventListener('click', () => {
+    vehicle.mode = b.dataset.vp;
+    saveVehicle(); renderVehicle();
+  }));
+[['vpHeight','heightIn'],['vpWidth','widthIn'],['vpLength','lengthIn'],['vpWeight','weightLb']]
+  .forEach(([id, key]) => $(id).addEventListener('input', () => {
+    vehicle[key] = $(id).value.trim();
+    saveVehicle(); renderVehicle();
+  }));
+
+loadVehicle();
+renderVehicle();
 
 /* ---- Fuel gauge (range leaving shipper) ----
    Needle gauge, not a fill bar: one indicator that slides to the selected
@@ -2769,6 +3014,17 @@ async function startPlan(){
     setRoutebarOpen(true);   // the driver needs to see the field that's missing
     showRoutePanel(`<div class="rr-note">Enter both the <b>pickup</b> and <b>delivery</b> addresses
       off your dispatch — street, city, state and zip.</div>`);
+    return;
+  }
+  // Never route on dimensions that failed validation — a typo'd height is
+  // exactly the input that produces a confidently wrong, illegal route.
+  const vErrs = vehicleErrors();
+  if(vErrs.length){
+    setRoutebarOpen(true);
+    renderVehicle();   // surface the messages inline on the fields themselves
+    showRoutePanel(`<div class="rr-note"><b>Check the vehicle dimensions.</b><br>${
+      vErrs.join('<br>')}<br><br>Fix them under <b>Vehicle → Custom</b>, or switch back to
+      <b>Standard</b>. Nothing was routed — a route planned on a wrong height is worse than no route.</div>`);
     return;
   }
   if(!navigator.onLine){ setRoutebarOpen(true); showRoutePanel(offlineNote('No signal.')); return; }
