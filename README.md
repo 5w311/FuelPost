@@ -26,6 +26,7 @@ lib/baselayer.js            pure nextBaseLayer() — which road layer (if any) a
 lib/memocache.js            session-only memo cache for repeat HERE lookups (no DOM, no network)
 lib/routerank.js            orders alternative routes by fuel viability (no DOM, no network)
 lib/vehicleprofile.js       vehicle dimensions/weight/hazmat -> HERE vehicle[...] params (no DOM, no network)
+lib/escape.js               HTML-escapes external strings before they reach innerHTML (no DOM, no network)
 lib/extract-version.js      pulls APP_VERSION out of fetched page source for the update check
 lib/flexible-polyline.js    HERE's reference polyline decoder, vendored unmodified (MIT)
 test/*.test.js              plain-node tests, no framework
@@ -113,6 +114,34 @@ follow, not just this one:
   silently produce a result the driver never chose.
 
 ## Version history
+
+### v1.16.3
+
+**Security: external strings are now escaped before they reach
+`innerHTML`.** Address labels from HERE's geocoding and autosuggest
+responses — which include POI and business names this app neither
+controls nor can vouch for — were being interpolated into markup
+unescaped. A label containing HTML would have been parsed as HTML
+rather than shown as text, running in a page that holds the API key,
+the driver's live position and the trip addresses.
+
+`lib/escape.js` adds one `escapeHtml()` (ampersand first, so nothing
+double-encodes; `null`/`undefined` become `''`). It is applied at every
+site that renders an externally-sourced or driver-typed string: the
+autosuggest dropdown, both geocode candidate pickers, the matched-address
+and "you entered" lines, the plan panel's pickup/delivery addresses, and
+the alternative-route option labels.
+
+Two of those were **not** on the original list and were found by
+re-auditing every interpolation rather than trusting it: the route-option
+labels (added in v1.13.0 — they carry HERE's `routeLabels` text) and the
+match-kind line, whose fallback echoes HERE's raw `resultType`. Sites
+that interpolate only app-controlled values or committed `DATA` were
+left alone; wrapping those adds noise without adding safety.
+
+Real addresses are unaffected — "O'Fallon, MO" and "Sears & Roebuck
+Dist Ctr" round-trip and display normally, with no visible entity
+artifacts.
 
 ### v1.16.2
 
