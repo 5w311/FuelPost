@@ -513,6 +513,19 @@
   .rr-opt-meta{font-size:11px;color:var(--sub);}
   .rr-opt.gapped .rr-opt-meta{color:var(--danger-text);font-weight:700;}
   .rr-ranknote{font-size:12px;color:var(--ink);line-height:1.4;margin:2px 0 8px;font-weight:600;}
+  /* Amenity toggles — same pressed/unpressed chip language as the hazard
+     classes in the vehicle profile, so one toggle idiom covers the app. */
+  .amen-head{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--sub);margin:10px 0 5px;}
+  .amen-wrap{display:flex;flex-wrap:wrap;gap:6px;}
+  .amen-wrap button{font-size:11px;font-weight:700;padding:5px 9px;border-radius:20px;
+    border:1px solid var(--line);background:var(--bg);color:var(--sub);text-align:left;}
+  .amen-wrap button.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .list-empty{padding:22px 14px;font-size:13px;color:var(--sub);line-height:1.5;text-align:center;}
+  #noMatch{position:absolute;left:50%;top:60px;transform:translateX(-50%);z-index:401;width:max-content;
+    max-width:calc(100% - 24px);background:var(--surface);border:1px solid var(--line);border-radius:9px;
+    padding:8px 12px;font-size:12px;color:var(--ink);box-shadow:0 2px 6px rgba(0,0,0,.18);}
+  #noMatch[hidden]{display:none;}
+  body.route-mode #noMatch{display:none;}
   .rr-veh{font-size:11.5px;color:var(--sub);line-height:1.4;margin:0 0 8px;}
   .rr-veh b{color:var(--ink);}
   /* The post-gap continuation: readable but visibly secondary to the
@@ -617,7 +630,7 @@
     <div class="rb-field">
       <label for="pickupInput">Pickup — street, city, state, zip</label>
       <div class="rb-locate-wrap">
-        <input id="pickupInput" placeholder="e.g. 2000 Distribution Way, Memphis, TN 38118" autocomplete="off" autocapitalize="words">
+        <input id="pickupInput" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="pickupSuggest" placeholder="e.g. 2000 Distribution Way, Memphis, TN 38118" autocomplete="off" autocapitalize="words">
         <button type="button" id="pickupClearBtn" class="rb-clear-field-btn" title="Clear pickup" aria-label="Clear pickup" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
@@ -635,7 +648,7 @@
     <div class="rb-field">
       <label for="deliveryInput">Delivery — street, city, state, zip</label>
       <div class="rb-clear-wrap">
-        <input id="deliveryInput" placeholder="e.g. 4500 Commerce Dr, Fort Worth, TX 76106" autocomplete="off" autocapitalize="words">
+        <input id="deliveryInput" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="deliverySuggest" placeholder="e.g. 4500 Commerce Dr, Fort Worth, TX 76106" autocomplete="off" autocapitalize="words">
         <button type="button" id="deliveryClearBtn" class="rb-clear-field-btn" title="Clear delivery" aria-label="Clear delivery" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
@@ -734,6 +747,7 @@
       </button>
       <div class="rr-body-wrap" id="routeResultsBodyWrap"><div class="rr-body" id="routeResultsBody"></div></div>
     </div>
+    <div id="noMatch" class="stops-only" hidden>No network stops match these filters.</div>
     <button id="legendBtn">Legend ⓘ</button>
     <button id="locateBtn" class="stops-only" title="Show my location" aria-label="Show my location">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><path d="M12 1.5v3.2M12 19.3v3.2M1.5 12h3.2M19.3 12h3.2"/></svg>
@@ -746,13 +760,14 @@
       <div id="legendSupportNote" style="margin-top:6px;color:var(--sub);font-size:10.5px;line-height:1.4;border-top:1px solid var(--line);padding-top:6px;"></div>
       <div class="theme-row">
         <span class="theme-label">Theme</span>
-        <div class="seg" id="themeSeg">
-          <button type="button" data-v="light">Light</button>
-          <button type="button" data-v="dark">Dark</button>
-          <button type="button" data-v="system">System</button>
+        <div class="seg" id="themeSeg" role="radiogroup" aria-label="Theme">
+          <button type="button" role="radio" aria-checked="false" data-v="light">Light</button>
+          <button type="button" role="radio" aria-checked="false" data-v="dark">Dark</button>
+          <button type="button" role="radio" aria-checked="false" data-v="system">System</button>
         </div>
       </div>
-      <button type="button" id="appVer" title="Tap to check for an update"></button>
+      <button type="button" id="appVer" title="Tap to check for an update"
+              aria-live="polite" aria-label="App version — tap to check for an update"></button>
     </div>
     <div id="filterCard">
       <div class="seg stops-only" id="brandSeg">
@@ -766,6 +781,13 @@
         <button data-v="prim">Primary</button>
       </div>
       <select class="stateSel stops-only" id="stateSel"><option value="all">All states</option></select>
+      <div class="amen-head">What do you need tonight?</div>
+      <div class="amen-wrap" id="amenWrap" role="group" aria-label="Amenity filters">
+        <button type="button" data-amen="parking" aria-pressed="false">100+ parking</button>
+        <button type="button" data-amen="showers" aria-pressed="false">10+ showers</button>
+        <button type="button" data-amen="service" aria-pressed="false">Service (4+ bays)</button>
+        <button type="button" data-amen="scale" aria-pressed="false">CAT scale</button>
+      </div>
     </div>
   </div>
 
@@ -797,27 +819,27 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.16.4"></script>
+<script src="lib/fuelplan.js?v=1.17.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.16.4"></script>
+<script src="lib/triptext.js?v=1.17.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.16.4"></script>
+<script src="lib/location.js?v=1.17.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.16.4"></script>
+<script src="lib/gauge.js?v=1.17.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.16.4"></script>
+<script src="lib/extract-version.js?v=1.17.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.16.4"></script>
+<script src="lib/autosuggest.js?v=1.17.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.16.4"></script>
+<script src="lib/baselayer.js?v=1.17.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.16.4"></script>
+<script src="lib/memocache.js?v=1.17.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.16.4"></script>
+<script src="lib/routerank.js?v=1.17.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.16.4"></script>
+<script src="lib/vehicleprofile.js?v=1.17.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.16.4"></script>
+<script src="lib/escape.js?v=1.17.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -833,7 +855,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.16.4')
+fetch('lib/fuelplan-adaptive.js?v=1.17.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -844,7 +866,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.16.4')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.16.4"></script>
+<script src="lib/flexible-polyline.js?v=1.17.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1004,7 +1026,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.16.4';
+const APP_VERSION = '1.17.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1228,7 +1250,9 @@ syncMapSettingsControlLayer(initialTheme);
 function updateThemeToggleUI(){
   const mode = storedTheme() || 'system';
   document.querySelectorAll('#themeSeg button').forEach(b=>{
-    b.classList.toggle('active', b.dataset.v === mode);
+    const on = b.dataset.v === mode;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-checked', String(on));   // role=radio needs the state, not just the class
   });
 }
 updateThemeToggleUI(); // map was already constructed on the right layer above — nothing to switch yet
@@ -1329,7 +1353,23 @@ document.querySelectorAll('#themeSeg button').forEach(b=>b.addEventListener('cli
 const markerGroup = new H.map.Group();
 map.addObject(markerGroup);
 
-let state = {brand:'all', type:'all', st:'all', q:''};
+/* Amenity thresholds. These are judgment calls, named so each is one edit
+   if it proves wrong in practice — and each was set against the real DATA
+   spread rather than guessed, because a filter that matches everything is a
+   control that looks broken:
+     parking  45-725 spaces, median 156 -> 100+ keeps 116/146 ("likely room late")
+     showers  every stop has 4+, median 10 -> a has-showers filter would be a
+              no-op, so this is "10+", which splits the network roughly in half
+     bays     95% have at least one -> "4+" is the line between one bay and a
+              real service shop, keeping 102/146
+   CAT scale is genuinely binary and near-universal here (only the two
+   Covenant terminals lack one); it filters little but never misleads. */
+const PARKING_LARGE = 100;
+const SHOWERS_MANY  = 10;
+const BAYS_MANY     = 4;
+
+let state = {brand:'all', type:'all', st:'all', q:'',
+             parking:false, showers:false, service:false, scale:false};
 
 function buildIcon(row){
   const brand = row[1], type = row[11];
@@ -1411,6 +1451,13 @@ function passes(row){
     const hay = (row[2]+' '+row[4]+' '+row[5]+' '+row[7]).toLowerCase();
     if(!hay.includes(state.q)) return false;
   }
+  // Amenity filters — the evening question ("fuel AND park AND shower"),
+  // AND-combined with everything above. Fields already exist on every row;
+  // only the filter was missing.
+  if(state.parking && !(Number(row[12]) >= PARKING_LARGE)) return false;
+  if(state.showers && !(Number(row[14]) >= SHOWERS_MANY)) return false;
+  if(state.service && !(Number(row[15]) >= BAYS_MANY)) return false;
+  if(state.scale   && !row[18]) return false;
   return true;
 }
 
@@ -1443,6 +1490,17 @@ function render(){
     });
     listEl.appendChild(item);
   });
+  // Zero matches is a real answer, not a blank screen — say it on both
+  // surfaces, since the map and the list are each a full view on their own.
+  const none = count === 0;
+  if(none){
+    const empty = document.createElement('div');
+    empty.className = 'list-empty';
+    empty.textContent = 'No network stops match these filters.';
+    listEl.appendChild(empty);
+  }
+  const chip = document.getElementById('noMatch');
+  if(chip) chip.hidden = !none;
   document.getElementById('countNum').textContent = count;
 }
 
@@ -1451,8 +1509,11 @@ function render(){
 // principle as the route panel's collapsed summary: don't lose context when
 // tucked away.
 function updateFilterBadge(){
+  // Amenity toggles count as active filters too — a driver who left Showers
+  // on must not later wonder why stops are missing.
+  const anyAmenity = state.parking || state.showers || state.service || state.scale;
   document.getElementById('filterBadge').hidden =
-    state.brand==='all' && state.type==='all' && state.st==='all';
+    state.brand==='all' && state.type==='all' && state.st==='all' && !anyAmenity;
 }
 
 document.querySelectorAll('#brandSeg button').forEach(b=>b.addEventListener('click',()=>{
@@ -1469,6 +1530,17 @@ document.getElementById('searchInput').addEventListener('input', e=>{
   document.getElementById('searchClearBtn').hidden = !e.target.value.trim();
   render();
 });
+document.querySelectorAll('#amenWrap button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const k=b.dataset.amen;
+    state[k]=!state[k];
+    b.setAttribute('aria-pressed', String(state[k]));
+    b.classList.toggle('on', state[k]);
+    updateFilterBadge();
+    render();
+  });
+});
+
 document.getElementById('searchClearBtn').addEventListener('click', ()=>{
   const inp=document.getElementById('searchInput');
   inp.value='';
@@ -3001,8 +3073,9 @@ function setSuggestClipping(clipped){
 }
 
 function hideSuggest(field){
-  const { list } = suggestFieldEls(field);
+  const { list, input } = suggestFieldEls(field);
   list.hidden = true;
+  input.setAttribute('aria-expanded', 'false');
   list.innerHTML = '';
   suggestItems[field] = [];
   if($('pickupSuggest').hidden && $('deliverySuggest').hidden) setSuggestClipping(true);
@@ -3086,10 +3159,15 @@ function renderSuggest(field, items){
   // shown in the dropdown always matches what actually fills the field.
   list.innerHTML = items.map((item, i) => {
     const label = (item.address && item.address.label) || item.title || '';
-    return `<button type="button" class="suggest-item" data-idx="${i}">${Esc.escapeHtml(label)}</button>`;
+    return `<button type="button" class="suggest-item" role="option" aria-selected="false" data-idx="${i}">${Esc.escapeHtml(label)}</button>`;
   }).join('');
   setSuggestClipping(false);
   list.hidden = false;
+  // Standard combobox shape: the input owns an expanded listbox of options.
+  // Roles only — arrow-key navigation is deliberately out of scope for a
+  // phone-first app; this is about screen-reader legibility.
+  list.setAttribute('role', 'listbox');
+  suggestFieldEls(field).input.setAttribute('aria-expanded', 'true');
   list.querySelectorAll('.suggest-item').forEach(btn => {
     // mousedown (before click, before the input's own blur) with
     // preventDefault keeps focus on the input — without this, tapping a
