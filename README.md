@@ -115,6 +115,22 @@ follow, not just this one:
 
 ## Version history
 
+### v1.16.4
+
+Post-release sweep finding: the two floating map chips — `#locateError`
+and `#locateHint` — were never included in the rules that hide the map
+chrome. They are appended to `#mapwrap` at runtime, so they are
+following siblings of `#listview` exactly like `#locateBtn`, but only
+the buttons were listed. The result: a location hint or error would
+float over the list-view overlay, and would hang over the route panel
+in ROUTE mode pointing at a locate button that isn't even displayed
+there.
+
+Both now hide with the rest of the chrome in both contexts. The error
+chip case is pre-existing — it predates the hint entirely — and was
+only found by walking a real mode-switch journey rather than testing
+each feature in isolation.
+
 ### v1.16.3
 
 **Security: external strings are now escaped before they reach
