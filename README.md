@@ -115,6 +115,52 @@ follow, not just this one:
 
 ## Version history
 
+### v1.17.0
+
+**Amenity filters.** The morning question is "where do I fuel"; the
+evening question is "where do I fuel AND park AND shower". Every field
+needed was already on each row and shown in the station sheet — only
+the filter was missing. Four toggles now sit in the Filters popover
+under "What do you need tonight?", AND-combined with each other and
+with the existing brand/type/state filters through the same single
+`passes()` path. The Filters badge counts them, so a driver who left
+one on can see why stops are missing, and a zero-result combination now
+says "No network stops match these filters" on **both** the map and the
+list instead of showing a blank screen.
+
+**Two thresholds were retuned against the real data before shipping.**
+The filters were specified as simple has/doesn't-have checks, but
+measured against `DATA` that would have produced two dead controls:
+*every* stop has showers (all 146, minimum 4) and effectively every
+fuel stop has a CAT scale (144 — only the two Covenant terminals lack
+one). A toggle that changes nothing reads as broken and costs trust in
+the whole filter row. So showers and service became thresholds, each a
+named constant, chosen from the actual spread:
+
+- `PARKING_LARGE = 100` — spaces run 45–725, median 156; keeps 116/146
+- `SHOWERS_MANY = 10` — the median; keeps 76/146, roughly a half split
+- `BAYS_MANY = 4` — the line between one bay and a real shop; keeps 102/146
+- CAT scale stays binary and near-universal: honest, if rarely selective
+
+`test/amenityfilter.test.js` asserts these counts against the live
+`DATA` array and **parses the thresholds out of the source** rather than
+repeating them, so retuning a constant updates the test automatically
+while a data refresh that turns a filter into a no-op fails loudly.
+
+**Accessibility.** The theme selector is now a proper `radiogroup` with
+`aria-checked` tracking the selection; the version button carries
+`aria-live="polite"` and an action-describing label so its "Checking…"
+/ "Update available" states are announced; and the address suggestion
+dropdown uses the standard combobox shape — `role="combobox"` +
+`aria-autocomplete` + `aria-controls` + `aria-expanded` on the input,
+`role="listbox"`/`option` with `aria-selected` on the list. Arrow-key
+navigation was deliberately left out, as specified.
+
+One audited item needed no work: the fuel gauge already had
+`role="slider"`, `aria-valuemin`/`max`/`now` **and** `aria-valuetext`
+("5/8 — about 500 mi"), all updated inside `renderGauge()`. That part of
+the audit was out of date; verified rather than re-added.
+
 ### v1.16.4
 
 Post-release sweep finding: the two floating map chips — `#locateError`
