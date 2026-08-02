@@ -15,6 +15,7 @@ Two modes:
 
 ```
 index.html                  the app — markup, styles, DATA array, map + UI wiring
+sw.js                       service worker — offline STOPS mode, version-keyed cache
 icons/                      favicon / home-screen icon PNGs
 lib/fuelplan.js             pure fuel-planning logic (no DOM, no network)
 lib/fuelplan-adaptive.js    widens the detour search before declaring a gap
@@ -113,7 +114,74 @@ follow, not just this one:
   changed meaning; an old stored choice under new default semantics can
   silently produce a result the driver never chose.
 
+## Deploy rule: one version, everywhere
+
+`APP_VERSION` is the single source of truth for cache identity, and three
+things now derive from it on every deploy:
+
+1. the `?v=` stamps on every `lib/*.js` URL in `index.html`
+2. the service worker registration URL (`sw.js?v=<APP_VERSION>`)
+3. the service worker's cache name, which reads that version back out of
+   its own URL (`fuelpost-<version>`)
+
+Bumping `APP_VERSION` is therefore sufficient — there is no second number
+to remember, and the cache name *cannot* drift from the app version,
+because nothing hardcodes it. A missed bump is still a real hazard
+(installed phones would keep serving the cached build), so
+`test/cachebust.test.js` and `test/serviceworker.test.js` fail the suite
+if the stamps, the registration, or the cache derivation ever come apart.
+
+**Every deploy bumps `APP_VERSION`.** Not only when the shell changes.
+
 ## Version history
+
+### v1.18.0
+
+**Offline support for STOPS mode.** The 146 stations are static committed
+data, yet the app was dead without a connection because `index.html`
+itself had to come off the network — backwards for a tool used where
+coverage is worst. A service worker now precaches the app shell, every
+`lib/*.js`, and the icons.
+
+Works offline: the app shell, all 146 stations, filters, search, list
+view, station detail sheets, the fuel gauge, saved settings. Does not:
+map tiles, routing, geocoding, autosuggest, the update check — all
+HERE-served or network-bound. So offline STOPS shows correct pins over a
+blank or partial map, and a persistent banner ("Offline — stops
+available, routing needs signal") says so rather than letting that read
+as a crash.
+
+**How the un-updatable failure mode is prevented.** Any request carrying
+the `?_cb=` cache-buster — both the update check and the "tap to reload"
+navigation — bypasses the worker entirely. Without that, the check would
+report "you're on the latest" forever and the reload would land back on
+the same build, with no symptom a driver could report.
+
+**Cache versioning cannot drift.** Rather than a second constant to keep
+in sync, `index.html` registers `sw.js?v=<APP_VERSION>` and the worker
+reads its version back out of its own URL. One number. See "Deploy rule"
+above — now a permanent constraint on the project.
+
+Precached `lib/*.js` entries keep their `?v=` stamps, which makes the
+version part of the cache *key*. After a deploy the new page's
+`lib/x.js?v=1.19.0` simply misses the old cache and goes to the network;
+an `ignoreSearch` match would instead hand new HTML the old library
+files — the mixed-version bug service workers are infamous for. Old
+caches are deleted on activate, so storage stays at one cache.
+
+Cross-origin requests (HERE tiles, routing, geocoding, autosuggest, and
+HERE's own mapsjs) are network-only and never cached: their terms govern
+reuse, tile volume is unbounded, and pinning someone else's library to a
+cached copy is how you get stranded on a broken version.
+
+Also fixed while building this: after an update reload the `?_cb=` is
+stripped from the address bar. Left in place, a later reload or session
+restore would re-request a URL the worker deliberately refuses to serve
+from cache — which offline meant a dead app for a driver who had just
+updated.
+
+No web app manifest — install behaviour and display mode are their own
+decision.
 
 ### v1.17.0
 

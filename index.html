@@ -521,6 +521,14 @@
     border:1px solid var(--line);background:var(--bg);color:var(--sub);text-align:left;}
   .amen-wrap button.on{background:var(--navy);border-color:var(--navy);color:#fff;}
   .list-empty{padding:22px 14px;font-size:13px;color:var(--sub);line-height:1.5;text-align:center;}
+  /* Persistent while offline. Sits at the top of the map because the point
+     is to explain a blank/partial map background — without it, missing HERE
+     tiles read as a crash rather than as "no signal". Not stops-only: route
+     mode needs the same explanation. */
+  #offlineBar{position:absolute;left:10px;right:10px;top:10px;z-index:402;background:#FFF6E5;
+    border:1px solid #F0D9A8;border-radius:9px;padding:7px 11px;font-size:11.5px;color:#7A5200;
+    line-height:1.35;box-shadow:0 2px 6px rgba(0,0,0,.18);text-align:center;}
+  #offlineBar[hidden]{display:none;}
   #noMatch{position:absolute;left:50%;top:60px;transform:translateX(-50%);z-index:401;width:max-content;
     max-width:calc(100% - 24px);background:var(--surface);border:1px solid var(--line);border-radius:9px;
     padding:8px 12px;font-size:12px;color:var(--ink);box-shadow:0 2px 6px rgba(0,0,0,.18);}
@@ -747,6 +755,7 @@
       </button>
       <div class="rr-body-wrap" id="routeResultsBodyWrap"><div class="rr-body" id="routeResultsBody"></div></div>
     </div>
+    <div id="offlineBar" hidden role="status">Offline — stops available, routing needs signal.</div>
     <div id="noMatch" class="stops-only" hidden>No network stops match these filters.</div>
     <button id="legendBtn">Legend ⓘ</button>
     <button id="locateBtn" class="stops-only" title="Show my location" aria-label="Show my location">
@@ -819,27 +828,27 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.17.0"></script>
+<script src="lib/fuelplan.js?v=1.18.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.17.0"></script>
+<script src="lib/triptext.js?v=1.18.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.17.0"></script>
+<script src="lib/location.js?v=1.18.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.17.0"></script>
+<script src="lib/gauge.js?v=1.18.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.17.0"></script>
+<script src="lib/extract-version.js?v=1.18.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.17.0"></script>
+<script src="lib/autosuggest.js?v=1.18.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.17.0"></script>
+<script src="lib/baselayer.js?v=1.18.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.17.0"></script>
+<script src="lib/memocache.js?v=1.18.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.17.0"></script>
+<script src="lib/routerank.js?v=1.18.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.17.0"></script>
+<script src="lib/vehicleprofile.js?v=1.18.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.17.0"></script>
+<script src="lib/escape.js?v=1.18.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -855,7 +864,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.17.0')
+fetch('lib/fuelplan-adaptive.js?v=1.18.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -866,7 +875,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.17.0')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.17.0"></script>
+<script src="lib/flexible-polyline.js?v=1.18.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1026,7 +1035,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.17.0';
+const APP_VERSION = '1.18.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1120,6 +1129,46 @@ checkForUpdate(true);
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState === 'visible') checkForUpdate(true);
 });
+
+/* ---- Service worker: offline STOPS mode ----
+   Registered with ?v=APP_VERSION so the cache name inside sw.js is derived
+   from this one number and cannot drift from it — changing APP_VERSION is
+   itself what makes the browser install a new worker and drop the old cache.
+   updateViaCache:'none' keeps the browser's HTTP cache from serving a stale
+   sw.js and hiding a deploy.
+
+   Registration is deliberately non-fatal: no signal, an unsupported browser,
+   or a non-secure context all just mean the app behaves exactly as it did
+   before offline support existed. */
+if('serviceWorker' in navigator && window.isSecureContext){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js?v=' + APP_VERSION, { updateViaCache: 'none' })
+      .catch(err => console.warn('Service worker registration failed:', err));
+  });
+}
+
+/* After an update reload, drop the ?_cb= from the address bar. It has already
+   done its job — defeating the cache for that one navigation — and leaving it
+   there means any LATER reload, or a session restore, re-requests a URL the
+   service worker deliberately refuses to answer from cache. Offline, that URL
+   simply fails, so a driver who updated and then lost signal would find the
+   app dead. Putting the canonical URL back keeps offline reloads working. */
+if(location.search.includes('_cb')){
+  try { history.replaceState(null, '', location.pathname); } catch(_){}
+}
+
+/* Offline indicator. Offline, HERE's tiles and every lookup fail, so the map
+   goes blank or partial — this is what keeps that reading as "no signal"
+   rather than "the app broke". */
+function renderOnlineState(){
+  // getElementById directly, not the $ helper: this runs during the update-check
+  // block, which is above $'s declaration — using it here is a temporal dead
+  // zone error that takes the whole app down with it.
+  document.getElementById('offlineBar').hidden = navigator.onLine;
+}
+window.addEventListener('online', renderOnlineState);
+window.addEventListener('offline', renderOnlineState);
+renderOnlineState();
 
 // Populate state dropdown
 const states = [...new Set(DATA.map(r=>r[5]))].sort();
