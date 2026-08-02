@@ -791,26 +791,28 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.16.2"></script>
+<script src="lib/fuelplan.js?v=1.16.3"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.16.2"></script>
+<script src="lib/triptext.js?v=1.16.3"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.16.2"></script>
+<script src="lib/location.js?v=1.16.3"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.16.2"></script>
+<script src="lib/gauge.js?v=1.16.3"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.16.2"></script>
+<script src="lib/extract-version.js?v=1.16.3"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.16.2"></script>
+<script src="lib/autosuggest.js?v=1.16.3"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.16.2"></script>
+<script src="lib/baselayer.js?v=1.16.3"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.16.2"></script>
+<script src="lib/memocache.js?v=1.16.3"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.16.2"></script>
+<script src="lib/routerank.js?v=1.16.3"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.16.2"></script>
+<script src="lib/vehicleprofile.js?v=1.16.3"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
+<script src="lib/escape.js?v=1.16.3"></script>
+<script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
      — real Node syntax. Loading it with a plain src attribute, like the two
@@ -825,7 +827,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.16.2')
+fetch('lib/fuelplan-adaptive.js?v=1.16.3')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -836,7 +838,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.16.2')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.16.2"></script>
+<script src="lib/flexible-polyline.js?v=1.16.3"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -996,7 +998,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.16.2';
+const APP_VERSION = '1.16.3';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1878,7 +1880,7 @@ function routeSwitcherHtml(){
       : 'no network fuel';
     h += `<button type="button" class="rr-opt${i === routeOptionIdx ? ' sel' : ''}${
       o.result.ok ? '' : ' gapped'}" data-opt="${i}" aria-pressed="${i === routeOptionIdx}">
-      <div class="rr-opt-label">${o.label}</div>
+      <div class="rr-opt-label">${Esc.escapeHtml(o.label)}</div>
       <div class="rr-opt-meta">${mi(o.routeMiles)} mi &middot; ${outcome}</div>
     </button>`;
   });
@@ -2431,7 +2433,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
   h += `<div class="rr-end">
     <div class="rr-mile"><b>0</b><span>mile</span></div>
     <div class="rr-info"><div class="rr-endlabel">Pickup</div>
-      <div class="rr-endaddr">${pickup.label}<button class="rr-fix" data-end="pickup">not right?</button></div></div></div>`;
+      <div class="rr-endaddr">${Esc.escapeHtml(pickup.label)}<button class="rr-fix" data-end="pickup">not right?</button></div></div></div>`;
 
   stops.forEach((s, i) => {
     h += `<button class="rr-stop" data-idx="${i}">
@@ -2449,7 +2451,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup){
     h += `<div class="rr-end" style="border-top:1px solid var(--line)">
       <div class="rr-mile"><b>${mi(routeMiles)}</b><span>mile</span></div>
       <div class="rr-info"><div class="rr-endlabel">Delivery</div>
-        <div class="rr-endaddr">${delivery.label}<button class="rr-fix" data-end="delivery">not right?</button></div></div></div>`;
+        <div class="rr-endaddr">${Esc.escapeHtml(delivery.label)}<button class="rr-fix" data-end="delivery">not right?</button></div></div></div>`;
     h += `<div class="rr-final">Final leg <b>${mi(result.finalLegMiles)} mi</b>${
       stops.length ? ' from your last fuel stop to delivery.' : ' — the whole run is inside your range, no stop needed.'}</div>`;
     if(stops.length){
@@ -3078,7 +3080,7 @@ function renderSuggest(field, items){
   // shown in the dropdown always matches what actually fills the field.
   list.innerHTML = items.map((item, i) => {
     const label = (item.address && item.address.label) || item.title || '';
-    return `<button type="button" class="suggest-item" data-idx="${i}">${label}</button>`;
+    return `<button type="button" class="suggest-item" data-idx="${i}">${Esc.escapeHtml(label)}</button>`;
   }).join('');
   setSuggestClipping(false);
   list.hidden = false;
@@ -3171,11 +3173,11 @@ function endBlockHTML(key, label, cands, ambiguous){
   if(!ambiguous){
     // Nothing to ask — state what matched, no radios, no re-confirmation.
     return `<div class="gc-block"><div class="gc-label">${label}</div>
-      <div class="gc-typed">Matched: ${cands[0].label}</div></div>`;
+      <div class="gc-typed">Matched: ${Esc.escapeHtml(cands[0].label)}</div></div>`;
   }
   const typed = $(key === 'pickup' ? 'pickupInput' : 'deliveryInput').value.trim();
   let h = `<div class="gc-block"><div class="gc-label">${label}</div>
-    <div class="gc-typed">You entered: ${typed}</div>`;
+    <div class="gc-typed">You entered: ${Esc.escapeHtml(typed)}</div>`;
   if(!isExactMatch(cands[0])){
     h += `<div class="gc-warn">This one did not resolve to an exact street address.
       Check it against your dispatch${cands.length > 1 ? ' or pick another match below' : ''} — a wrong
@@ -3184,8 +3186,8 @@ function endBlockHTML(key, label, cands, ambiguous){
   cands.forEach((c, i) => {
     h += `<label class="gc-cand">
       <input type="radio" name="gc-${key}" value="${i}"${i === 0 ? ' checked' : ''}>
-      <div class="gc-txt"><div class="gc-addr">${c.label}</div>
-        <div class="gc-kind">${matchKind(c)}</div></div></label>`;
+      <div class="gc-txt"><div class="gc-addr">${Esc.escapeHtml(c.label)}</div>
+        <div class="gc-kind">${Esc.escapeHtml(matchKind(c))}</div></div></label>`;
   });
   h += `<button class="gc-edit" data-edit="${key === 'pickup' ? 'pickupInput' : 'deliveryInput'}">Edit ${label.toLowerCase()} address</button></div>`;
   return h;
@@ -3236,8 +3238,8 @@ function reopenPicker(key){
   cands.forEach((c, i) => {
     h += `<label class="gc-cand">
       <input type="radio" name="gc-fix" value="${i}"${c === confirmed[key] ? ' checked' : ''}>
-      <div class="gc-txt"><div class="gc-addr">${c.label}</div>
-        <div class="gc-kind">${matchKind(c)}</div></div></label>`;
+      <div class="gc-txt"><div class="gc-addr">${Esc.escapeHtml(c.label)}</div>
+        <div class="gc-kind">${Esc.escapeHtml(matchKind(c))}</div></div></label>`;
   });
   h += `<button class="gc-edit" data-edit="${inputId}">Edit ${label.toLowerCase()} address and re-plan</button></div>`;
   h += '<button id="confirmBtn">Use this address</button>';
