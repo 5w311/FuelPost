@@ -123,7 +123,13 @@
      Recenter/Legend act on the map underneath, which isn't visible right
      now. Hide them while the list covers the map, same idea as
      body.route-mode already hiding #locateBtn for a different reason. */
-  #listview.show ~ #legendBtn, #listview.show ~ #locateBtn, #listview.show ~ #legendCard{display:none;}
+  /* The two floating chips (#locateError, #locateHint) are appended to
+     #mapwrap at runtime, so they are following siblings of #listview just
+     like the buttons — and they must disappear with the same chrome. Without
+     this they float over the list overlay, and in ROUTE mode they hang over
+     the plan panel pointing at a locate button that isn't even shown. */
+  #listview.show ~ #legendBtn, #listview.show ~ #locateBtn, #listview.show ~ #legendCard,
+  #listview.show ~ #locateError, #listview.show ~ #locateHint{display:none;}
   .list-item{display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);align-items:flex-start;}
   .list-item .dot{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;margin-top:2px;}
   .list-item .info{flex:1;min-width:0;}
@@ -186,7 +192,7 @@
      pickup field. #locateBtn's own id-scoped display:flex above outranks
      the plain .stops-only class rule by specificity, so it needs its own
      explicit override here to actually hide in Route mode. */
-  body.route-mode #locateBtn{display:none;}
+  body.route-mode #locateBtn, body.route-mode #locateError, body.route-mode #locateHint{display:none;}
   #locateBtn svg{width:20px;height:20px;}
   #locateBtn.locating{color:var(--ta);}
   #locateBtn.locating svg{animation:locate-spin 1.1s linear infinite;}
@@ -791,27 +797,27 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.16.3"></script>
+<script src="lib/fuelplan.js?v=1.16.4"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.16.3"></script>
+<script src="lib/triptext.js?v=1.16.4"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.16.3"></script>
+<script src="lib/location.js?v=1.16.4"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.16.3"></script>
+<script src="lib/gauge.js?v=1.16.4"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.16.3"></script>
+<script src="lib/extract-version.js?v=1.16.4"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.16.3"></script>
+<script src="lib/autosuggest.js?v=1.16.4"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.16.3"></script>
+<script src="lib/baselayer.js?v=1.16.4"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.16.3"></script>
+<script src="lib/memocache.js?v=1.16.4"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.16.3"></script>
+<script src="lib/routerank.js?v=1.16.4"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.16.3"></script>
+<script src="lib/vehicleprofile.js?v=1.16.4"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.16.3"></script>
+<script src="lib/escape.js?v=1.16.4"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -827,7 +833,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.16.3')
+fetch('lib/fuelplan-adaptive.js?v=1.16.4')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -838,7 +844,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.16.3')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.16.3"></script>
+<script src="lib/flexible-polyline.js?v=1.16.4"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -998,7 +1004,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.16.3';
+const APP_VERSION = '1.16.4';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
