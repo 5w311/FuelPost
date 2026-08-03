@@ -115,6 +115,30 @@ follow, not just this one:
 
 ## Version history
 
+### v1.17.2
+
+Two fields brought in line with how the custom vehicle inputs already
+behave.
+
+**The range field ("how far do you run between fuel stops?") now shows
+875 as a greyed placeholder** instead of holding it as a real value. A
+blank box with the default showing greyed reads honestly — it hasn't
+been set, and the default is visible without pretending the driver
+chose it. `readRanges()` treats blank as `ROUTE_DEFAULT_RANGE`, and —
+the load-bearing part — no longer writes the default back into the box,
+which would have refilled it with black-text 875 on the first plan and
+lost the placeholder for the session. A genuinely out-of-range *typed*
+value (say 50) still clamps to 300 and writes that back, because seeing
+the correction is useful. Clearing the field now empties it so the
+placeholder returns, rather than resetting it to a literal 875.
+
+**Each of the four custom vehicle inputs got its own clear button**,
+matching pickup, delivery, range, and search. Tapping one empties that
+field back to its greyed standard value (a blank vehicle field already
+means "use the standard"), updates the profile summary, and leaves the
+other three untouched. The buttons wire into the same
+`updateFieldClearVisibility()` refresh path as every other field.
+
 ### v1.17.1
 
 First-load work reduction. Reported as 5–8s to a visible map; four

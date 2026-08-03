@@ -491,7 +491,11 @@
   .vp-seg button{flex:1;padding:7px 6px;}
   .vp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
   .vp-cell label{font-size:9.5px;}
-  .vp-cell input{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);font-size:13px;background:var(--bg);color:var(--ink);}
+  .vp-cell input{width:100%;padding:8px 32px 8px 10px;border-radius:10px;border:1px solid var(--line);font-size:13px;background:var(--bg);color:var(--ink);}
+  /* Positions the x against the input's own box — .vp-cell also holds the
+     label above, so centring against the cell would float the button between
+     label and box. This mirrors .rb-locate-wrap for pickup. */
+  .vp-input-wrap{position:relative;}
   .vp-errors{margin-top:7px;font-size:11.5px;color:#8A1C1C;background:#FDECEC;border:1px solid #F0BEBE;border-radius:9px;padding:7px 9px;line-height:1.4;}
   .vp-errors div{margin:1px 0;}
   .vp-haz-head{font-size:11.5px;font-weight:700;color:var(--ink);margin:9px 0 5px;}
@@ -666,7 +670,7 @@
     <div class="rb-field">
       <label for="rangeInput">How far do you run between fuel stops?</label>
       <div class="rb-range-wrap">
-        <input id="rangeInput" type="number" value="875" min="300" max="1200" step="10" inputmode="numeric">
+        <input id="rangeInput" type="number" placeholder="875" min="300" max="1200" step="10" inputmode="numeric">
         <span class="rb-unit">mi</span>
         <button type="button" id="rangeClearBtn" class="rb-clear-field-btn" title="Reset to default" aria-label="Reset to default" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -709,19 +713,31 @@
         <div class="vp-grid">
           <div class="vp-cell">
             <label for="vpHeight">Height (inches)</label>
-            <input id="vpHeight" type="number" inputmode="numeric" placeholder="162" min="0" step="1">
+            <div class="vp-input-wrap">
+              <input id="vpHeight" type="number" inputmode="numeric" placeholder="162" min="0" step="1">
+              <button type="button" id="vpHeightClearBtn" class="rb-clear-field-btn" title="Clear height" aria-label="Clear height" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
           </div>
           <div class="vp-cell">
             <label for="vpWidth">Width (inches)</label>
-            <input id="vpWidth" type="number" inputmode="numeric" placeholder="102" min="0" step="1">
+            <div class="vp-input-wrap">
+              <input id="vpWidth" type="number" inputmode="numeric" placeholder="102" min="0" step="1">
+              <button type="button" id="vpWidthClearBtn" class="rb-clear-field-btn" title="Clear width" aria-label="Clear width" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
           </div>
           <div class="vp-cell">
             <label for="vpLength">Length (inches)</label>
-            <input id="vpLength" type="number" inputmode="numeric" placeholder="840" min="0" step="1">
+            <div class="vp-input-wrap">
+              <input id="vpLength" type="number" inputmode="numeric" placeholder="840" min="0" step="1">
+              <button type="button" id="vpLengthClearBtn" class="rb-clear-field-btn" title="Clear length" aria-label="Clear length" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
           </div>
           <div class="vp-cell">
             <label for="vpWeight">Gross weight (lb)</label>
-            <input id="vpWeight" type="number" inputmode="numeric" placeholder="80000" min="0" step="100">
+            <div class="vp-input-wrap">
+              <input id="vpWeight" type="number" inputmode="numeric" placeholder="80000" min="0" step="100">
+              <button type="button" id="vpWeightClearBtn" class="rb-clear-field-btn" title="Clear weight" aria-label="Clear weight" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
           </div>
         </div>
         <div class="rb-help">Leave a box empty to use the standard value for it. 162 in is 13'6"; 840 in is 70 ft.</div>
@@ -827,27 +843,27 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.17.1"></script>
+<script src="lib/fuelplan.js?v=1.17.2"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.17.1"></script>
+<script src="lib/triptext.js?v=1.17.2"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.17.1"></script>
+<script src="lib/location.js?v=1.17.2"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.17.1"></script>
+<script src="lib/gauge.js?v=1.17.2"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.17.1"></script>
+<script src="lib/extract-version.js?v=1.17.2"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.17.1"></script>
+<script src="lib/autosuggest.js?v=1.17.2"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.17.1"></script>
+<script src="lib/baselayer.js?v=1.17.2"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.17.1"></script>
+<script src="lib/memocache.js?v=1.17.2"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.17.1"></script>
+<script src="lib/routerank.js?v=1.17.2"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.17.1"></script>
+<script src="lib/vehicleprofile.js?v=1.17.2"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.17.1"></script>
+<script src="lib/escape.js?v=1.17.2"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -863,7 +879,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.17.1')
+fetch('lib/fuelplan-adaptive.js?v=1.17.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -874,7 +890,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.17.1')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.17.1"></script>
+<script src="lib/flexible-polyline.js?v=1.17.2"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1034,7 +1050,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.17.1';
+const APP_VERSION = '1.17.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -2442,10 +2458,16 @@ function updateRangeClearVisibility(){
   // in it even though 875 is what it started at.
   $('rangeClearBtn').hidden = !$('rangeInput').value.trim();
 }
+function updateVehicleClearVisibility(){
+  [['vpHeight','vpHeightClearBtn'],['vpWidth','vpWidthClearBtn'],
+   ['vpLength','vpLengthClearBtn'],['vpWeight','vpWeightClearBtn']]
+    .forEach(([inp, btn]) => { $(btn).hidden = !$(inp).value.trim(); });
+}
 function updateFieldClearVisibility(){
   updatePickupClearVisibility();
   updateDeliveryClearVisibility();
   updateRangeClearVisibility();
+  updateVehicleClearVisibility();
 }
 
 function clearTrip(){
@@ -2722,10 +2744,19 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
 
 /* ---- Ranges ---- */
 function readRanges(){
-  let maxRange = Math.round(Number($('rangeInput').value));
-  if(!Number.isFinite(maxRange) || maxRange <= 0) maxRange = ROUTE_DEFAULT_RANGE;
-  maxRange = Math.min(RANGE_MAX, Math.max(RANGE_MIN, maxRange));
-  $('rangeInput').value = maxRange;
+  // Blank stays blank so the greyed 875 placeholder keeps showing — writing
+  // the default back would make it look like a setting the driver chose, and
+  // permanently, since the first plan would fill the box for the rest of the
+  // session. A real typed value that needs clamping IS written back, because
+  // seeing "50" snap to "300" is useful feedback, not a surprise.
+  const raw = $('rangeInput').value.trim();
+  let maxRange = Math.round(Number(raw));
+  if(raw === '' || !Number.isFinite(maxRange) || maxRange <= 0){
+    maxRange = ROUTE_DEFAULT_RANGE;                 // blank = use the default
+  } else {
+    maxRange = Math.min(RANGE_MAX, Math.max(RANGE_MIN, maxRange));
+    $('rangeInput').value = maxRange;               // only correct real input
+  }
   updateRangeClearVisibility();
 
   // Leaving with a full tank (disclosure closed) still means "full relative
@@ -2870,6 +2901,7 @@ function renderVehicle(){
   const errs = vehicleErrors();
   $('vehicleErrors').hidden = !errs.length;
   $('vehicleErrors').innerHTML = errs.map(e => `<div>${e}</div>`).join('');
+  updateVehicleClearVisibility();
 }
 
 document.querySelectorAll('#vehicleSeg button').forEach(b =>
@@ -2878,10 +2910,20 @@ document.querySelectorAll('#vehicleSeg button').forEach(b =>
     saveVehicle(); renderVehicle();
   }));
 [['vpHeight','heightIn'],['vpWidth','widthIn'],['vpLength','lengthIn'],['vpWeight','weightLb']]
-  .forEach(([id, key]) => $(id).addEventListener('input', () => {
-    vehicle[key] = $(id).value.trim();
-    saveVehicle(); renderVehicle();
-  }));
+  .forEach(([id, key]) => {
+    $(id).addEventListener('input', () => {
+      vehicle[key] = $(id).value.trim();
+      saveVehicle(); renderVehicle();
+    });
+    // Clearing a field means "use the standard value for it" — exactly what a
+    // blank vehicle field already means, so no other logic changes.
+    $(id + 'ClearBtn').addEventListener('click', () => {
+      $(id).value = '';
+      vehicle[key] = '';
+      saveVehicle(); renderVehicle();   // renderVehicle refreshes the x buttons
+      $(id).focus();
+    });
+  });
 
 loadVehicle();
 renderVehicle();
@@ -3554,7 +3596,11 @@ $('deliveryClearBtn').addEventListener('click', () => {
   $('deliveryInput').focus();
 });
 $('rangeClearBtn').addEventListener('click', () => {
-  $('rangeInput').value = ROUTE_DEFAULT_RANGE;
+  // Empty the box rather than write 875 into it — under the placeholder model
+  // (v1.17.2) blank IS the default, and readRanges() reads a blank field as
+  // ROUTE_DEFAULT_RANGE. Refilling 875 would put the default back as real
+  // black text, the exact thing the greyed placeholder replaced.
+  $('rangeInput').value = '';
   updateRangeClearVisibility();
   updateClearVisibility();
   $('rangeInput').focus();
