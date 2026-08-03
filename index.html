@@ -3597,7 +3597,7 @@ $('deliveryClearBtn').addEventListener('click', () => {
 });
 $('rangeClearBtn').addEventListener('click', () => {
   // Empty the box rather than write 875 into it — under the placeholder model
-  // (v1.17.2) blank IS the default, and readRanges() reads a blank field as
+  // blank IS the default, and readRanges() reads a blank field as
   // ROUTE_DEFAULT_RANGE. Refilling 875 would put the default back as real
   // black text, the exact thing the greyed placeholder replaced.
   $('rangeInput').value = '';
