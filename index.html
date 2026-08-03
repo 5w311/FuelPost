@@ -374,8 +374,13 @@
   .rb-disclosure{align-self:flex-start;background:none;border:none;padding:2px 0;font-size:12.5px;font-weight:700;color:var(--ta);text-decoration:underline;}
   #routebar [hidden]{display:none;}
   .rb-range-wrap{position:relative;}
-  .rb-range-wrap input{width:100%;padding:8px 58px 8px 10px;border-radius:10px;border:1px solid var(--line);font-size:13px;background:var(--bg);color:var(--ink);}
-  .rb-unit{position:absolute;right:33px;top:50%;transform:translateY(-50%);font-size:11.5px;color:var(--sub);font-weight:700;}
+  /* Default (no x): pad only for "mi", which sits near the right edge — no
+     dead space. When the x is present (.has-clear) the padding widens and
+     "mi" shifts left so the x takes the edge, right beside it. */
+  .rb-range-wrap input{width:100%;padding:8px 34px 8px 10px;border-radius:10px;border:1px solid var(--line);font-size:13px;background:var(--bg);color:var(--ink);}
+  .rb-unit{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:11.5px;color:var(--sub);font-weight:700;}
+  .rb-range-wrap.has-clear input{padding-right:58px;}
+  .rb-range-wrap.has-clear .rb-unit{right:33px;}
 
   /* Fuel gauge — needle, not a fill bar. The E-1/8 segment of the TRACK
      itself is permanently red (a fixed danger marking, like a tachometer
@@ -843,27 +848,27 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.17.2"></script>
+<script src="lib/fuelplan.js?v=1.17.3"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.17.2"></script>
+<script src="lib/triptext.js?v=1.17.3"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.17.2"></script>
+<script src="lib/location.js?v=1.17.3"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.17.2"></script>
+<script src="lib/gauge.js?v=1.17.3"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.17.2"></script>
+<script src="lib/extract-version.js?v=1.17.3"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.17.2"></script>
+<script src="lib/autosuggest.js?v=1.17.3"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.17.2"></script>
+<script src="lib/baselayer.js?v=1.17.3"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.17.2"></script>
+<script src="lib/memocache.js?v=1.17.3"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.17.2"></script>
+<script src="lib/routerank.js?v=1.17.3"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.17.2"></script>
+<script src="lib/vehicleprofile.js?v=1.17.3"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.17.2"></script>
+<script src="lib/escape.js?v=1.17.3"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -879,7 +884,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.17.2')
+fetch('lib/fuelplan-adaptive.js?v=1.17.3')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -890,7 +895,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.17.2')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.17.2"></script>
+<script src="lib/flexible-polyline.js?v=1.17.3"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1050,7 +1055,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.17.2';
+const APP_VERSION = '1.17.3';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -2425,9 +2430,15 @@ const ROUTE_DEFAULT_RANGE = 875;
 
 function routeHasSomethingToClear(){
   const gaugeChanged = !$('pickupRangeField').hidden && gaugeTick !== GAUGE_MAX_TICK;
+  // A blank range field is the DEFAULT now (greyed 875 placeholder), so it is
+  // not "something to clear" — only a typed value that differs from the
+  // default counts. Number('') is 0, which is why the old bare check lit the
+  // Clear-trip button the moment the field was empty.
+  const rangeVal = $('rangeInput').value.trim();
+  const rangeChanged = rangeVal !== '' && Number(rangeVal) !== ROUTE_DEFAULT_RANGE;
   return !!($('pickupInput').value.trim() || $('deliveryInput').value.trim()
     || $('routeResultsBody').innerHTML
-    || Number($('rangeInput').value) !== ROUTE_DEFAULT_RANGE
+    || rangeChanged
     || gaugeChanged);
 }
 
@@ -2453,10 +2464,15 @@ function updateDeliveryClearVisibility(){
   $('deliveryClearBtn').hidden = !$('deliveryInput').value.trim();
 }
 function updateRangeClearVisibility(){
-  // Same rule as pickup/delivery — "is there something here to clear," not
-  // "does this differ from the default." A field showing 875 has content
-  // in it even though 875 is what it started at.
-  $('rangeClearBtn').hidden = !$('rangeInput').value.trim();
+  // The x is offered only when the value is something other than the default
+  // 875 — a blank field (showing the greyed 875 placeholder) or a field
+  // holding exactly 875 is already "at default," with nothing to clear back
+  // to. The .has-clear class tightens the input's right padding when the x is
+  // absent, so "mi" sits at the edge instead of leaving dead space beside it.
+  const val = $('rangeInput').value.trim();
+  const clearable = val !== '' && Number(val) !== ROUTE_DEFAULT_RANGE;
+  $('rangeClearBtn').hidden = !clearable;
+  $('rangeInput').closest('.rb-range-wrap').classList.toggle('has-clear', clearable);
 }
 function updateVehicleClearVisibility(){
   [['vpHeight','vpHeightClearBtn'],['vpWidth','vpWidthClearBtn'],
@@ -2476,7 +2492,7 @@ function clearTrip(){
   $('pickupGpsNote').hidden = true;
   hidePickupGeoError();
 
-  $('rangeInput').value = ROUTE_DEFAULT_RANGE;
+  $('rangeInput').value = '';   // empty, so the greyed 875 placeholder returns — not 875 in black
   // Reuse the disclosure's own collapse behaviour — it already resets the
   // gauge to F and closes the field.
   setPickupRangeOpen(false);
