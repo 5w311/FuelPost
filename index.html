@@ -25,6 +25,14 @@
   }catch(e){}
 })();
 </script>
+<!-- First contact with js.api.here.com is the render-blocking stylesheet
+     below, so DNS + TCP + TLS to a third-party origin all resolve there
+     before any map code starts downloading. These hints start that handshake
+     immediately instead. crossorigin is required: without it the
+     preconnected socket is not reused for these fetches and the hint does
+     nothing. dns-prefetch is the fallback where preconnect is ignored. -->
+<link rel="preconnect" href="https://js.api.here.com" crossorigin>
+<link rel="dns-prefetch" href="https://js.api.here.com">
 <link rel="stylesheet" type="text/css" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css" />
 <style>
   :root{
@@ -819,27 +827,27 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.17.0"></script>
+<script src="lib/fuelplan.js?v=1.17.1"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.17.0"></script>
+<script src="lib/triptext.js?v=1.17.1"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.17.0"></script>
+<script src="lib/location.js?v=1.17.1"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.17.0"></script>
+<script src="lib/gauge.js?v=1.17.1"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.17.0"></script>
+<script src="lib/extract-version.js?v=1.17.1"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.17.0"></script>
+<script src="lib/autosuggest.js?v=1.17.1"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.17.0"></script>
+<script src="lib/baselayer.js?v=1.17.1"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.17.0"></script>
+<script src="lib/memocache.js?v=1.17.1"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.17.0"></script>
+<script src="lib/routerank.js?v=1.17.1"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.17.0"></script>
+<script src="lib/vehicleprofile.js?v=1.17.1"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.17.0"></script>
+<script src="lib/escape.js?v=1.17.1"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -855,7 +863,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.17.0')
+fetch('lib/fuelplan-adaptive.js?v=1.17.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -866,7 +874,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.17.0')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.17.0"></script>
+<script src="lib/flexible-polyline.js?v=1.17.1"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1026,7 +1034,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.17.0';
+const APP_VERSION = '1.17.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1461,18 +1469,31 @@ function passes(row){
   return true;
 }
 
-function render(){
+/* Split so the map never waits on list DOM it may never show.
+   render() owns the shared work — filter, sort, count — and always draws
+   markers; the list is built only when it is actually on screen. */
+let listDirty = true;          // list rows are stale relative to the filters
+let currentFiltered = [];      // what the last render() resolved to
+
+function renderMarkers(filtered){
   markerGroup.removeAll();
-  let count=0;
-  const listEl = document.getElementById('listview');
-  listEl.innerHTML='';
-  const filtered = DATA.filter(passes).sort((a,b)=> a[5]===b[5] ? a[4].localeCompare(b[4]) : a[5].localeCompare(b[5]));
-  filtered.forEach(row=>{
-    count++;
+  // One addObjects() instead of 146 addObject() calls: the group does its
+  // bookkeeping once rather than per marker.
+  const markers = filtered.map(row => {
     const marker = new H.map.DomMarker({lat:row[9], lng:row[10]}, {icon:buildIcon(row)});
     marker.addEventListener('tap', ()=>openSheet(row));
-    markerGroup.addObject(marker);
+    return marker;
+  });
+  if(markers.length) markerGroup.addObjects(markers);
+}
 
+function renderList(filtered){
+  const listEl = document.getElementById('listview');
+  // Built into a fragment and attached once — 146 separate appends each
+  // touch the live document; this touches it a single time. replaceChildren
+  // also subsumes the old innerHTML='' clear.
+  const frag = document.createDocumentFragment();
+  filtered.forEach(row=>{
     const dotColor = row[1]==='TA' ? 'var(--ta)' : (row[1]==='Petro' ? 'var(--petro)' : 'var(--navy)');
     const item = document.createElement('div');
     item.className='list-item';
@@ -1488,20 +1509,39 @@ function render(){
       map.setZoom(12);
       openSheet(row);
     });
-    listEl.appendChild(item);
+    frag.appendChild(item);
   });
   // Zero matches is a real answer, not a blank screen — say it on both
   // surfaces, since the map and the list are each a full view on their own.
-  const none = count === 0;
-  if(none){
+  if(!filtered.length){
     const empty = document.createElement('div');
     empty.className = 'list-empty';
     empty.textContent = 'No network stops match these filters.';
-    listEl.appendChild(empty);
+    frag.appendChild(empty);
   }
+  listEl.replaceChildren(frag);
+  listDirty = false;
+}
+
+function render(){
+  const filtered = DATA.filter(passes).sort((a,b)=> a[5]===b[5] ? a[4].localeCompare(b[4]) : a[5].localeCompare(b[5]));
+  currentFiltered = filtered;
+  renderMarkers(filtered);
+
+  // The count is cheap and must NEVER go stale — it is set on every render
+  // regardless of whether the list was rebuilt.
+  document.getElementById('countNum').textContent = filtered.length;
   const chip = document.getElementById('noMatch');
-  if(chip) chip.hidden = !none;
-  document.getElementById('countNum').textContent = count;
+  if(chip) chip.hidden = filtered.length !== 0;
+
+  // #listview starts display:none and may never be opened. Rebuilding 146
+  // rows behind it on every keystroke of an invisible search is pure waste;
+  // mark it stale instead and let the toggle catch up.
+  if(document.getElementById('listview').classList.contains('show')){
+    renderList(filtered);
+  } else {
+    listDirty = true;
+  }
 }
 
 // Filters button badge — a dot when brand, type or state isn't 'all', so a
@@ -1550,7 +1590,11 @@ document.getElementById('searchClearBtn').addEventListener('click', ()=>{
   inp.focus();
 });
 document.getElementById('listToggle').addEventListener('click', ()=>{
-  document.getElementById('listview').classList.toggle('show');
+  const el = document.getElementById('listview');
+  const opening = !el.classList.contains('show');
+  // Catch up before it becomes visible, so the first paint is already correct.
+  if(opening && listDirty) renderList(currentFiltered);
+  el.classList.toggle('show');
 });
 document.getElementById('legendBtn').addEventListener('click', ()=>{
   document.getElementById('legendCard').classList.toggle('show');

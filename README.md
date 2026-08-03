@@ -115,6 +115,49 @@ follow, not just this one:
 
 ## Version history
 
+### v1.17.1
+
+First-load work reduction. Reported as 5–8s to a visible map; four
+causes were identified, and this addresses the two that are contained.
+
+**Connection hints.** The first contact with `js.api.here.com` was a
+render-blocking stylesheet in `<head>`, so DNS + TCP + TLS to a
+third-party origin all resolved before any map code began downloading.
+A `preconnect` (with `crossorigin` — without it the socket is not
+reused and the hint does nothing) plus a `dns-prefetch` fallback now
+start that handshake immediately.
+
+**Less work at startup.** `render()` is split: `renderMarkers()` always
+runs, `renderList()` only when the list panel is actually on screen.
+The 146 markers go in via one `addObjects()` call instead of 146
+`addObject()` calls, and list rows are built into a `DocumentFragment`
+attached once rather than appended individually. `#listview` starts
+`display:none` and may never be opened, so its rows are now built on
+first open and marked stale on filter changes instead of being rebuilt
+behind a hidden panel on every keystroke.
+
+The count is deliberately set in `render()` itself, never in
+`renderList()` — a count that only updated when the list happened to be
+open was the specific regression risk in this split, and
+`test/renderstructure.test.js` pins it.
+
+Measured app-side (HERE stubbed, so this isolates our code from network
+and the map engine): `render()` **2.7 ms → 1.0 ms**, DOM nodes built at
+first paint **1,209 → 304**, list DOM at startup **907 → 0**. That is
+the (d) component only; total cold load is dominated by the serial
+script chain and the vector engine, neither of which this touches — so
+treat these as the work removed, not as the end-to-end result.
+
+**Not done, on purpose.** Adding `defer` to the `lib/` scripts would
+silently break the app: the inline shims between them are *not*
+deferred, so each shim would capture `module.exports` while still
+empty and every lib module would become `{}` with no error thrown
+anywhere. Any future script-loading work must replace the shim pattern
+first. `test/renderstructure.test.js` now fails if `defer` or `async`
+appears on a lib script. The vector engine also stays — raster paints
+sooner, but vector is required for the satellite and theme switching
+fixed in v1.11.x.
+
 ### v1.17.0
 
 **Amenity filters.** The morning question is "where do I fuel"; the
