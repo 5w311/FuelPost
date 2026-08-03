@@ -115,6 +115,29 @@ follow, not just this one:
 
 ## Version history
 
+### v1.17.3
+
+Two follow-up fixes to the greyed range placeholder from v1.17.2, both
+reported from real use.
+
+**Clear trip no longer refills the range with 875, and an empty range
+no longer summons the Clear-trip button.** Clearing the trip now empties
+the range box so the greyed 875 placeholder returns, instead of writing
+a literal black-text 875. And `routeHasSomethingToClear()` was treating
+a blank box as "changed" — `Number('')` is `0`, which is not
+`ROUTE_DEFAULT_RANGE`, so the bare inequality lit the Clear-trip button
+the instant the field was empty. It now counts the range as changed only
+when a value is typed *and* differs from the default.
+
+**The range clear x now appears only for a non-default value, and sits
+right beside "mi".** Previously the x's slot was always reserved,
+leaving dead space next to "mi" whenever the x was hidden. The x is now
+offered only when the box holds something other than 875 (a blank box or
+one holding exactly 875 is already at default, with nothing to clear).
+When the x is absent, "mi" sits at the edge; a `.has-clear` class
+widens the padding and shifts "mi" left so the x takes the edge right
+next to it only when it's actually shown.
+
 ### v1.17.2
 
 Two fields brought in line with how the custom vehicle inputs already
