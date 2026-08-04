@@ -848,27 +848,27 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.17.3"></script>
+<script src="lib/fuelplan.js?v=1.17.4"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.17.3"></script>
+<script src="lib/triptext.js?v=1.17.4"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.17.3"></script>
+<script src="lib/location.js?v=1.17.4"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.17.3"></script>
+<script src="lib/gauge.js?v=1.17.4"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.17.3"></script>
+<script src="lib/extract-version.js?v=1.17.4"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.17.3"></script>
+<script src="lib/autosuggest.js?v=1.17.4"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.17.3"></script>
+<script src="lib/baselayer.js?v=1.17.4"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.17.3"></script>
+<script src="lib/memocache.js?v=1.17.4"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.17.3"></script>
+<script src="lib/routerank.js?v=1.17.4"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.17.3"></script>
+<script src="lib/vehicleprofile.js?v=1.17.4"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.17.3"></script>
+<script src="lib/escape.js?v=1.17.4"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -884,7 +884,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.17.3')
+fetch('lib/fuelplan-adaptive.js?v=1.17.4')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -895,7 +895,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.17.3')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.17.3"></script>
+<script src="lib/flexible-polyline.js?v=1.17.4"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1055,7 +1055,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.17.3';
+const APP_VERSION = '1.17.4';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1228,6 +1228,21 @@ const map = new H.Map(
   }
 );
 window.addEventListener('resize', () => map.getViewPort().resize());
+// HERE's canvas only re-measures on a real window resize or an explicit
+// resize() call — it cannot see #mapwrap itself change height, which happens
+// whenever the drawer above it grows or shrinks (vehicle Custom/Hazmat
+// sections toggling, validation errors appearing, the routebar collapsing).
+// Miss one of those and the canvas keeps its old size: a dead, unselectable
+// band where the map should be. Observing #mapwrap covers every cause at
+// once, instead of hand-wiring a resize() call at each height-changing site
+// and inevitably missing the next one. Debounced so a mid-animation stream
+// of size changes (the drawer's 250ms collapse) settles into one resize at
+// the final size rather than re-rendering the vector map every frame.
+let mapwrapResizeTimer = 0;
+new ResizeObserver(() => {
+  clearTimeout(mapwrapResizeTimer);
+  mapwrapResizeTimer = setTimeout(() => map.getViewPort().resize(), 120);
+}).observe(document.getElementById('mapwrap'));
 
 const mapEvents = new H.mapevents.MapEvents(map);
 new H.mapevents.Behavior(mapEvents);
@@ -2089,14 +2104,9 @@ function setRoutebarOpen(open){
   $('routebar').classList.toggle('collapsed', !open);
   $('routebarTab').setAttribute('aria-expanded', String(open));
   updateRoutebarSummary();
-  // Collapsing/expanding changes #mapwrap's height (routebar takes less/more
-  // of the flex column), but HERE's own canvas doesn't detect that on its
-  // own — only a real window resize or an explicit call does. Without this,
-  // the map stays rendered at its pre-collapse size and the newly-revealed
-  // area below it is just blank. .rb-body's CSS transition is 250ms; wait
-  // for it to finish rather than resizing mid-animation to a size that's
-  // about to change again.
-  setTimeout(() => map.getViewPort().resize(), 260);
+  // Collapsing/expanding changes #mapwrap's height; the ResizeObserver on
+  // #mapwrap (see map setup) settles the canvas once the 250ms transition
+  // finishes — no per-site resize() call needed here.
 }
 
 $('routebarTab').addEventListener('click', () => setRoutebarOpen(!routebarOpen));

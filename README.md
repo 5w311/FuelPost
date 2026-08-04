@@ -115,6 +115,25 @@ follow, not just this one:
 
 ## Version history
 
+### v1.17.4
+
+**Fixed the dead black band under the map after reopening with Custom
+vehicle selected.** HERE's canvas only re-measures on a real window
+resize or an explicit `resize()` call — it can't see its own container
+change height. Reopening the app with Custom restored meant the map
+initialized while the drawer was tall; tapping Standard then shrank the
+drawer and grew `#mapwrap`, but nothing told the canvas, leaving an
+unselectable black strip where the map should have extended.
+
+Rather than hand-wiring a fourth `resize()` call at the vehicle toggle
+(and a fifth at the error block, a sixth at the hazmat placard list —
+every drawer section that changes height moves the map's edge), a
+`ResizeObserver` on `#mapwrap` now covers the whole class: any change
+to the map area's size settles the canvas, debounced 120ms so the
+drawer's 250ms collapse animation resizes once at its final size
+instead of re-rendering the vector map every frame. The old hand-wired
+260ms `setTimeout` in `setRoutebarOpen()` is superseded and removed.
+
 ### v1.17.3
 
 Two follow-up fixes to the greyed range placeholder from v1.17.2, both
