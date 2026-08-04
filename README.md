@@ -115,6 +115,43 @@ follow, not just this one:
 
 ## Version history
 
+### v1.18.0
+
+**Traffic removed, and the map settings control is now built by this app
+from public API.** Traffic was never part of what FuelPost does, and it
+had caused two bugs in a row. Both traffic entries are gone from the
+layers control; only Map view and Satellite remain.
+
+The removal is the durable fix rather than a fifth patch.
+`H.ui.MapSettingsControl` accepts a config object naming its own
+`baseLayers`, and *omitting* its optional `layers` array is what drops
+the traffic checkboxes. Because the app now names the entries, the "Map
+view" entry carries the themed road layer — `mapnight` in dark mode —
+*before* it is ever tapped. That is the actual root cause retired: every
+fix from v1.11.6 through v1.17.5 reacted *after* HERE's default control
+had already changed the base layer, and each left the control's internal
+selection bookkeeping further out of sync (on-device, taps on "Map view"
+eventually started landing on Satellite). A theme change now rebuilds
+the control instead of writing to `.Ke[0].layer`, an internal minified
+property — the standing liability two earlier fixes worked around.
+
+`lib/trafficlayer.js` and its 14 tests are deleted along with the
+overlay wiring. The `baselayerchange` listener stays, restored to its
+pre-v1.17.5 shape as a cheap backstop via `nextBaseLayer()`; with the
+control pointing at the right layer up front it is expected never to
+fire a correction.
+
+Verified against the vendored HERE build rather than assumed: the config
+form constructs, omitting `layers` renders no traffic entries, the
+default control is already bottom-right so nothing moves, a real tap on
+a dark-configured "Map view" lands on `mapnight`, and rebuilding the
+control while the map is on Satellite neither moves the base layer nor
+mis-highlights the entry.
+
+Note for a future HERE usage review: **traffic API usage now drops to
+zero.** Real-Time Traffic and Traffic Vector Tile will stop appearing in
+the usage report. That is this change working, not a regression.
+
 ### v1.17.5
 
 **Traffic is now an overlay, not a base layer — fixing the traffic

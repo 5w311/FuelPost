@@ -848,29 +848,27 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.17.5"></script>
+<script src="lib/fuelplan.js?v=1.18.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.17.5"></script>
+<script src="lib/triptext.js?v=1.18.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.17.5"></script>
+<script src="lib/location.js?v=1.18.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.17.5"></script>
+<script src="lib/gauge.js?v=1.18.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.17.5"></script>
+<script src="lib/extract-version.js?v=1.18.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.17.5"></script>
+<script src="lib/autosuggest.js?v=1.18.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.17.5"></script>
+<script src="lib/baselayer.js?v=1.18.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/trafficlayer.js?v=1.17.5"></script>
-<script>var TrafficLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.17.5"></script>
+<script src="lib/memocache.js?v=1.18.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.17.5"></script>
+<script src="lib/routerank.js?v=1.18.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.17.5"></script>
+<script src="lib/vehicleprofile.js?v=1.18.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.17.5"></script>
+<script src="lib/escape.js?v=1.18.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -886,7 +884,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.17.5')
+fetch('lib/fuelplan-adaptive.js?v=1.18.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -897,7 +895,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.17.5')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.17.5"></script>
+<script src="lib/flexible-polyline.js?v=1.18.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1057,7 +1055,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.17.5';
+const APP_VERSION = '1.18.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1254,44 +1252,53 @@ const ui = H.ui.UI.createDefault(map, defaultLayers);
 // (routing, gauge, plan text), so the scale bar should read the same way.
 ui.setUnitSystem(H.ui.UnitSystem.IMPERIAL);
 
-// HERE's own built-in layer switcher (the "mapsettings" control behind the
-// layers icon, bottom-right) builds its "Map view" entry once at creation,
-// always pointing at the light defaultLayers.vector.normal.map — this
-// app's dark variant was never one of its options. Every attempt so far at
-// correcting the *map's* layer after HERE's own control changed it
-// (v1.11.6–v1.11.8) fixed the immediate symptom but left the control's own
-// internal bookkeeping of "what's currently selected" out of sync with
-// reality — confirmed on-device across the previous few patches: tapping
-// its "Map view" entry started landing back on Satellite instead of either
-// the light or dark map, not just the wrong one, once enough of those
-// out-of-band corrections had happened. Rather than reacting after HERE's
-// control does something, this
-// keeps its own "Normal Map" entry pointed at whichever of map/mapnight
-// matches the current theme *before* it's ever tapped, so a tap on it is
-// correct the first time and there's nothing left for our own code to
-// react to.
+// The layer switcher (the "mapsettings" control behind the layers icon,
+// bottom-right) is built by this app rather than taken from createDefault,
+// which is what finally ends a long-running class of bug.
 //
-// This reaches past the public API into an internal, unminified-name-
-// unstable property — verified against this specific mapsjs-ui.js build's
-// own source (H.ui.MapSettingsControl stores its base-layer entries on
-// `.Ke`, an array of {label, layer} objects; index 0 is provably "Normal
-// Map" for this app's HARP engine, since that's the first entry HERE's own
-// internal layer-list builder pushes). ui.getControl('mapsettings') itself
-// is real, documented, public HERE API — only the `.Ke[0].layer` reach-in
-// is unofficial. Wrapped defensively: if a future HERE build's internal
-// shape differs, this silently no-ops rather than throwing, and the
-// setNormalBaseLayer() correction below — kept as-is — is still there as a
-// fallback for whatever this doesn't catch.
-function syncMapSettingsControlLayer(theme){
-  try {
-    const settings = ui.getControl('mapsettings');
-    const target = theme === 'dark' ? defaultLayers.vector.normal.mapnight : defaultLayers.vector.normal.map;
-    if(settings && Array.isArray(settings.Ke) && settings.Ke[0] && settings.Ke[0].layer){
-      settings.Ke[0].layer = target;
-    }
-  } catch(err) {} // best-effort only — see the long comment above
+// HERE's default control builds a "Map view" entry hardcoded to the light
+// defaultLayers.vector.normal.map, with no idea this app has a dark
+// variant, and adds traffic entries whose base layer
+// (vector.normal.traffic) exists in the light style ONLY — 3.1 dropped
+// 3.0's trafficnight, so in dark mode there is nothing dark to correct to.
+// Four patches across v1.11.6–v1.17.5 all reacted *after* that control had
+// already changed the base layer, and each one left its internal "what's
+// selected" bookkeeping further out of sync with reality (on-device, taps
+// on "Map view" eventually started landing on Satellite). The previous fix
+// also had to reach into `.Ke[0].layer`, an internal minified property —
+// a standing liability that retires with this change.
+//
+// H.ui.MapSettingsControl's config object is public, documented API:
+// `baseLayers` names the entries, and OMITTING `layers` is what removes
+// the traffic checkboxes — traffic isn't part of what this app does.
+// Because the Map view entry carries the correct themed layer before it's
+// ever tapped, there is nothing left to correct after the fact.
+//
+// Verified against the vendored mapsjs-ui build, not assumed: the config
+// form constructs without throwing; omitting `layers` renders "Map view /
+// Satellite" and no traffic entries; the default control is already
+// BOTTOM_RIGHT so nothing moves on screen; a real tap on a dark-configured
+// "Map view" lands on mapnight; and rebuilding the control while the map
+// sits on Satellite neither moves the base layer nor mis-highlights the
+// entry (the fresh control reads the map's actual layer).
+function buildMapSettings(theme){
+  return new H.ui.MapSettingsControl({
+    baseLayers: [
+      { label: 'Map view', layer: theme === 'dark'
+          ? defaultLayers.vector.normal.mapnight
+          : defaultLayers.vector.normal.map },
+      { label: 'Satellite', layer: defaultLayers.raster.satellite.map }
+    ],
+    alignment: H.ui.LayoutAlignment.BOTTOM_RIGHT
+  });
 }
-syncMapSettingsControlLayer(initialTheme);
+// Swap only the mapsettings control — the zoom control, scale bar and the
+// IMPERIAL unit system above all come from createDefault and stay.
+function installMapSettings(theme){
+  ui.removeControl('mapsettings');
+  ui.addControl('mapsettings', buildMapSettings(theme));
+}
+installMapSettings(initialTheme);
 
 function updateThemeToggleUI(){
   const mode = storedTheme() || 'system';
@@ -1324,21 +1331,11 @@ updateThemeToggleUI(); // map was already constructed on the right layer above �
 // first. Center/zoom don't carry over across setBaseLayer on their own
 // (HERE's own guidance) — preserved here too.
 let baseLayerCorrectionTimer = null;
-// Marks a base-layer change as this app's own doing, so the baselayerchange
-// listener below can tell it apart from HERE's settings control acting. Set
-// immediately before setBaseLayer and consumed by the listener on the very
-// same tick — the SDK dispatches baselayerchange synchronously from inside
-// setBaseLayer (verified against the real mapsjs build, not assumed) — so
-// the marker cannot leak past its own event. Without this the listener
-// would treat its own correction as "the driver landed on a road layer,
-// traffic must be off" and strip the traffic overlay it had just added.
-let ownBaseLayerChange = null;
 function setNormalBaseLayer(layer){
   clearTimeout(baseLayerCorrectionTimer);
   baseLayerCorrectionTimer = setTimeout(() => {
     if(map.getBaseLayer() === layer) return;
     const c = map.getCenter(), z = map.getZoom();
-    ownBaseLayerChange = layer;
     map.setBaseLayer(layer);
     map.setCenter(c);
     map.setZoom(z);
@@ -1361,10 +1358,14 @@ function setNormalBaseLayer(layer){
 // the assumption the map is always showing one of the two road layers.
 function switchTheme(theme){
   document.documentElement.setAttribute('data-theme', theme);
-  // Runs regardless of which layer is showing: HERE's own "Map view" entry
-  // should point at the right themed layer for whenever it IS tapped, even
-  // if the map is on Satellite right now and we're not touching it.
-  syncMapSettingsControlLayer(theme);
+  // Runs regardless of which layer is showing: the "Map view" entry should
+  // point at the right themed layer for whenever it IS tapped, even if the
+  // map is on Satellite right now and we're not touching it. Rebuilding the
+  // control is how that entry is re-pointed — no internal-property write.
+  // Confirmed safe on the real build: a rebuild while the map is on
+  // Satellite leaves the base layer alone and the fresh control highlights
+  // Satellite correctly.
+  installMapSettings(theme);
   const next = BaseLayer.nextBaseLayer(map.getBaseLayer(), theme, {
     light: defaultLayers.vector.normal.map,
     dark:  defaultLayers.vector.normal.mapnight
@@ -1373,46 +1374,22 @@ function switchTheme(theme){
   updateThemeToggleUI();
 }
 
-// HERE's own built-in layer switcher (the layers icon, bottom-right) has no
-// idea this app is themed. Two confirmed bugs from that one blind spot:
-// its "Map" entry drops a dark-mode driver back to the light style, and its
-// traffic toggles set the base to vector.normal.traffic — for which 3.1
-// ships NO night variant at all (3.0's trafficnight was dropped), so in
-// dark mode there is nothing dark to correct to. The traffic answer is to
-// stop using traffic as a BASE layer entirely: keep the themed road layer
-// underneath and draw traffic as an overlay on top (HERE's own documented
-// recommendation), which composes with either theme. All of that policy
-// lives in TrafficLayer.trafficCorrection() — this listener just applies
-// whatever it returns, through the same deferred/idempotent path as every
-// other base-layer change here.
-//
-// Reentrancy: setNormalBaseLayer()'s own setBaseLayer fires this listener
-// again. That pass MUST be ignored, not re-evaluated — trafficCorrection()
-// reads "on a road layer" as "traffic is off", so the correction fired
-// right after honouring a traffic toggle would strip the overlay it had
-// just added. ownBaseLayerChange (set in setNormalBaseLayer, synchronous
-// dispatch, consumed here) is what tells those self-inflicted events apart
-// from HERE's control acting. External events therefore settle in at most
-// one correction: honour-traffic schedules one deferred setBase whose own
-// event is consumed, and the add/remove guards on trafficOn keep the
-// overlay calls idempotent — no ping-pong.
-let trafficOn = false;
+// Backstop only. With the control above owning its own entries and pointing
+// "Map view" at the themed layer directly, nothing should ever land the map
+// on the wrong road layer for the theme — so this is expected never to fire
+// a correction. It's kept because it's nearly free and because this exact
+// class of bug has recurred: if it ever DOES fire, the custom control isn't
+// doing its job and that's worth knowing rather than silently papering over.
+// nextBaseLayer() returns null both for "already correct" and for "not a
+// themed road layer at all" (Satellite/Terrain — never yank the driver off
+// those), so the self-inflicted event from setNormalBaseLayer's own
+// setBaseLayer terminates here on the very next pass.
 map.addEventListener('baselayerchange', () => {
-  if(ownBaseLayerChange && map.getBaseLayer() === ownBaseLayerChange){
-    ownBaseLayerChange = null;   // our own correction landing — right by construction
-    return;
-  }
-  const act = TrafficLayer.trafficCorrection(map.getBaseLayer(), resolvedTheme(), {
+  const next = BaseLayer.nextBaseLayer(map.getBaseLayer(), resolvedTheme(), {
     light: defaultLayers.vector.normal.map,
-    dark: defaultLayers.vector.normal.mapnight,
-    trafficBase: defaultLayers.vector.normal.traffic,
-    trafficIncidents: defaultLayers.vector.normal.trafficincidents,
-    trafficOverlay: defaultLayers.vector.traffic.map
+    dark:  defaultLayers.vector.normal.mapnight
   });
-  if(!act) return;
-  if(act.setBase) setNormalBaseLayer(act.setBase);
-  if(act.addOverlay && !trafficOn){ map.addLayer(act.addOverlay); trafficOn = true; }
-  if(act.removeOverlay && trafficOn){ map.removeLayer(act.removeOverlay); trafficOn = false; }
+  if(next) setNormalBaseLayer(next);
 });
 
 // Only follow live system changes when the driver hasn't made an explicit
