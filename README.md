@@ -115,6 +115,32 @@ follow, not just this one:
 
 ## Version history
 
+### v1.17.5
+
+**Traffic is now an overlay, not a base layer — fixing the traffic
+toggle forcing the map light in dark mode.** HERE 3.1's
+`vector.normal` collection ships `traffic` and `trafficincidents` base
+layers in the light style only (3.0's `trafficnight` was dropped), so
+when HERE's settings control toggled traffic it set the map onto a
+light base with nothing dark to correct to. The structural change:
+the app never lets traffic BE the base. When either traffic toggle
+fires, the base is forced back to the themed road layer and traffic is
+drawn as the transparent `vector.traffic.map` flow overlay on top —
+HERE's own documented recommendation — which composes with either
+theme (and with Satellite). Toggling traffic off removes the overlay.
+
+The policy lives in `lib/trafficlayer.js` (`trafficCorrection()`, pure,
+14 tests), applied by the `baselayerchange` listener — which also
+subsumes the old satellite-era "light map in dark mode" correction.
+One repair to the wiring as originally specified: the listener now
+ignores base-layer changes the app itself scheduled (marked in
+`setNormalBaseLayer()`, consumed on the same synchronous dispatch).
+Without that, the listener's own deferred correction re-entered it,
+read "on a road layer" as "traffic is off," and stripped the overlay
+~60ms after adding it — in both themes — and a theme switch with
+traffic on did the same. Verified the SDK dispatches `baselayerchange`
+synchronously against the real vendored build.
+
 ### v1.17.4
 
 **Fixed the dead black band under the map after reopening with Custom
