@@ -848,27 +848,29 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.17.4"></script>
+<script src="lib/fuelplan.js?v=1.17.5"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.17.4"></script>
+<script src="lib/triptext.js?v=1.17.5"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.17.4"></script>
+<script src="lib/location.js?v=1.17.5"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.17.4"></script>
+<script src="lib/gauge.js?v=1.17.5"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.17.4"></script>
+<script src="lib/extract-version.js?v=1.17.5"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.17.4"></script>
+<script src="lib/autosuggest.js?v=1.17.5"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.17.4"></script>
+<script src="lib/baselayer.js?v=1.17.5"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.17.4"></script>
+<script src="lib/trafficlayer.js?v=1.17.5"></script>
+<script>var TrafficLayer = module.exports; module = { exports: {} };</script>
+<script src="lib/memocache.js?v=1.17.5"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.17.4"></script>
+<script src="lib/routerank.js?v=1.17.5"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.17.4"></script>
+<script src="lib/vehicleprofile.js?v=1.17.5"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.17.4"></script>
+<script src="lib/escape.js?v=1.17.5"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -884,7 +886,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.17.4')
+fetch('lib/fuelplan-adaptive.js?v=1.17.5')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -895,7 +897,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.17.4')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.17.4"></script>
+<script src="lib/flexible-polyline.js?v=1.17.5"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1055,7 +1057,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.17.4';
+const APP_VERSION = '1.17.5';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1322,11 +1324,21 @@ updateThemeToggleUI(); // map was already constructed on the right layer above �
 // first. Center/zoom don't carry over across setBaseLayer on their own
 // (HERE's own guidance) — preserved here too.
 let baseLayerCorrectionTimer = null;
+// Marks a base-layer change as this app's own doing, so the baselayerchange
+// listener below can tell it apart from HERE's settings control acting. Set
+// immediately before setBaseLayer and consumed by the listener on the very
+// same tick — the SDK dispatches baselayerchange synchronously from inside
+// setBaseLayer (verified against the real mapsjs build, not assumed) — so
+// the marker cannot leak past its own event. Without this the listener
+// would treat its own correction as "the driver landed on a road layer,
+// traffic must be off" and strip the traffic overlay it had just added.
+let ownBaseLayerChange = null;
 function setNormalBaseLayer(layer){
   clearTimeout(baseLayerCorrectionTimer);
   baseLayerCorrectionTimer = setTimeout(() => {
     if(map.getBaseLayer() === layer) return;
     const c = map.getCenter(), z = map.getZoom();
+    ownBaseLayerChange = layer;
     map.setBaseLayer(layer);
     map.setCenter(c);
     map.setZoom(z);
@@ -1361,20 +1373,46 @@ function switchTheme(theme){
   updateThemeToggleUI();
 }
 
-// HERE's own built-in layer switcher (the layers icon, bottom-right) offers
-// a "Map" entry that's hardcoded to defaultLayers.vector.normal.map — the
-// *light* style — with no idea this app also has a mapnight variant or is
-// currently in dark mode. Picking Satellite and then Map again from that
-// control silently drops back to light even with dark mode on. It doesn't
-// expose any way to hand it a dark alternative, so this corrects after the
-// fact instead: baselayerchange fires for every base-layer change,
-// switchTheme()'s own included, so on each one — if the resolved theme is
-// dark and HERE just set the light "Map" layer — swap it back to mapnight,
-// via the same deferred/idempotent path everything else here uses.
+// HERE's own built-in layer switcher (the layers icon, bottom-right) has no
+// idea this app is themed. Two confirmed bugs from that one blind spot:
+// its "Map" entry drops a dark-mode driver back to the light style, and its
+// traffic toggles set the base to vector.normal.traffic — for which 3.1
+// ships NO night variant at all (3.0's trafficnight was dropped), so in
+// dark mode there is nothing dark to correct to. The traffic answer is to
+// stop using traffic as a BASE layer entirely: keep the themed road layer
+// underneath and draw traffic as an overlay on top (HERE's own documented
+// recommendation), which composes with either theme. All of that policy
+// lives in TrafficLayer.trafficCorrection() — this listener just applies
+// whatever it returns, through the same deferred/idempotent path as every
+// other base-layer change here.
+//
+// Reentrancy: setNormalBaseLayer()'s own setBaseLayer fires this listener
+// again. That pass MUST be ignored, not re-evaluated — trafficCorrection()
+// reads "on a road layer" as "traffic is off", so the correction fired
+// right after honouring a traffic toggle would strip the overlay it had
+// just added. ownBaseLayerChange (set in setNormalBaseLayer, synchronous
+// dispatch, consumed here) is what tells those self-inflicted events apart
+// from HERE's control acting. External events therefore settle in at most
+// one correction: honour-traffic schedules one deferred setBase whose own
+// event is consumed, and the add/remove guards on trafficOn keep the
+// overlay calls idempotent — no ping-pong.
+let trafficOn = false;
 map.addEventListener('baselayerchange', () => {
-  if(resolvedTheme() === 'dark' && map.getBaseLayer() === defaultLayers.vector.normal.map){
-    setNormalBaseLayer(defaultLayers.vector.normal.mapnight);
+  if(ownBaseLayerChange && map.getBaseLayer() === ownBaseLayerChange){
+    ownBaseLayerChange = null;   // our own correction landing — right by construction
+    return;
   }
+  const act = TrafficLayer.trafficCorrection(map.getBaseLayer(), resolvedTheme(), {
+    light: defaultLayers.vector.normal.map,
+    dark: defaultLayers.vector.normal.mapnight,
+    trafficBase: defaultLayers.vector.normal.traffic,
+    trafficIncidents: defaultLayers.vector.normal.trafficincidents,
+    trafficOverlay: defaultLayers.vector.traffic.map
+  });
+  if(!act) return;
+  if(act.setBase) setNormalBaseLayer(act.setBase);
+  if(act.addOverlay && !trafficOn){ map.addLayer(act.addOverlay); trafficOn = true; }
+  if(act.removeOverlay && trafficOn){ map.removeLayer(act.removeOverlay); trafficOn = false; }
 });
 
 // Only follow live system changes when the driver hasn't made an explicit
