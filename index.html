@@ -848,27 +848,27 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.18.0"></script>
+<script src="lib/fuelplan.js?v=1.18.1"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.18.0"></script>
+<script src="lib/triptext.js?v=1.18.1"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.18.0"></script>
+<script src="lib/location.js?v=1.18.1"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.18.0"></script>
+<script src="lib/gauge.js?v=1.18.1"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.18.0"></script>
+<script src="lib/extract-version.js?v=1.18.1"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.18.0"></script>
+<script src="lib/autosuggest.js?v=1.18.1"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.18.0"></script>
+<script src="lib/baselayer.js?v=1.18.1"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.18.0"></script>
+<script src="lib/memocache.js?v=1.18.1"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.18.0"></script>
+<script src="lib/routerank.js?v=1.18.1"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.18.0"></script>
+<script src="lib/vehicleprofile.js?v=1.18.1"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.18.0"></script>
+<script src="lib/escape.js?v=1.18.1"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -884,7 +884,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.18.0')
+fetch('lib/fuelplan-adaptive.js?v=1.18.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -895,7 +895,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.18.0')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.18.0"></script>
+<script src="lib/flexible-polyline.js?v=1.18.1"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1055,7 +1055,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.18.0';
+const APP_VERSION = '1.18.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1294,9 +1294,23 @@ function buildMapSettings(theme){
 }
 // Swap only the mapsettings control — the zoom control, scale bar and the
 // IMPERIAL unit system above all come from createDefault and stay.
+//
+// The scalebar re-add is load-bearing, not tidying. `alignment` picks which
+// anchor a control goes into, but position WITHIN that anchor is DOM child
+// order — and the bottom-right anchor is a horizontal row shared by the
+// scale bar and this button. createDefault leaves it as [scalebar, button],
+// putting the button hard against the right edge; re-adding the button
+// alone made it [button, scalebar], which slid it left to roughly the
+// centre of a phone screen — which shipped, and was reported. Re-adding
+// the scale bar after it restores the original order and so the original
+// position. The zoom control sits in a different, vertical anchor and is
+// unaffected — measured, not assumed, along with the resulting geometry
+// matching createDefault's to the pixel across repeated rebuilds.
 function installMapSettings(theme){
   ui.removeControl('mapsettings');
   ui.addControl('mapsettings', buildMapSettings(theme));
+  const scalebar = ui.removeControl('scalebar');
+  if(scalebar) ui.addControl('scalebar', scalebar);
 }
 installMapSettings(initialTheme);
 

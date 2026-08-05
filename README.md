@@ -115,6 +115,30 @@ follow, not just this one:
 
 ## Version history
 
+### v1.18.1
+
+**Fixed the layers button moving to the bottom centre of the map.**
+v1.18.0's custom map settings control landed in the right *anchor* but
+the wrong *slot* within it. `alignment` only picks which anchor a
+control joins; position inside that anchor is DOM child order — and
+HERE's bottom-right anchor is a horizontal row shared by the scale bar
+and the layers button. `createDefault` leaves it as
+`[scale bar, button]`, which puts the button hard against the right
+edge. Removing and re-adding only the button made it
+`[button, scale bar]`, sliding it left to roughly the centre of a phone
+screen. Re-adding the scale bar after the button restores the original
+order, and with it the original position.
+
+The zoom control lives in a separate, vertical anchor and was never
+affected. Verified by measuring real geometry against the vendored HERE
+build — every control returns to `createDefault`'s pixel positions, and
+stays there across repeated theme rebuilds. Also confirmed the scale
+bar still reads in miles after being re-added, since
+`ui.setUnitSystem(IMPERIAL)` runs before the swap.
+
+The v1.18.0 check that missed this trusted the control's own
+`getAlignment()` report instead of measuring where it actually rendered.
+
 ### v1.18.0
 
 **Traffic removed, and the map settings control is now built by this app
