@@ -848,27 +848,27 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.18.1"></script>
+<script src="lib/fuelplan.js?v=1.18.2"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.18.1"></script>
+<script src="lib/triptext.js?v=1.18.2"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.18.1"></script>
+<script src="lib/location.js?v=1.18.2"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.18.1"></script>
+<script src="lib/gauge.js?v=1.18.2"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.18.1"></script>
+<script src="lib/extract-version.js?v=1.18.2"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.18.1"></script>
+<script src="lib/autosuggest.js?v=1.18.2"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.18.1"></script>
+<script src="lib/baselayer.js?v=1.18.2"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.18.1"></script>
+<script src="lib/memocache.js?v=1.18.2"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.18.1"></script>
+<script src="lib/routerank.js?v=1.18.2"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.18.1"></script>
+<script src="lib/vehicleprofile.js?v=1.18.2"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.18.1"></script>
+<script src="lib/escape.js?v=1.18.2"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -884,7 +884,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.18.1')
+fetch('lib/fuelplan-adaptive.js?v=1.18.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -895,7 +895,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.18.1')
   .catch(err => console.error('Failed to load lib/fuelplan-adaptive.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.18.1"></script>
+<script src="lib/flexible-polyline.js?v=1.18.2"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1055,7 +1055,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.18.1';
+const APP_VERSION = '1.18.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1710,7 +1710,6 @@ function loadLocatePref(){
 function saveLocatePref(){
   try { localStorage.setItem(LOCATE_KEY, locationOff ? 'off' : 'on'); } catch(_){}
 }
-let pickupLocatePending = false;  // pickup's "use my location" is waiting on startWatch()'s first fix
 let locateBtnPending = false;     // STOPS locate button is waiting on startWatch()'s first fix, to recenter once
 
 const locateGroup = new H.map.Group();
@@ -1788,17 +1787,15 @@ function setPickupLocateBusy(busy){
   $('pickupLocateBtn').disabled = busy;
 }
 
-// Shared failure path for both surfaces — never leaves a button dead, both
-// stay tappable to retry.
+// Failure path for the map's own tracking — never leaves the button dead,
+// it stays tappable to retry. The pickup field's one-shot reports its own
+// errors inline next to that field (see its handler); a tracking failure on
+// the map must not post an error onto a form the driver may not even be
+// looking at.
 function failLocation(msg){
   setLocateBtnState('off');
   showLocateError(msg);
   locateBtnPending = false;
-  if(pickupLocatePending){
-    pickupLocatePending = false;
-    setPickupLocateBusy(false);
-    showPickupGeoError(msg);
-  }
 }
 
 function handleLocationError(err){
@@ -1835,6 +1832,12 @@ function renderLocationDot(){
   }
 }
 
+// One place for the geolocation request options both surfaces use. High
+// accuracy because a fuel plan is measured from this position; maximumAge
+// lets the platform hand back a very recent fix instead of spinning the
+// radio up again for a tap that follows another tap.
+const GEO_OPTIONS = { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 };
+
 function startWatch(){
   if(watchId != null) return;
   // Single choke point: nothing — not the visibilitychange resume, not the
@@ -1861,10 +1864,9 @@ function startWatch(){
         map.setCenter({ lat: liveFix.lat, lng: liveFix.lng });
         map.setZoom(11);
       }
-      if(pickupLocatePending) resolvePickupLocate();
     },
     err => handleLocationError(err),
-    { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 }
+    GEO_OPTIONS
   );
 }
 
@@ -1902,12 +1904,13 @@ function setLocationOff(off){
   if(off){
     // Leave nothing behind: no watch draining battery, no dot on the map,
     // and no cached position for anything else to read. The station sheet's
-    // "From you" row and the pickup GPS button both key off liveFix, so
-    // clearing it is what actually makes "off" mean off.
+    // "From you" row keys off liveFix, so clearing it is what actually makes
+    // "off" mean off. (The pickup field's locate button is deliberately not
+    // covered by this — it takes its own one-shot fix on demand and never
+    // reads or writes liveFix.)
     clearWatch();
     watchPaused = false;
     locateBtnPending = false;
-    pickupLocatePending = false;
     liveFix = null;
     locateGroup.removeAll();
     setLocateBtnState(null);
@@ -3126,8 +3129,7 @@ function setPickupFromGps(lat, lng, label){
   updatePickupClearVisibility();
 }
 
-function applyPickupGpsFix(){
-  const { lat, lng } = liveFix;
+function applyPickupGpsFix(lat, lng){
   reverseGeocode(lat, lng)
     .then(label => setPickupFromGps(lat, lng, label))
     // Reverse geocoding failing doesn't mean the fix failed — fall back to
@@ -3136,27 +3138,35 @@ function applyPickupGpsFix(){
     .finally(() => setPickupLocateBusy(false));
 }
 
-function resolvePickupLocate(){
-  pickupLocatePending = false;
-  applyPickupGpsFix();
-}
-
+// A ONE-SHOT position read, deliberately independent of the map's location
+// toggle. That toggle governs continuous tracking — the watch, the dot, the
+// battery drain — which is what a driver switches off. Filling this field is
+// a different thing: a single explicit tap asking for one address, right
+// now. Gating it on the toggle meant a driver who had turned tracking off
+// was told "Location is off — turn it on from Stops", sending them to
+// another screen to enable a background feature they didn't want, just to
+// fill in one box.
+//
+// So this never calls startWatch(): no tracking starts, no map dot appears,
+// and liveFix is left alone. Leaving liveFix alone is the load-bearing part
+// — setLocationOff() clears it precisely so "off" means off for everything
+// keyed on it (the station sheet's "From you" row, the dot), and writing a
+// fix back here would quietly resurrect those.
 $('pickupLocateBtn').addEventListener('click', () => {
   hidePickupGeoError();
-  // Honour the driver's choice rather than silently overriding it from a
-  // different screen — but never dead-end: say exactly how to turn it back on.
-  if(locationOff){
-    showPickupGeoError('Location is off — turn it on from Stops, or type the address.');
-    return;
-  }
-  if(liveFix){
-    setPickupLocateBusy(true);
-    applyPickupGpsFix();
+  if(!window.isSecureContext || !navigator.geolocation){
+    showPickupGeoError(geoErrorMessage(null));
     return;
   }
   setPickupLocateBusy(true);
-  pickupLocatePending = true;
-  startWatch();
+  navigator.geolocation.getCurrentPosition(
+    pos => applyPickupGpsFix(pos.coords.latitude, pos.coords.longitude),
+    err => {
+      setPickupLocateBusy(false);
+      showPickupGeoError(geoErrorMessage(err));
+    },
+    GEO_OPTIONS
+  );
 });
 
 // Editing a field after it was pre-confirmed (GPS, or a tapped autosuggest

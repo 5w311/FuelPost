@@ -115,6 +115,33 @@ follow, not just this one:
 
 ## Version history
 
+### v1.18.2
+
+**The pickup field's locate button now takes its own one-shot fix,
+instead of refusing when map tracking is switched off.** Tapping it with
+tracking off answered *"Location is off — turn it on from Stops, or type
+the address"*, which sent the driver to a different screen to enable a
+continuous background feature they had deliberately turned off, purely
+to fill in one box.
+
+Those are two different things, and they are no longer wired together.
+The locate button on the map governs *continuous tracking* — the watch,
+the dot, the battery drain — and that is what the press-and-hold toggle
+switches off. Filling the pickup address is a single explicit tap asking
+for one position, once. It now calls `getCurrentPosition()` directly.
+
+It never starts the watch, never draws the map dot, and deliberately
+never writes `liveFix` — `setLocationOff()` clears `liveFix` precisely so
+"off" means off for everything keyed on it (the station sheet's "From
+you" row), and writing a fix back from here would quietly resurrect
+that. The toggle itself is left untouched by using the button.
+
+Real geolocation failures are still reported, inline beside the field
+and in the caller's own words (permission denied, timed out), with the
+button re-enabled so a second tap retries. A tracking failure on the map
+no longer posts an error into the route form, which was possible before
+when the two shared a failure path.
+
 ### v1.18.1
 
 **Fixed the layers button moving to the bottom centre of the map.**
