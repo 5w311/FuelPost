@@ -115,6 +115,44 @@ follow, not just this one:
 
 ## Version history
 
+### v1.19.0
+
+**A plan with zero required stops now shows the fuel options instead of
+a dead end.** "No fuel stop needed" answers a question about the tractor
+— but some loads require arriving full (a reefer running through
+detention, a receiver's own rule), and the app can't know that. And the
+Covenant network is sparse enough — 9 states with zero network stops,
+8 more with exactly one — that topping off near a stop is often right
+even when this load doesn't demand it. So on this one case the app stops
+gatekeeping and shows what's available, letting the driver apply the
+constraint it can't see:
+
+- the range you arrive with,
+- every network stop on the route (mile marker, miles before delivery,
+  miles off route), presented as *available*, not recommended — rows tap
+  through to the existing station sheet, and a dense lane collapses to
+  the last-chance stop with the rest behind an "N more" line,
+- and the nearest network stop to the delivery itself, searched across
+  ALL stops, not just on-route ones — shown even (especially) when the
+  route has none. The same "no fuel required" plan means something very
+  different delivering near Atlanta (42 mi to fuel) than into North
+  Dakota (364 mi), and only the app knows which one you're in.
+
+Share trip carries the arrival range and the nearest-to-delivery figure
+on these plans. These stops are deliberately NOT drawn on the map as
+plan markers — that would read as a plan the driver didn't ask for; the
+station pins already exist in Stops mode.
+
+The logic is `lib/shorttrip.js` (`shortTripOptions()`, pure, 17 tests),
+loaded through the same function-scope fetch shim as
+`fuelplan-adaptive.js` and for the same reason (its `require` of
+fuelplan.js would collide with the classic-script globals).
+**Long-trip planning is deliberately unchanged** — the
+`plannedStopCount` guard returns `applies:false` for any plan with
+required stops, and the required-stops path renders exactly as before
+(browser-tested). Don't go looking for an algorithm change; there
+isn't one.
+
 ### v1.18.2
 
 **The pickup field's locate button now takes its own one-shot fix,

@@ -101,6 +101,25 @@ const t8 = formatTripText({
 ok('a second gap after the continuation is named',
    t8.includes('SECOND gap between mile 450 and mile 1325'));
 
+console.log('\n=== short-trip extras (only ever set on a no-stop plan) ===');
+const t9 = formatTripText({
+  pickupAddr: 'Orlando FL', deliveryAddr: 'Richmond Hill GA',
+  plan: [], gap: null, finalLegMiles: 241, detourMax: 8,
+  arrivalRange: 634, nearestToDelivery: { name: 'TA Baldwin', miles: 121 }
+});
+ok('carries the arrival range', t9.includes('You arrive with about 634 mi of range.'));
+ok('carries nearest network fuel to delivery',
+   t9.includes('Nearest network fuel to delivery: TA Baldwin, 121 mi away.'));
+ok('still leads with the no-stop line, extras after it',
+   t9.indexOf('No fuel stop needed') < t9.indexOf('You arrive with about'));
+ok('no-stop output without the fields is unchanged (t2 has neither line)',
+   !t2.includes('You arrive with about') && !t2.includes('Nearest network fuel'));
+ok('a plan WITH stops never grows these lines even if the fields leak through',
+   (() => { const t = formatTripText({ pickupAddr:'A', deliveryAddr:'B',
+     plan:[{name:'S1', mile:100, legMiles:100, tier:'prim'}], gap:null, finalLegMiles:50,
+     arrivalRange: 634, nearestToDelivery: { name:'X', miles: 2 } });
+     return !t.includes('You arrive with about') && !t.includes('Nearest network fuel'); })());
+
 console.log('\n=== missing optional fields do not throw or print garbage ===');
 const t4 = formatTripText({ pickupAddr:'A', deliveryAddr:'B', maxRange:800, plan:[], gap:null });
 ok('minimal input does not throw', typeof t4 === 'string');
