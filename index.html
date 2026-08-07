@@ -571,6 +571,19 @@
      faded and dashed so the map never makes a gapped route look routine. */
   .rpin.resume{opacity:.6;border-style:dashed;background:#E8D9B0;}
   .rpin.endpt{background:var(--navy);color:#fff;font-size:9.5px;letter-spacing:.3px;}
+  /* Available-but-not-planned stops (the no-required-stop case). Smaller
+     than .rpin and EMPTY — the numbers on .rpin/.rpin.resume mean driving
+     order within a plan, and these aren't a sequence; size and emptiness
+     are what separate "option" from "stop here."
+     The white fill is FIXED, deliberately NOT var(--surface): this marker
+     sits on HERE map tiles, not app chrome, so it does not follow the app
+     theme. Contrast was measured against both tile sets — white fill +
+     grey dashed border is the only pairing where something always carries
+     the shape (border 4.4:1 on near-white day tiles, fill 16.5:1 on
+     near-black night tiles). --surface in dark mode is #161B22, which
+     measures 1.0:1 against night tiles — the pin would vanish. Don't
+     "fix" this to a theme variable. */
+  .rpin.available{width:20px;height:20px;background:#FFFFFF;border:2px dashed #5B6B7D;box-shadow:0 1px 4px rgba(0,0,0,.3);opacity:.85;}
 
   /* HERE Maps UI: keep default zoom + copyright, just make sure it sits above our map */
   .H_l_bottom{z-index:390;}
@@ -861,27 +874,27 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.19.0"></script>
+<script src="lib/fuelplan.js?v=1.19.1"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.19.0"></script>
+<script src="lib/triptext.js?v=1.19.1"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.19.0"></script>
+<script src="lib/location.js?v=1.19.1"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.19.0"></script>
+<script src="lib/gauge.js?v=1.19.1"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.19.0"></script>
+<script src="lib/extract-version.js?v=1.19.1"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.19.0"></script>
+<script src="lib/autosuggest.js?v=1.19.1"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.19.0"></script>
+<script src="lib/baselayer.js?v=1.19.1"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.19.0"></script>
+<script src="lib/memocache.js?v=1.19.1"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.19.0"></script>
+<script src="lib/routerank.js?v=1.19.1"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.19.0"></script>
+<script src="lib/vehicleprofile.js?v=1.19.1"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.19.0"></script>
+<script src="lib/escape.js?v=1.19.1"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -897,7 +910,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.19.0')
+fetch('lib/fuelplan-adaptive.js?v=1.19.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -914,7 +927,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.19.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.19.0')
+fetch('lib/shorttrip.js?v=1.19.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -925,7 +938,7 @@ fetch('lib/shorttrip.js?v=1.19.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.19.0"></script>
+<script src="lib/flexible-polyline.js?v=1.19.1"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1085,7 +1098,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.19.0';
+const APP_VERSION = '1.19.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -2072,8 +2085,9 @@ function selectRouteOption(idx){
   if(!o || !routeOptionCtx) return;
   routeOptionIdx = idx;
   const { ranges, pickup, delivery, nearPickup } = routeOptionCtx;
-  drawRoute(o.poly, o.result.plan, o.result.resume && o.result.resume.plan);
-  renderPlan(o.result, o.routeMiles, ranges, pickup, delivery, nearPickup, o.poly);
+  drawRoute(o.poly, o.result.plan, o.result.resume && o.result.resume.plan,
+            o.shortTrip.applies ? o.shortTrip.onRoute : []);
+  renderPlan(o.result, o.routeMiles, ranges, pickup, delivery, nearPickup, o.shortTrip);
 }
 
 // One row per option: label, miles, and its fuel outcome stated up front.
@@ -2095,8 +2109,16 @@ function routeSwitcherHtml(){
   h += '<div class="rr-opts">';
   routeOptions.forEach((o, i) => {
     const stops = o.result.plan.length;
+    // A no-stop card names its own available count (cached per option when
+    // the load was planned — see planLoad) so two short routes can be
+    // compared on the fuel dimension: "261 mi · no stop needed — 1
+    // available" vs "297 mi · no stop needed — 3 available" are different
+    // answers, and without the count they'd read identical. Zero available
+    // stays plain, and cards for routes that require stops are unchanged.
+    const avail = (o.shortTrip && o.shortTrip.applies) ? o.shortTrip.onRoute.length : 0;
     const outcome = o.result.ok
-      ? (stops === 0 ? 'no stop needed' : stops + (stops === 1 ? ' stop' : ' stops'))
+      ? (stops === 0 ? 'no stop needed' + (avail ? ` — ${avail} available` : '')
+                     : stops + (stops === 1 ? ' stop' : ' stops'))
       : 'no network fuel';
     h += `<button type="button" class="rr-opt${i === routeOptionIdx ? ' sel' : ''}${
       o.result.ok ? '' : ' gapped'}" data-opt="${i}" aria-pressed="${i === routeOptionIdx}">
@@ -2357,7 +2379,7 @@ async function truckRoute(orig, dest){
 }
 
 /* ---- Map drawing ---- */
-function drawRoute(poly, chosen, resumeStops){
+function drawRoute(poly, chosen, resumeStops, availableStops){
   routeGroup.removeAll();
 
   const ls = new H.geo.LineString();
@@ -2366,6 +2388,23 @@ function drawRoute(poly, chosen, resumeStops){
     style: { lineWidth: 6, strokeColor: 'rgba(0,87,184,.75)', lineJoin: 'round' }
   });
   routeGroup.addObject(line);
+
+  // Available-but-not-planned stops (the no-required-stop case only —
+  // empty on every other plan). Drawn FIRST, right after the polyline:
+  // later objects draw on top in HERE, so anything planned (endpoints,
+  // numbered stops) stays visually above anything merely available where
+  // they overlap. No number inside — numbers on .rpin/.rpin.resume mean
+  // driving order within a plan, and these aren't a sequence. The bounds
+  // fit below is deliberately NOT expanded for these: each one is within
+  // the detour tolerance of the polyline, so it's already on screen.
+  (availableStops || []).forEach(s => {
+    const w = document.createElement('div');
+    w.innerHTML = `<div><div class="rpin available"></div></div>`;
+    const m = new H.map.DomMarker({ lat: s.lat, lng: s.lng },
+      { icon: new H.map.DomIcon(w.firstElementChild) });
+    m.addEventListener('tap', () => openSheet(s.row));
+    routeGroup.addObject(m);
+  });
 
   // Same reason as buildIcon()'s wrapper: HERE's own inline transform on
   // the element passed to DomIcon would clobber .rpin's anchor translate
@@ -2594,7 +2633,7 @@ function nearPickupLine(stop){
 // nearPickup is stopsNearPickup(pickup, NEAR_PICKUP_RADIUS_GAP) — always
 // computed for the confirmed pickup, whether or not the plan actually gaps,
 // because it also drives the quiet top-off tip on a successful plan.
-function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, poly){
+function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, shortTrip){
   const stops = result.plan;
   // Post-gap stops ride along in planStops so their rows tap through to the
   // same station sheet — indices continue after the reachable stops.
@@ -2609,19 +2648,10 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, po
   // network fuel IS available and let the driver apply the constraint the
   // app can't see. shortTripOptions' plannedStopCount guard is the scope
   // boundary: any plan with required stops gets {applies:false} and every
-  // other path renders exactly as before. Computed only on the zero-stop
-  // path so route switching on long plans never pays the projection cost.
-  const shortTrip = (result.ok && stops.length === 0 && poly)
-    ? ShortTrip.shortTripOptions({
-        routeMiles,
-        projected: FuelPlan.projectStops(poly, FUEL_STOPS, DETOUR_TIERS[0]),
-        maxRange: ranges.maxRange,
-        startBurned: ranges.startBurned,
-        plannedStopCount: stops.length,
-        allStops: FUEL_STOPS,
-        delivery
-      })
-    : { applies: false };
+  // other path renders exactly as before. Computed once per route option
+  // when the load is planned (see planLoad) — never here — so switching
+  // routes stays pure re-render and long plans never pay projection cost.
+  shortTrip = shortTrip || { applies: false };
   // Everything Share trip needs, captured at render time from the values
   // actually planned on — including the CONFIRMED matched addresses rather
   // than the raw text the driver typed.
@@ -2671,8 +2701,15 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, po
 
   // "No fuel stop needed" must never head a plan that didn't complete — with
   // zero reachable stops that reads as the opposite of what happened.
+  // On the no-stop case the headline also carries how many stops ARE
+  // available ("available", matching the section heading it points at — not
+  // "optional" or "recommended"), so the count is visible without expanding
+  // the panel. The collapsed tab summary reuses this same string, so it
+  // inherits the count from here — nothing appends it twice. Zero available
+  // stays plain: "0 available" is noise.
+  const availCount = shortTrip.applies ? shortTrip.onRoute.length : 0;
   const headline = result.ok
-    ? (stops.length === 0 ? 'No fuel stop needed'
+    ? (stops.length === 0 ? 'No fuel stop needed' + (availCount ? ` — ${availCount} available` : '')
                           : stops.length + (stops.length === 1 ? ' fuel stop' : ' fuel stops'))
     : (stops.length === 0 ? 'No network fuel plan for this load'
                           : stops.length + (stops.length === 1 ? ' fuel stop' : ' fuel stops') + ', then a gap');
@@ -3735,7 +3772,25 @@ async function planLoad(pickup, delivery){
         result.resume = FuelPlanAdaptive.planBeyondGap(
           r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, result.gap, result.detourMax);
       }
-      return { poly: r.poly, label: r.label, routeMiles, result };
+      // Short-trip options are computed ONCE here, per option, and cached on
+      // the option object — three consumers need them (the map's available
+      // markers, the panel, and each route card's own available count), and
+      // switching between routes must stay pure re-render with no repeated
+      // projection work. Only options whose own plan is empty pay the
+      // projection cost; a route with required stops gets the cheap
+      // {applies:false} and renders exactly as it always has.
+      const shortTrip = (result.ok && result.plan.length === 0)
+        ? ShortTrip.shortTripOptions({
+            routeMiles,
+            projected: FuelPlan.projectStops(r.poly, FUEL_STOPS, DETOUR_TIERS[0]),
+            maxRange: ranges.maxRange,
+            startBurned: ranges.startBurned,
+            plannedStopCount: result.plan.length,
+            allStops: FUEL_STOPS,
+            delivery
+          })
+        : { applies: false };
+      return { poly: r.poly, label: r.label, routeMiles, result, shortTrip };
     });
 
     routeOptions = RouteRank.dedupeOptions(RouteRank.rankRouteOptions(options));
