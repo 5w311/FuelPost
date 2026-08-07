@@ -161,6 +161,15 @@
   .pin-term{background:var(--navy);border-radius:6px;transform:rotate(0deg);}
   .pin-term span{transform:none;font-size:9px;}
   .pin.excl:after{content:'';position:absolute;top:-5px;right:-5px;width:12px;height:12px;background:var(--gold);border-radius:50%;border:2px solid #fff;transform:rotate(45deg);}
+  /* Route mode's available-but-not-planned stops: the SAME station pin,
+     faded. .65 measured for the white letter's legibility on both tile
+     styles (T on TA fill: 3.7:1 day, 9.8:1 night) while staying visibly
+     subordinate next to a full-opacity pin. Full 28px size kept — it
+     doubles as the tap target; shape (teardrop vs the plan pins' round
+     gold .rpin) plus opacity is what separates "option" from "stop here".
+     The Exclusive star fades with the pin, keeping map and panel list in
+     agreement on tier. */
+  .pin-faded{opacity:.65;}
 
   #sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:18px 18px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.2);transform:translateY(100%);transition:transform .25s ease;z-index:600;max-height:72%;display:flex;flex-direction:column;}
   #sheet.show{transform:translateY(0);}
@@ -571,19 +580,9 @@
      faded and dashed so the map never makes a gapped route look routine. */
   .rpin.resume{opacity:.6;border-style:dashed;background:#E8D9B0;}
   .rpin.endpt{background:var(--navy);color:#fff;font-size:9.5px;letter-spacing:.3px;}
-  /* Available-but-not-planned stops (the no-required-stop case). Smaller
-     than .rpin and EMPTY — the numbers on .rpin/.rpin.resume mean driving
-     order within a plan, and these aren't a sequence; size and emptiness
-     are what separate "option" from "stop here."
-     The white fill is FIXED, deliberately NOT var(--surface): this marker
-     sits on HERE map tiles, not app chrome, so it does not follow the app
-     theme. Contrast was measured against both tile sets — white fill +
-     grey dashed border is the only pairing where something always carries
-     the shape (border 4.4:1 on near-white day tiles, fill 16.5:1 on
-     near-black night tiles). --surface in dark mode is #161B22, which
-     measures 1.0:1 against night tiles — the pin would vanish. Don't
-     "fix" this to a theme variable. */
-  .rpin.available{width:20px;height:20px;background:#FFFFFF;border:2px dashed #5B6B7D;box-shadow:0 1px 4px rgba(0,0,0,.3);opacity:.85;}
+  /* Available-but-not-planned stops render as FADED STATION PINS
+     (.pin-faded, defined with the .pin family) — the dashed-circle marker
+     that lived here read as an abstract shape, not a fuel stop. */
 
   /* HERE Maps UI: keep default zoom + copyright, just make sure it sits above our map */
   .H_l_bottom{z-index:390;}
@@ -874,27 +873,27 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.19.1"></script>
+<script src="lib/fuelplan.js?v=1.19.2"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.19.1"></script>
+<script src="lib/triptext.js?v=1.19.2"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.19.1"></script>
+<script src="lib/location.js?v=1.19.2"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.19.1"></script>
+<script src="lib/gauge.js?v=1.19.2"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.19.1"></script>
+<script src="lib/extract-version.js?v=1.19.2"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.19.1"></script>
+<script src="lib/autosuggest.js?v=1.19.2"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.19.1"></script>
+<script src="lib/baselayer.js?v=1.19.2"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.19.1"></script>
+<script src="lib/memocache.js?v=1.19.2"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.19.1"></script>
+<script src="lib/routerank.js?v=1.19.2"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.19.1"></script>
+<script src="lib/vehicleprofile.js?v=1.19.2"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.19.1"></script>
+<script src="lib/escape.js?v=1.19.2"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -910,7 +909,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.19.1')
+fetch('lib/fuelplan-adaptive.js?v=1.19.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -927,7 +926,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.19.1')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.19.1')
+fetch('lib/shorttrip.js?v=1.19.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -938,7 +937,7 @@ fetch('lib/shorttrip.js?v=1.19.1')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.19.1"></script>
+<script src="lib/flexible-polyline.js?v=1.19.2"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1098,7 +1097,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.19.1';
+const APP_VERSION = '1.19.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1487,17 +1486,23 @@ const BAYS_MANY     = 4;
 let state = {brand:'all', type:'all', st:'all', q:'',
              parking:false, showers:false, service:false, scale:false};
 
-function buildIcon(row){
+function buildIcon(row, opts){
   const brand = row[1], type = row[11];
   let cls = brand==='TA' ? 'pin-ta' : (brand==='Petro' ? 'pin-petro' : 'pin-term');
   let label = brand==='TA' ? 'T' : (brand==='Petro' ? 'P' : 'HQ');
   let exclClass = type==='excl' ? 'excl' : '';
+  // opts.faded: Route mode's available-but-not-planned stops reuse this
+  // exact pin at reduced opacity — same teardrop, same brand colour, same
+  // letter — so the map speaks the visual language the driver already
+  // knows from Stops mode instead of a competing abstract shape. Every
+  // existing caller passes one argument and renders exactly as before.
+  const faded = opts && opts.faded ? ' pin-faded' : '';
   const wrap = document.createElement('div');
   // HERE writes its own inline transform:matrix(...) directly onto whatever
   // element is passed to DomIcon, which would silently overwrite a CSS
   // transform declared on that same element — so .pin-anchor's translate
   // has to live one level deeper, on a plain wrapper HERE never touches.
-  wrap.innerHTML = `<div><div class="pin-anchor"><div class="pin ${cls} ${exclClass}"><span>${label}</span></div></div></div>`;
+  wrap.innerHTML = `<div><div class="pin-anchor"><div class="pin ${cls} ${exclClass}${faded}"><span>${label}</span></div></div></div>`;
   return new H.map.DomIcon(wrap.firstElementChild);
 }
 
@@ -2393,15 +2398,16 @@ function drawRoute(poly, chosen, resumeStops, availableStops){
   // empty on every other plan). Drawn FIRST, right after the polyline:
   // later objects draw on top in HERE, so anything planned (endpoints,
   // numbered stops) stays visually above anything merely available where
-  // they overlap. No number inside — numbers on .rpin/.rpin.resume mean
-  // driving order within a plan, and these aren't a sequence. The bounds
+  // they overlap. Each is the Stops-mode station pin via the shared
+  // buildIcon (which handles the wrapper nesting that protects the anchor
+  // transform), just faded — a faded teardrop says "network station, not
+  // in your plan" in the language the driver already knows, where the
+  // abstract dashed circle it replaced read as nothing at all. The bounds
   // fit below is deliberately NOT expanded for these: each one is within
   // the detour tolerance of the polyline, so it's already on screen.
   (availableStops || []).forEach(s => {
-    const w = document.createElement('div');
-    w.innerHTML = `<div><div class="rpin available"></div></div>`;
     const m = new H.map.DomMarker({ lat: s.lat, lng: s.lng },
-      { icon: new H.map.DomIcon(w.firstElementChild) });
+      { icon: buildIcon(s.row, { faded: true }) });
     m.addEventListener('tap', () => openSheet(s.row));
     routeGroup.addObject(m);
   });

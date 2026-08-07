@@ -115,6 +115,30 @@ follow, not just this one:
 
 ## Version history
 
+### v1.19.2
+
+**The available-stop marker is now a faded station pin, not a dashed
+circle.** v1.19.1's abstract circle read as "tiny cloud" — an abstract
+shape carries no meaning on a map. Available stops now render as the
+Stops-mode pin the driver already knows — same teardrop, same TA blue /
+Petro green, same T / P letter, the Exclusive gold star included — at
+0.65 opacity, via an optional `faded` flag on the shared `buildIcon()`
+(every existing caller passes one argument and renders exactly as
+before).
+
+0.65 was measured, not guessed: the white letter clears legibility on
+both tile styles (T on TA fill: 3.7:1 day, 9.8:1 night) while staying
+visibly subordinate next to a full-opacity pin. The pin keeps its full
+28px — it doubles as the tap target — and separation from planned stops
+never depended on weight anyway: planned stops are round, gold and
+numbered; station pins are teardrops with letters. Opacity is what
+marks one as not-in-your-plan.
+
+Nothing else about v1.19.1 moves: the available counts in the summary
+lines, the panel list, draw order (planned things still sit on top),
+the bounds fit, and the planning logic are all unchanged. Stops-mode
+pins render at full opacity exactly as before.
+
 ### v1.19.1
 
 **Available network stops now appear on the map, and every "no stop
