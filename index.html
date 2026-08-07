@@ -873,27 +873,27 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.19.2"></script>
+<script src="lib/fuelplan.js?v=1.19.3"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.19.2"></script>
+<script src="lib/triptext.js?v=1.19.3"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.19.2"></script>
+<script src="lib/location.js?v=1.19.3"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.19.2"></script>
+<script src="lib/gauge.js?v=1.19.3"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.19.2"></script>
+<script src="lib/extract-version.js?v=1.19.3"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.19.2"></script>
+<script src="lib/autosuggest.js?v=1.19.3"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.19.2"></script>
+<script src="lib/baselayer.js?v=1.19.3"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.19.2"></script>
+<script src="lib/memocache.js?v=1.19.3"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.19.2"></script>
+<script src="lib/routerank.js?v=1.19.3"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.19.2"></script>
+<script src="lib/vehicleprofile.js?v=1.19.3"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.19.2"></script>
+<script src="lib/escape.js?v=1.19.3"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -909,7 +909,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.19.2')
+fetch('lib/fuelplan-adaptive.js?v=1.19.3')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -926,7 +926,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.19.2')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.19.2')
+fetch('lib/shorttrip.js?v=1.19.3')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -937,7 +937,7 @@ fetch('lib/shorttrip.js?v=1.19.2')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.19.2"></script>
+<script src="lib/flexible-polyline.js?v=1.19.3"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1097,7 +1097,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.19.2';
+const APP_VERSION = '1.19.3';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1269,7 +1269,7 @@ const map = new H.Map(
     pixelRatio: window.devicePixelRatio || 1
   }
 );
-window.addEventListener('resize', () => map.getViewPort().resize());
+window.addEventListener('resize', () => { map.getViewPort().resize(); syncMapPadding(); });
 // HERE's canvas only re-measures on a real window resize or an explicit
 // resize() call — it cannot see #mapwrap itself change height, which happens
 // whenever the drawer above it grows or shrinks (vehicle Custom/Hazmat
@@ -1283,7 +1283,7 @@ window.addEventListener('resize', () => map.getViewPort().resize());
 let mapwrapResizeTimer = 0;
 new ResizeObserver(() => {
   clearTimeout(mapwrapResizeTimer);
-  mapwrapResizeTimer = setTimeout(() => map.getViewPort().resize(), 120);
+  mapwrapResizeTimer = setTimeout(() => { map.getViewPort().resize(); syncMapPadding(); }, 120);
 }).observe(document.getElementById('mapwrap'));
 
 const mapEvents = new H.mapevents.MapEvents(map);
@@ -2090,9 +2090,16 @@ function selectRouteOption(idx){
   if(!o || !routeOptionCtx) return;
   routeOptionIdx = idx;
   const { ranges, pickup, delivery, nearPickup } = routeOptionCtx;
+  // Panel FIRST, map second — deliberately. drawRoute ends with a bounds
+  // fit that reads the results panel's height as viewport padding
+  // (syncMapPadding), and the panel's height changes with every render:
+  // this plan's stop list is not the last one's. Drawing before rendering
+  // would fit the route around the PREVIOUS panel's footprint. The two are
+  // otherwise independent — renderPlan touches only the DOM, drawRoute
+  // only the map.
+  renderPlan(o.result, o.routeMiles, ranges, pickup, delivery, nearPickup, o.shortTrip);
   drawRoute(o.poly, o.result.plan, o.result.resume && o.result.resume.plan,
             o.shortTrip.applies ? o.shortTrip.onRoute : []);
-  renderPlan(o.result, o.routeMiles, ranges, pickup, delivery, nearPickup, o.shortTrip);
 }
 
 // One row per option: label, miles, and its fuel outcome stated up front.
@@ -2157,10 +2164,49 @@ let rrCollapsed = false;
 // other places — setMode() switching back to Stops, clearTrip() — and
 // without this, the body class could get stuck on from a previous
 // collapsed session and wrongly shift the controls in Stops mode too.
+// The results panel sits absolutely over the map's bottom edge (up to 62%
+// of it), and HERE fits routes to the full element — which centred every
+// route in area the driver can't see, pushing it low in the visible strip
+// with the delivery end often behind the panel. ViewPort.setPadding() is
+// HERE's mechanism for exactly this ("padding results in a shifted map
+// center which is the visual center of the padded area" — verified on the
+// real build: a fit with bottom padding lands the bounds centre exactly at
+// the visible strip's centre, zoom included). Measured from the DOM's
+// actual state, same philosophy as syncRrTabShowing below: whoever changes
+// the panel doesn't need to know about the viewport. Only bottom padding —
+// nothing covers the other edges. In Stops mode the panel is never .show,
+// so this reads 0 and the map behaves exactly as before.
+// The bounds drawRoute last fitted, kept so padding changes can re-run the
+// same fit. setPadding alone shifts the centre but keeps the zoom — a real
+// re-fit is what makes collapsing the panel actually use the freed space,
+// and what corrects the fit after the panel's own height settles (its
+// max-height is 62% of #mapwrap, which GROWS ~250ms after a plan renders
+// when the trip drawer collapses — so the height at fit time is not the
+// height it ends up at). Cleared whenever the route it described is.
+let lastFitBounds = null;
+function syncMapPadding(){
+  const p = $('routeResults');
+  const h = (p && p.classList.contains('show'))
+    ? Math.round(p.getBoundingClientRect().height) : 0;
+  const prev = map.getViewPort().padding;
+  map.getViewPort().setPadding(0, 0, h, 0);
+  // Re-fit only when the padded area actually changed, only while a route
+  // is on screen, and only in Route mode — switching to Stops must never
+  // yank the map to the route's bounds.
+  if(lastFitBounds && Math.abs(h - ((prev && prev.bottom) || 0)) > 1
+     && document.body.classList.contains('route-mode')){
+    map.getViewModel().setLookAtData({ bounds: lastFitBounds });
+  }
+}
 function syncRrTabShowing(){
   const rr = $('routeResults');
   document.body.classList.toggle('rr-tab-showing',
     rr.classList.contains('show') && rr.classList.contains('rr-collapsed'));
+  // Every caller of this IS a panel-footprint change (show/hide from
+  // setMode and clearTrip, collapse/expand from setRrCollapsed, fresh
+  // content via showRoutePanel→setRrCollapsed) — so the viewport padding
+  // rides the same recompute-from-DOM path instead of trusting call sites.
+  syncMapPadding();
 }
 function setRrCollapsed(collapsed){
   rrCollapsed = collapsed;
@@ -2169,6 +2215,14 @@ function setRrCollapsed(collapsed){
   syncRrTabShowing();
 }
 $('rrTab').addEventListener('click', () => setRrCollapsed(!rrCollapsed));
+// Collapse/expand animates .rr-body-wrap's max-height over 250ms, so the
+// synchronous measurement in syncRrTabShowing captures a height that's
+// about to change. Re-measure when the transition settles — this is the
+// "measure both before and after" answer: the sync pass keeps padding
+// roughly right during the animation, this pass makes it exact after.
+$('routeResultsBodyWrap').addEventListener('transitionend', e => {
+  if(e.propertyName === 'max-height') syncMapPadding();
+});
 
 // "1234 South 3200 West, Salt Lake City, UT 84104" -> "Salt Lake City, UT"
 function shortAddr(label){
@@ -2448,7 +2502,14 @@ function drawRoute(poly, chosen, resumeStops, availableStops){
     routeGroup.addObject(m);
   });
 
-  map.getViewModel().setLookAtData({ bounds: line.getBoundingBox() });
+  // Fit with CURRENT padding, not whatever was last set — the panel's
+  // height changes with every render (selectRouteOption shows the panel
+  // before calling here for exactly this reason). The bounds are kept so
+  // later padding changes (panel collapse, the drawer settling) re-run
+  // this same fit — see syncMapPadding.
+  syncMapPadding();
+  lastFitBounds = line.getBoundingBox();
+  map.getViewModel().setLookAtData({ bounds: lastFitBounds });
 }
 
 /* ---- Result rendering ---- */
@@ -2620,6 +2681,7 @@ function clearTrip(){
   planStops = [];
   clearRouteOptions();
 
+  lastFitBounds = null;     // before the sync below — no re-fit to a route being cleared
   $('routeResultsBody').innerHTML = '';
   $('routeResults').classList.remove('show');
   syncRrTabShowing();
@@ -2922,6 +2984,7 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
   planStops = [];
   // No routing call was made, so there are no alternatives to offer.
   clearRouteOptions();
+  lastFitBounds = null;   // no route at this fill level — nothing to re-fit to
   const limpMiles = FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS); // 125 — the one reserved tick
   lastTrip = {
     pickupAddr: pickup.label,
@@ -3681,6 +3744,7 @@ async function startPlan(){
 
   btn.disabled = true;
   btn.textContent = 'Looking up…';
+  lastFitBounds = null;   // the old route is going away — don't re-fit to it
   showRoutePanel('<div class="rr-note">Looking up both addresses…</div>');
   routeGroup.removeAll();
 
@@ -3805,6 +3869,7 @@ async function planLoad(pickup, delivery){
     // switcher renders nothing and ranked[0] is the only plan there was.
     selectRouteOption(0);
   } catch(err){
+    lastFitBounds = null;   // whatever was fitted no longer matches what's shown
     setRoutebarOpen(true);
     showRoutePanel(!navigator.onLine ? offlineNote('Lost signal mid-plan.')
       : `<div class="rr-note"><b>Could not plan this load.</b><br>${
