@@ -115,6 +115,34 @@ follow, not just this one:
 
 ## Version history
 
+### v1.19.3
+
+**Routes now centre in the visible map area, not the full element.**
+The results panel covers up to 62% of the map's bottom, and nothing told
+HERE that — so every bounds fit centred the route in area the driver
+couldn't see, pushing it low with the delivery end often behind the
+panel. `ViewPort.setPadding()` is HERE's mechanism for exactly this
+(verified on the real build: a fit with bottom padding lands the bounds
+centre at the visible strip's exact centre, zoom included).
+
+`syncMapPadding()` measures the panel and sets bottom padding, wired
+through `syncRrTabShowing()` — whose callers are precisely the panel's
+show/hide/collapse transitions — plus the resize paths and a
+`transitionend` re-measure so the 250ms collapse animation settles into
+an exact value rather than a mid-animation one.
+
+Two things testing surfaced beyond the plain wiring. First, the plan
+flow renders the panel *before* drawing the map now (the two were
+independent), because the fit must measure this plan's panel, not the
+previous one's. Second, the fitted bounds are kept and the fit re-runs
+when the padding materially changes — padding alone shifts the centre
+but keeps the zoom, and a real re-fit is what makes collapsing the
+panel actually use the freed space. It also corrects for the panel's
+own height settling ~250ms after a plan renders (its 62% cap tracks
+`#mapwrap`, which grows when the trip drawer collapses). The re-fit is
+gated to Route mode with a route on screen: switching to Stops never
+yanks the map, and Stops mode still runs with zero padding, unchanged.
+
 ### v1.19.2
 
 **The available-stop marker is now a faded station pin, not a dashed
