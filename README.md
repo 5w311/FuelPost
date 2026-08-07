@@ -115,6 +115,17 @@ follow, not just this one:
 
 ## Version history
 
+### v1.19.4
+
+**Route fits back off a step.** Driver feedback on v1.19.3: zoom out a
+smidge. A uniform 32px `MAP_FIT_MARGIN` now rides on every viewport
+edge while the results panel is up (the panel height still adds to the
+bottom), so a fitted route gets breathing room instead of running hard
+against the edges — about a quarter zoom level on a phone — and the
+endpoint pin graphics can no longer clip at the viewport boundary (the
+fit knows the polyline's geometry, not the ~30px pins drawn over its
+ends). Stops mode keeps zero padding on all edges, exactly as before.
+
 ### v1.19.3
 
 **Routes now centre in the visible map area, not the full element.**
