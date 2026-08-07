@@ -115,6 +115,39 @@ follow, not just this one:
 
 ## Version history
 
+### v1.19.1
+
+**Available network stops now appear on the map, and every "no stop
+needed" line counts them.** Two additions to v1.19.0's no-required-stop
+case, from driver feedback; the scope boundary does not move — plans
+with required stops draw exactly as before.
+
+On the map, each available stop gets a small dashed marker: 20px vs the
+plan pins' 30px, no number inside (numbers mean driving order within a
+plan; these aren't a sequence), drawn beneath anything planned so
+endpoints sit on top where they overlap. The white fill is fixed,
+deliberately not themed: the marker sits on HERE map tiles, not app
+chrome, and white-fill-plus-grey-dashed-border is the only measured
+pairing where something always carries the shape (border 4.4:1 on
+near-white day tiles, fill 16.5:1 on near-black night tiles —
+`--surface` in dark mode measures 1.0:1 there and would vanish).
+Tapping a marker opens the same station sheet. The bounds fit is
+unchanged — every available stop is within detour tolerance of the
+polyline, so it's already on screen.
+
+The three "no stop needed" strings now carry the count ("No fuel stop
+needed — 2 available"): the expanded headline, the collapsed tab
+summary (which reuses the headline string, so no duplication), and —
+most usefully — each route option card, so two short routes can be
+compared on the fuel dimension instead of reading identically. Zero
+available stays plain; "0 available" is noise.
+
+To serve all three consumers (map, panel, cards) without repeated work,
+`shortTripOptions()` is now computed once per route option when the
+load is planned and cached on the option object — only for options
+whose own plan is empty, honouring v1.19.0's rule that long plans never
+pay the projection cost, and route switching stays pure re-render.
+
 ### v1.19.0
 
 **A plan with zero required stops now shows the fuel options instead of
