@@ -22,9 +22,37 @@ ok('renderList() does NOT set the count',
 ok('the no-match map chip is also set from render(), not the list',
    /noMatch'\);\s*\n\s*if\(chip\) chip\.hidden = filtered\.length !== 0/.test(body));
 
-console.log('\n=== markers are batched, list is lazy ===');
-ok('markers added with one addObjects call', /markerGroup\.addObjects\(markers\)/.test(html));
-ok('no per-marker addObject in the stops renderer', !/markerGroup\.addObject\(/.test(html));
+console.log('\n=== markers are STATIC: built once, filtered by visibility ===');
+// The 146 stops never change within a session. Rebuilding the marker layer
+// per filter interaction — every search keystroke — was seven full teardown
+// cycles for the word "memphis". These pin the shape that prevents it.
+const addObjectsCalls = (html.match(/markerGroup\.addObjects\(/g) || []).length;
+ok('exactly ONE markerGroup.addObjects in the whole file (the startup build)',
+   addObjectsCalls === 1, String(addObjectsCalls));
+ok('no markerGroup.removeAll anywhere — the layer is never torn down',
+   !/markerGroup\.removeAll/.test(html));
+ok('no per-marker addObject on the stops group', !/markerGroup\.addObject\(/.test(html));
+const rmFn = html.slice(html.indexOf('function renderMarkers('));
+const rmBody = rmFn.slice(0, rmFn.indexOf('\n}\n') + 3);
+ok('renderMarkers constructs NOTHING (no DomMarker, no buildIcon in its body)',
+   !/new H\.map\.DomMarker/.test(rmBody) && !/buildIcon/.test(rmBody), rmBody.slice(0, 200));
+ok('the render path is a visibility flip from the filtered set',
+   /setVisibility\(show\.has\(row\)\)/.test(rmBody));
+ok('the one-time build keys markers by row reference',
+   /STOP_MARKERS\.set\(row, marker\)/.test(html));
+
+console.log('\n=== pin icons are shared per appearance ===');
+const biFn = html.slice(html.indexOf('function buildIcon('));
+const biBody = biFn.slice(0, biFn.indexOf('\n}\n') + 3);
+ok('buildIcon consults the icon cache BEFORE constructing',
+   biBody.indexOf('iconCache.get(') !== -1
+   && biBody.indexOf('iconCache.get(') < biBody.indexOf('new H.map.DomIcon'),
+   'cache lookup missing or after construction');
+ok('a cache miss stores what it built', /iconCache\.set\(key, icon\)/.test(biBody));
+ok('the cache key distinguishes exclusive and faded variants',
+   /const key = `\$\{cls\} \$\{exclClass\}\$\{faded\}`/.test(biBody), biBody.slice(0, 300));
+
+console.log('\n=== list is lazy ===');
 ok('list rows built into a DocumentFragment', /createDocumentFragment\(\)/.test(html));
 ok('fragment attached in a single replaceChildren', /listEl\.replaceChildren\(frag\)/.test(html));
 ok('render() skips list work when the panel is hidden',
