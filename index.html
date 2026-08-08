@@ -873,27 +873,27 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.19.4"></script>
+<script src="lib/fuelplan.js?v=1.19.5"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.19.4"></script>
+<script src="lib/triptext.js?v=1.19.5"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.19.4"></script>
+<script src="lib/location.js?v=1.19.5"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.19.4"></script>
+<script src="lib/gauge.js?v=1.19.5"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.19.4"></script>
+<script src="lib/extract-version.js?v=1.19.5"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.19.4"></script>
+<script src="lib/autosuggest.js?v=1.19.5"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.19.4"></script>
+<script src="lib/baselayer.js?v=1.19.5"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.19.4"></script>
+<script src="lib/memocache.js?v=1.19.5"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.19.4"></script>
+<script src="lib/routerank.js?v=1.19.5"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.19.4"></script>
+<script src="lib/vehicleprofile.js?v=1.19.5"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.19.4"></script>
+<script src="lib/escape.js?v=1.19.5"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -909,7 +909,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.19.4')
+fetch('lib/fuelplan-adaptive.js?v=1.19.5')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -926,7 +926,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.19.4')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.19.4')
+fetch('lib/shorttrip.js?v=1.19.5')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -937,7 +937,7 @@ fetch('lib/shorttrip.js?v=1.19.4')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.19.4"></script>
+<script src="lib/flexible-polyline.js?v=1.19.5"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1097,7 +1097,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.19.4';
+const APP_VERSION = '1.19.5';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1486,6 +1486,15 @@ const BAYS_MANY     = 4;
 let state = {brand:'all', type:'all', st:'all', q:'',
              parking:false, showers:false, service:false, scale:false};
 
+// One DomIcon per distinct pin APPEARANCE, not per call. There are only a
+// handful of appearances (brand × exclusive × faded — the letter follows
+// the brand), and DomIcon CLONES its template element for every marker
+// rather than attaching it — verified against the real vendored SDK: two
+// markers sharing one DomIcon render two independent elements, and the
+// cached template is never mutated or reparented by use. Route mode's
+// .rpin icons (endpoints, numbered stops) carry per-plan labels and stay
+// uncached.
+const iconCache = new Map();
 function buildIcon(row, opts){
   const brand = row[1], type = row[11];
   let cls = brand==='TA' ? 'pin-ta' : (brand==='Petro' ? 'pin-petro' : 'pin-term');
@@ -1497,13 +1506,20 @@ function buildIcon(row, opts){
   // knows from Stops mode instead of a competing abstract shape. Every
   // existing caller passes one argument and renders exactly as before.
   const faded = opts && opts.faded ? ' pin-faded' : '';
-  const wrap = document.createElement('div');
-  // HERE writes its own inline transform:matrix(...) directly onto whatever
-  // element is passed to DomIcon, which would silently overwrite a CSS
-  // transform declared on that same element — so .pin-anchor's translate
-  // has to live one level deeper, on a plain wrapper HERE never touches.
-  wrap.innerHTML = `<div><div class="pin-anchor"><div class="pin ${cls} ${exclClass}${faded}"><span>${label}</span></div></div></div>`;
-  return new H.map.DomIcon(wrap.firstElementChild);
+  // The class string fully determines the markup, so it is the cache key.
+  const key = `${cls} ${exclClass}${faded}`;
+  let icon = iconCache.get(key);
+  if(!icon){
+    const wrap = document.createElement('div');
+    // HERE writes its own inline transform:matrix(...) directly onto whatever
+    // element is passed to DomIcon, which would silently overwrite a CSS
+    // transform declared on that same element — so .pin-anchor's translate
+    // has to live one level deeper, on a plain wrapper HERE never touches.
+    wrap.innerHTML = `<div><div class="pin-anchor"><div class="pin ${key}"><span>${label}</span></div></div></div>`;
+    icon = new H.map.DomIcon(wrap.firstElementChild);
+    iconCache.set(key, icon);
+  }
+  return icon;
 }
 
 function amenChips(str, labelMap){
@@ -1588,16 +1604,41 @@ function passes(row){
 let listDirty = true;          // list rows are stale relative to the filters
 let currentFiltered = [];      // what the last render() resolved to
 
-function renderMarkers(filtered){
-  markerGroup.removeAll();
-  // One addObjects() instead of 146 addObject() calls: the group does its
-  // bookkeeping once rather than per marker.
-  const markers = filtered.map(row => {
+// Every station marker is built exactly ONCE, here. The 146 rows never
+// change within a session, yet the old render path tore down and rebuilt
+// the whole marker layer on every filter interaction — including every
+// keystroke in the search box: typing "memphis" was seven full
+// DomMarker+DomIcon+innerHTML rebuild cycles on a phone. Filtering is now
+// a per-marker visibility flip (see renderMarkers).
+//
+// Built in render()'s sort order (state, then city) so pin stacking where
+// markers overlap matches what the unfiltered map showed when it was
+// rebuilt in that order each time. Keyed by ROW REFERENCE — the DATA row
+// arrays are stable identities for the life of the page, which is a
+// stronger key than the id column with nothing to assert. One marker per
+// row, terminals included; each tap listener closes over its row exactly
+// as before. Group visibility (the Route-mode wholesale hide) composes
+// with these per-marker flags — verified on the real SDK: hiding and
+// re-showing the group preserves each marker's own flag.
+const STOP_MARKERS = new Map();   // DATA row -> its DomMarker
+{
+  const sorted = [...DATA].sort((a,b)=> a[5]===b[5] ? a[4].localeCompare(b[4]) : a[5].localeCompare(b[5]));
+  const markers = sorted.map(row => {
     const marker = new H.map.DomMarker({lat:row[9], lng:row[10]}, {icon:buildIcon(row)});
     marker.addEventListener('tap', ()=>openSheet(row));
+    STOP_MARKERS.set(row, marker);
     return marker;
   });
-  if(markers.length) markerGroup.addObjects(markers);
+  // One addObjects: the group does its bookkeeping once, and never again.
+  markerGroup.addObjects(markers);
+}
+
+function renderMarkers(filtered){
+  // No construction, no teardown: every marker was built once at startup
+  // (see STOP_MARKERS). Filtering is one pass of visibility flips — the
+  // only per-keystroke cost the search box has left.
+  const show = new Set(filtered);
+  STOP_MARKERS.forEach((marker, row) => marker.setVisibility(show.has(row)));
 }
 
 function renderList(filtered){

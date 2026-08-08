@@ -115,6 +115,36 @@ follow, not just this one:
 
 ## Version history
 
+### v1.19.5
+
+**Station markers are built once; filtering flips visibility.** Every
+filter interaction — including every keystroke in the station search
+box — used to tear down and rebuild the entire marker layer: typing
+"memphis" was seven full DomMarker+DomIcon+innerHTML rebuild cycles of
+up to 146 markers on a phone. The stops are a fixed set that never
+changes within a session, so all markers are now constructed exactly
+once at startup (in the same state-then-city order the old render used,
+keeping pin stacking identical), held in a row-keyed map, and the
+render path is one pass of per-marker `setVisibility()` flips. No
+construction, no `removeAll`, nothing allocated per keystroke.
+
+**Pin icons are shared per appearance.** `buildIcon()` now memoizes its
+`DomIcon` on the class string it assembles (brand × exclusive × faded —
+the letter follows the brand), so 146 markers share a handful of icon
+instances, and Route mode's faded available-stop pins reuse the same
+cache. Both load-bearing claims were verified against the real vendored
+SDK rather than assumed: `DomIcon` clones its template element per
+marker (two markers sharing one icon render two independent elements,
+and the cached template is never mutated or reparented), and per-marker
+visibility composes with the group's own flag (Route mode's wholesale
+hide preserves each marker's filter state, so returning to Stops with a
+filter active shows only the filtered pins).
+
+Route mode's `.rpin` icons (endpoints, numbered plan stops) carry
+per-plan labels and stay uncached. Pin stacking order is now fixed at
+build order rather than re-forming per render — identical in the
+common case since the build uses the same sort.
+
 ### v1.19.4
 
 **Route fits back off a step.** Driver feedback on v1.19.3: zoom out a
