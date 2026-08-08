@@ -115,6 +115,39 @@ follow, not just this one:
 
 ## Version history
 
+### v1.19.6
+
+**The first view fits the full network.** The map used to open at a
+hardcoded centre and zoom that showed a few states on a phone; the app
+exists to show a 146-station national network, and the first glance now
+says so. Immediately after the one-time marker build, the view is
+fitted once to `markerGroup.getBoundingBox()` — framed correctly on
+every screen shape where a fixed zoom cannot be, and self-correcting if
+edge stations ever come or go in a data revision. The fit runs in the
+same script task as map construction, before the browser paints, so the
+constructor's centre/zoom (kept, commented as the pre-fit fallback) is
+never visible.
+
+The fit borrows the route machinery's `MAP_FIT_MARGIN` symmetrically on
+all four edges so the extreme pins (Seattle, Maine, South Florida,
+SoCal) aren't clipped, then restores DOM-derived padding via
+`syncMapPadding()` — all zeros in Stops mode. Verified on the real
+build: the symmetric-to-symmetric restore moves nothing (centre, zoom,
+and every extreme point's screen position identical), so no fallback
+was needed. It deliberately never touches `lastFitBounds` — that
+belongs to the route lifecycle — and it happens exactly once: no
+re-fit on resize, rotation, filtering, or returning from Route mode.
+The driver owns the camera from first paint.
+
+One relocation this forced: the viewport-padding cluster
+(`lastFitBounds`, `MAP_FIT_MARGIN`, `syncMapPadding`) moved from the
+panel code up into map setup, because the startup fit calls it before
+the old declaration point had executed — the temporal-dead-zone crash
+class this codebase has hit twice before. `syncMapPadding` also reads
+`document.getElementById` directly rather than the `$` helper, whose
+own `const` initializes later, for the same reason. A structural test
+pins the ordering.
+
 ### v1.19.5
 
 **Station markers are built once; filtering flips visibility.** Every
