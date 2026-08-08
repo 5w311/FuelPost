@@ -41,6 +41,31 @@ ok('the render path is a visibility flip from the filtered set',
 ok('the one-time build keys markers by row reference',
    /STOP_MARKERS\.set\(row, marker\)/.test(html));
 
+console.log('\n=== startup view fits the full network, once ===');
+// The first view is a bounds fit to the markers, not a hardcoded zoom —
+// framed correctly on every screen shape, self-correcting across data
+// revisions. These pin the exact sequence: margin, fit, padding restore.
+const buildStart = html.indexOf('const STOP_MARKERS');
+const buildBlock = html.slice(buildStart, html.indexOf('\n}\n', buildStart) + 3);
+const addIdx = buildBlock.indexOf('markerGroup.addObjects(markers)');
+const fitIdx = buildBlock.indexOf('setLookAtData({ bounds: netBounds })');
+ok('the startup block fits the view to markerGroup.getBoundingBox() after addObjects',
+   /markerGroup\.getBoundingBox\(\)/.test(buildBlock) && fitIdx > addIdx && addIdx >= 0,
+   JSON.stringify({ addIdx, fitIdx }));
+const padIdx = buildBlock.indexOf('setPadding(MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN)');
+const restoreIdx = buildBlock.indexOf('syncMapPadding();', fitIdx);   // the CALL, not the comment mention
+ok('the fit applies MAP_FIT_MARGIN before and restores via syncMapPadding after',
+   padIdx >= 0 && padIdx < fitIdx && restoreIdx > fitIdx,
+   JSON.stringify({ padIdx, fitIdx, restoreIdx }));
+ok('the startup block never assigns lastFitBounds (route machinery stays route-only)',
+   !/lastFitBounds\s*=/.test(buildBlock));
+ok('the constructor keeps its pre-fit fallback center and zoom',
+   /center: \{ lat: 39\.5, lng: -98\.35 \}/.test(html) && /zoom: 5,/.test(html));
+ok('the padding machinery is declared BEFORE the startup block that calls it (TDZ guard)',
+   html.indexOf('const MAP_FIT_MARGIN') < buildStart
+   && html.indexOf('let lastFitBounds') < buildStart,
+   'moving these below the marker build is a startup crash');
+
 console.log('\n=== pin icons are shared per appearance ===');
 const biFn = html.slice(html.indexOf('function buildIcon('));
 const biBody = biFn.slice(0, biFn.indexOf('\n}\n') + 3);
