@@ -171,7 +171,16 @@
      agreement on tier. */
   .pin-faded{opacity:.65;}
 
-  #sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:18px 18px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.2);transform:translateY(100%);transition:transform .25s ease;z-index:600;max-height:72%;display:flex;flex-direction:column;}
+  /* max-height, not height: a short sheet (a terminal, ~330px) still hugs
+     its content and leaves the map visible. The cap only binds on long
+     sheets — a big TA with amenities, clinics, Call and Navigate measures
+     ~706px, and at the old 72% (608px on a 844px phone) 121 of the 146
+     stations were scrolling inside a box with room to spare beneath them.
+     88% clears the tallest station outright on a standard phone, so nothing
+     needs scrolling, while still leaving the header visible so the app
+     doesn't read as having vanished. Shorter screens simply get more of
+     their sheet than before rather than a different behaviour. */
+  #sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:18px 18px 0 0;box-shadow:0 -6px 20px rgba(0,0,0,.2);transform:translateY(100%);transition:transform .25s ease;z-index:600;max-height:88%;display:flex;flex-direction:column;}
   #sheet.show{transform:translateY(0);}
   #sheet .grabber{width:36px;height:4px;background:var(--line);border-radius:2px;margin:9px auto 4px;flex-shrink:0;}
   #sheet .sheetBody{overflow-y:auto;padding:6px 18px 22px;}
@@ -886,29 +895,29 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.20.0"></script>
+<script src="lib/fuelplan.js?v=1.20.1"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.20.0"></script>
+<script src="lib/triptext.js?v=1.20.1"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.20.0"></script>
+<script src="lib/location.js?v=1.20.1"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.20.0"></script>
+<script src="lib/gauge.js?v=1.20.1"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.20.0"></script>
+<script src="lib/extract-version.js?v=1.20.1"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.20.0"></script>
+<script src="lib/autosuggest.js?v=1.20.1"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.20.0"></script>
+<script src="lib/baselayer.js?v=1.20.1"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.20.0"></script>
+<script src="lib/memocache.js?v=1.20.1"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.20.0"></script>
+<script src="lib/routerank.js?v=1.20.1"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.20.0"></script>
+<script src="lib/vehicleprofile.js?v=1.20.1"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.20.0"></script>
+<script src="lib/escape.js?v=1.20.1"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.20.0"></script>
+<script src="lib/navlinks.js?v=1.20.1"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -924,7 +933,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.20.0')
+fetch('lib/fuelplan-adaptive.js?v=1.20.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -941,7 +950,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.20.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.20.0')
+fetch('lib/shorttrip.js?v=1.20.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -952,7 +961,7 @@ fetch('lib/shorttrip.js?v=1.20.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.20.0"></script>
+<script src="lib/flexible-polyline.js?v=1.20.1"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1112,7 +1121,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.20.0';
+const APP_VERSION = '1.20.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
