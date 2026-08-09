@@ -77,6 +77,26 @@ ok('a cache miss stores what it built', /iconCache\.set\(key, icon\)/.test(biBod
 ok('the cache key distinguishes exclusive and faded variants',
    /const key = `\$\{cls\} \$\{exclClass\}\$\{faded\}`/.test(biBody), biBody.slice(0, 300));
 
+console.log('\n=== the station sheet hands off to a nav app ===');
+const osFn = html.slice(html.indexOf('function openSheet('));
+const osBody = osFn.slice(0, osFn.indexOf('\n}\n') + 3);
+ok('the sheet renders the navigation block', /class="navblock"/.test(osBody));
+ok('both maps buttons are built from the shared lib, not inline URLs',
+   /NavLinks\.appleMapsUrl\(row\)/.test(osBody) && /NavLinks\.googleMapsUrl\(row\)/.test(osBody));
+ok('>>> the Apple button is CONDITIONAL, the Google button is not',
+   /\$\{apple \? `<a class="navbtn"[^`]*Apple Maps<\/a>` : ''\}/.test(osBody)
+   && /NavLinks\.isApplePlatform\(/.test(osBody), 'apple button must be gated on the platform test');
+ok('nav links open in a new context, safely',
+   (osBody.match(/target="_blank" rel="noopener"/g) || []).length === 2);
+ok('every nav href is HTML-escaped into the attribute (apostrophes survive encodeURIComponent)',
+   (osBody.match(/href="\$\{Esc\.escapeHtml\(NavLinks\./g) || []).length === 2);
+ok('the navigation block is NOT gated on a phone number (terminals navigate too)',
+   osBody.indexOf('class="navblock"') > osBody.indexOf('if(phone) html += `<a class="callbtn"'),
+   'navblock must sit outside the phone conditional');
+ok('Copy address reuses the shared clipboard chain, not a second implementation',
+   /copyStationAddress\(row, copyBtn\)/.test(osBody)
+   && /showCopyFallback\(text, btn\)/.test(html) && !/showShareFallback/.test(html));
+
 console.log('\n=== list is lazy ===');
 ok('list rows built into a DocumentFragment', /createDocumentFragment\(\)/.test(html));
 ok('fragment attached in a single replaceChildren', /listEl\.replaceChildren\(frag\)/.test(html));
