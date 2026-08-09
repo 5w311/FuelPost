@@ -195,6 +195,19 @@
   .chip-wrap{display:flex;flex-wrap:wrap;gap:6px;}
   .chip{font-size:11.5px;background:var(--bg);border:1px solid var(--line);padding:5px 9px;border-radius:8px;}
   #sheet .callbtn{display:block;text-align:center;background:var(--navy);color:#fff;text-decoration:none;font-weight:700;font-size:13.5px;padding:11px;border-radius:10px;margin-top:14px;}
+  /* Navigate: siblings of .callbtn in the sheet's vocabulary — same radius,
+     weight and size — but OUTLINED against Call's solid navy, so the row
+     reads as "hand off elsewhere" at a glance rather than as a third
+     identical navy block. Theme variables only; legible in both modes.
+     min-height 44px is the gloved-hand tap target, and the whole block
+     lands near 90px so a long TA sheet doesn't get harder to scroll. */
+  #sheet .navblock{margin-top:14px;}
+  #sheet .navhead{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--sub);margin-bottom:6px;}
+  #sheet .navrow{display:flex;gap:8px;}
+  #sheet .navbtn{flex:1;display:flex;align-items:center;justify-content:center;min-height:44px;text-align:center;background:var(--surface);color:var(--navy-text);border:1.5px solid var(--navy-text);text-decoration:none;font-weight:700;font-size:13.5px;padding:11px 8px;border-radius:10px;}
+  /* Quieter than the buttons above it on purpose: a text-weight escape
+     hatch, not a third destination. Still 44px of tappable height. */
+  #sheet .navcopy{display:block;width:100%;min-height:44px;background:none;border:none;padding:10px;margin-top:2px;font:inherit;font-size:12.5px;font-weight:700;color:var(--navy-text);text-decoration:underline;text-align:center;}
 
   #scrim{position:absolute;inset:0;background:rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .2s;z-index:550;}
   #scrim.show{opacity:1;pointer-events:auto;}
@@ -873,28 +886,30 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.19.6"></script>
+<script src="lib/fuelplan.js?v=1.20.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.19.6"></script>
+<script src="lib/triptext.js?v=1.20.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.19.6"></script>
+<script src="lib/location.js?v=1.20.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.19.6"></script>
+<script src="lib/gauge.js?v=1.20.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.19.6"></script>
+<script src="lib/extract-version.js?v=1.20.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.19.6"></script>
+<script src="lib/autosuggest.js?v=1.20.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.19.6"></script>
+<script src="lib/baselayer.js?v=1.20.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.19.6"></script>
+<script src="lib/memocache.js?v=1.20.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.19.6"></script>
+<script src="lib/routerank.js?v=1.20.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.19.6"></script>
+<script src="lib/vehicleprofile.js?v=1.20.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.19.6"></script>
+<script src="lib/escape.js?v=1.20.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
+<script src="lib/navlinks.js?v=1.20.0"></script>
+<script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
      — real Node syntax. Loading it with a plain src attribute, like the two
@@ -909,7 +924,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.19.6')
+fetch('lib/fuelplan-adaptive.js?v=1.20.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -926,7 +941,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.19.6')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.19.6')
+fetch('lib/shorttrip.js?v=1.20.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -937,7 +952,7 @@ fetch('lib/shorttrip.js?v=1.19.6')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.19.6"></script>
+<script src="lib/flexible-polyline.js?v=1.20.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1097,7 +1112,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.19.6';
+const APP_VERSION = '1.20.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1629,9 +1644,50 @@ function openSheet(row){
     html += `<div class="amenities"><h4>On-site clinics</h4><div class="chip-wrap">${amenChips(clin,CLIN_LABEL)}</div></div>`;
   }
   if(phone) html += `<a class="callbtn" href="tel:${phone.replace(/[^0-9]/g,'')}">Call ${name}</a>`;
+
+  // Hand off to the driver's own nav app. Unconditional — terminals have
+  // addresses and coordinates too; only Call depends on a phone number.
+  // Two buttons, never one auto-detected: guessing wrong and opening the
+  // app the driver doesn't use is worse than asking. The Apple button is
+  // absent (not present-and-broken) where Apple Maps doesn't exist, and
+  // Google then takes the full row on its own.
+  // Every URL is escaped on the way into the attribute as well as
+  // URL-encoded on the way in: encodeURIComponent leaves apostrophes alone
+  // — legal in a query, but this is an href in a concatenated HTML string.
+  const apple = NavLinks.isApplePlatform(navigator.userAgent);
+  html += `<div class="navblock">
+    <div class="navhead">Navigate</div>
+    <div class="navrow">
+      ${apple ? `<a class="navbtn" href="${Esc.escapeHtml(NavLinks.appleMapsUrl(row))}" target="_blank" rel="noopener">Apple Maps</a>` : ''}
+      <a class="navbtn" href="${Esc.escapeHtml(NavLinks.googleMapsUrl(row))}" target="_blank" rel="noopener">Google Maps</a>
+    </div>
+    <button type="button" class="navcopy" id="copyAddrBtn">Copy address</button>
+  </div>`;
+
   document.getElementById('sheetBody').innerHTML = html;
+  // Wired after the innerHTML assignment, so it binds to the element that
+  // actually exists now. The sheet is rebuilt on every open, which is also
+  // what guarantees a "Copied" note or fallback textarea from a previous
+  // station cannot survive into this one.
+  const copyBtn = document.getElementById('copyAddrBtn');
+  copyBtn.addEventListener('click', () => copyStationAddress(row, copyBtn));
   document.getElementById('sheet').classList.add('show');
   document.getElementById('scrim').classList.add('show');
+}
+
+// The one control here that works with no signal — the escape hatch into a
+// Garmin, a Rand McNally, or a text to dispatch. Same clipboard chain as
+// Share trip, through the same helpers, so there is one implementation of
+// "copy, confirm, or show it to be copied by hand" in the app.
+function copyStationAddress(row, btn){
+  const text = NavLinks.formatStationAddress(row);
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text)
+      .then(() => showNote(btn, 'Copied'))
+      .catch(() => showCopyFallback(text, btn));
+    return;
+  }
+  showCopyFallback(text, btn);
 }
 function closeSheet(){
   document.getElementById('sheet').classList.remove('show');
@@ -2664,21 +2720,44 @@ function shareTrip(){
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(text)
       .then(() => showNote(btn, 'Copied'))
-      .catch(() => showShareFallback(text));
+      .catch(() => showCopyFallback(text));
     return;
   }
   // No share sheet and no clipboard: show the text so it can be copied by
   // hand. Never leave the driver tapping a button that does nothing.
-  showShareFallback(text);
+  showCopyFallback(text);
 }
 
-function showShareFallback(text){
-  if($('shareFallback')) { $('shareFallback').select(); return; }
+// Last resort for both Share trip and the station sheet's Copy address:
+// put the text on screen, selected, so it can be copied by hand. Never
+// leave a driver tapping a button that does nothing.
+//
+// Takes its anchor rather than reaching for shareTripBtn, so the sheet can
+// reuse it verbatim. The stale-removal matters more than it looks: the
+// textarea is identified by a single id, and a leftover one from the route
+// panel would otherwise be found by the early-return below and re-selected
+// showing the TRIP text next to a station's Copy address button. Removing
+// any existing one first means the visible textarea always belongs to the
+// control just tapped. Re-tapping the same control still short-circuits.
+function showCopyFallback(text, anchorEl){
+  const anchor = anchorEl || $('shareTripBtn');
+  // Always rebuild rather than re-selecting an existing one. The previous
+  // version early-returned on finding #shareFallback, which was fine when
+  // Share trip was the only caller; with two callers that would re-select a
+  // textarea still holding the other one's text. Rebuilding is identical to
+  // the driver (a focused, fully-selected textarea either way) and cannot
+  // show the wrong content.
+  const existing = $('shareFallback');
+  if(existing){
+    const staleHint = existing.previousElementSibling;
+    if(staleHint && staleHint.classList.contains('share-note')) staleHint.remove();
+    existing.remove();
+  }
   const ta = document.createElement('textarea');
   ta.id = 'shareFallback';
   ta.readOnly = true;
   ta.value = text;
-  $('shareTripBtn').insertAdjacentElement('afterend', ta);
+  anchor.insertAdjacentElement('afterend', ta);
   const hint = document.createElement('div');
   hint.className = 'share-note';
   hint.textContent = 'Copy the text below';

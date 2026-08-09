@@ -27,6 +27,7 @@ lib/memocache.js            session-only memo cache for repeat HERE lookups (no 
 lib/routerank.js            orders alternative routes by fuel viability (no DOM, no network)
 lib/vehicleprofile.js       vehicle dimensions/weight/hazmat -> HERE vehicle[...] params (no DOM, no network)
 lib/escape.js               HTML-escapes external strings before they reach innerHTML (no DOM, no network)
+lib/navlinks.js             station -> Apple/Google Maps URLs, address line, Apple-platform test (no DOM, no network)
 lib/extract-version.js      pulls APP_VERSION out of fetched page source for the update check
 lib/flexible-polyline.js    HERE's reference polyline decoder, vendored unmodified (MIT)
 test/*.test.js              plain-node tests, no framework
@@ -114,6 +115,49 @@ follow, not just this one:
   silently produce a result the driver never chose.
 
 ## Version history
+
+### v1.20.0
+
+**Navigate to a stop from the station sheet.** The sheet ended at Call;
+a driver who had chosen a stop had to leave the app and retype the
+address into a nav app — at a truck stop, where the street address
+routinely geocodes to the wrong side of the interchange. The sheet now
+offers **Apple Maps** and **Google Maps** side by side, plus a quieter
+**Copy address** below them.
+
+The destination handed over is always the row's **coordinates**, the
+same point the map pin uses, so the nav app lands exactly where FuelPost
+said the stop is; the station name rides along as the display label.
+Both buttons are always offered rather than auto-detecting one — a guess
+that opens the app the driver doesn't use is worse than a choice. Apple
+Maps is absent, not broken, where it doesn't exist, and Google then
+takes the full row. Navigation shows for terminals too; only Call is
+conditional, and it follows the phone number rather than the row type
+(Covenant HQ has one, the Greenville terminal doesn't).
+
+Copy address is the one control that works with no signal — the escape
+hatch into a Garmin, a Rand McNally, or a text to dispatch. It reuses
+Share trip's clipboard chain exactly: `navigator.clipboard`, a "Copied"
+note, and the same on-screen textarea fallback. That fallback
+(`showShareFallback` → `showCopyFallback`) now takes an anchor instead
+of reaching for the Share button, and always rebuilds rather than
+re-selecting, so a leftover textarea can never show trip text beside a
+station's Copy button.
+
+URL builders, the address formatter, and the platform test live in
+`lib/navlinks.js` (27 tests) — pure, no DOM.
+
+Two things checked against the vendors' own documentation rather than
+assumed. Apple's URL Scheme Reference documents `daddr` only as "an
+address string that geolocation can understand" and gives **no**
+coordinate example — coordinates are documented for `ll`, which places a
+pin but does not set a directions destination. `daddr=lat,lng` is
+long-standing de-facto behaviour and is used here anyway, because the
+documented alternative reintroduces exactly the geocoding error this
+feature exists to prevent; the gap is recorded in a code comment.
+Google's docs could not be reached from the build environment (egress
+blocked), so the Universal URL API shape is unverified there and rests
+on the well-established `?api=1&destination=` form.
 
 ### v1.19.6
 
