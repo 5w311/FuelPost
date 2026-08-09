@@ -116,6 +116,21 @@ follow, not just this one:
 
 ## Version history
 
+### v1.20.1
+
+**Long station sheets use the screen they need.** The sheet's height cap
+was 72%, which on a 844px phone is 608px — but a big TA with amenities,
+clinics, Call and Navigate measures ~706px, so **121 of the 146
+stations** were scrolling inside a box that had room to spare beneath
+it. The cap is now 88%: every station in the network fits without
+scrolling on a standard phone, with the header still visible so the app
+doesn't read as having vanished.
+
+Short sheets are untouched — it is a `max-height`, not a height, so the
+Greenville terminal still hugs its content at ~330px and leaves most of
+the map showing. Shorter screens simply get more of their sheet than
+before rather than different behaviour.
+
 ### v1.20.0
 
 **Navigate to a stop from the station sheet.** The sheet ended at Call;
