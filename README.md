@@ -116,6 +116,40 @@ follow, not just this one:
 
 ## Version history
 
+### v1.20.2
+
+**Two map-zoom fixes, both in the fit machinery, both found by
+measuring the actual camera instead of the calls made.**
+
+*The reported bug:* after tapping "Plan fuel for this load" the map was
+zoomed all the way out to the world, and tapping any alternate route
+snapped it back to the route. The re-fit added in v1.19.3 keyed on the
+**padding** changing — but right after a plan renders, `renderPlan`
+collapses the trip drawer, which grows `#mapwrap` over 250ms. The panel's
+height never changes, so the padding never changes, so no re-fit fired
+and the route stayed fitted to the smaller pre-collapse viewport.
+Tapping an alternate re-ran `drawRoute` against the settled geometry,
+which is why that appeared to fix it. The re-fit now keys on the **free
+fit area** — the map element minus its padding — which moves when either
+one does.
+
+*Found while fixing it:* **the startup network fit added in v1.19.6 had
+never worked at all.** The map sat at exactly the constructor's fallback
+(zoom 5) where a real fit of the network's 52° span is ~3.1. The cause
+was ordering: `setLookAtData` schedules a view change, and the
+`syncMapPadding()` call immediately after it — restoring padding in the
+same task — cancelled that view change before it applied. Padding is now
+restored from the map's own `mapviewchangeend` event instead, and the fit
+is deferred past the first frame. Measured: zoom 3.12 against an expected
+3.14.
+
+Both had shipped past their tests because those tests ran against the
+HERE stub, which cannot compute a zoom — so they could only assert that
+the right calls were made, which both broken versions did. There is now
+a zoom regression suite that runs against the real vendored SDK and
+asserts the camera actually moved, plus structural pins for the
+padding-after-fit ordering and the free-area re-fit key.
+
 ### v1.20.1
 
 **Long station sheets use the screen they need.** The sheet's height cap

@@ -48,17 +48,44 @@ console.log('\n=== startup view fits the full network, once ===');
 const buildStart = html.indexOf('const STOP_MARKERS');
 const buildBlock = html.slice(buildStart, html.indexOf('\n}\n', buildStart) + 3);
 const addIdx = buildBlock.indexOf('markerGroup.addObjects(markers)');
-const fitIdx = buildBlock.indexOf('setLookAtData({ bounds: netBounds })');
-ok('the startup block fits the view to markerGroup.getBoundingBox() after addObjects',
-   /markerGroup\.getBoundingBox\(\)/.test(buildBlock) && fitIdx > addIdx && addIdx >= 0,
-   JSON.stringify({ addIdx, fitIdx }));
-const padIdx = buildBlock.indexOf('setPadding(MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN)');
-const restoreIdx = buildBlock.indexOf('syncMapPadding();', fitIdx);   // the CALL, not the comment mention
-ok('the fit applies MAP_FIT_MARGIN before and restores via syncMapPadding after',
-   padIdx >= 0 && padIdx < fitIdx && restoreIdx > fitIdx,
-   JSON.stringify({ padIdx, fitIdx, restoreIdx }));
-ok('the startup block never assigns lastFitBounds (route machinery stays route-only)',
-   !/lastFitBounds\s*=/.test(buildBlock));
+const deferIdx = buildBlock.indexOf('requestAnimationFrame(fitNetworkOnce)');
+ok('the startup block DEFERS the network fit rather than fitting inline',
+   deferIdx > addIdx && addIdx >= 0, JSON.stringify({ addIdx, deferIdx }));
+
+const fnFn = html.slice(html.indexOf('function fitNetworkOnce('));
+const fnBody = fnFn.slice(0, fnFn.indexOf('\n}\n') + 3);
+ok('fitNetworkOnce fits markerGroup.getBoundingBox()',
+   /markerGroup\.getBoundingBox\(\)/.test(fnBody) && /setLookAtData\(\{ bounds: b \}\)/.test(fnBody));
+ok('it is one-shot', /if\(networkFitDone\) return;/.test(fnBody) && /networkFitDone = true;/.test(fnBody));
+const padIdx = fnBody.indexOf('setPadding(MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN)');
+const fitIdx = fnBody.indexOf('setLookAtData({ bounds: b })');
+ok('the margin is applied BEFORE the fit', padIdx >= 0 && padIdx < fitIdx,
+   JSON.stringify({ padIdx, fitIdx }));
+// THE BUG THIS PINS: restoring padding synchronously after setLookAtData
+// cancels the pending view change, and the camera never moves. Measured
+// against the real SDK — the stub cannot catch it, because it computes no
+// zoom. Padding must be restored from the map's own settle event.
+ok('>>> padding is restored on mapviewchangeend, NOT synchronously after the fit',
+   /addEventListener\('mapviewchangeend', restorePadding\)/.test(fnBody)
+   && /removeEventListener\('mapviewchangeend', restorePadding\)/.test(fnBody),
+   fnBody.slice(-400));
+const syncAfterFit = fnBody.indexOf('syncMapPadding();', fitIdx);
+const listenerIdx = fnBody.indexOf('const restorePadding');
+ok('  the only syncMapPadding after the fit is inside that listener',
+   syncAfterFit > listenerIdx, JSON.stringify({ syncAfterFit, listenerIdx }));
+ok('the startup fit never assigns lastFitBounds (route machinery stays route-only)',
+   !/lastFitBounds\s*=/.test(buildBlock) && !/lastFitBounds\s*=/.test(fnBody));
+// The route re-fit keys on the FREE AREA, not the padding. Keying on
+// padding missed the drawer collapse growing #mapwrap after a plan — the
+// panel height never changes, so no re-fit fired and the route stayed
+// fitted to the smaller pre-collapse viewport, zoomed out.
+const smpFn = html.slice(html.indexOf('function syncMapPadding('));
+const smpBody = smpFn.slice(0, smpFn.indexOf('\n}\n') + 3);
+ok('>>> the route re-fit triggers on free-area change, not padding change',
+   /mapFreeArea\(\)/.test(smpBody) && /lastFitFree/.test(smpBody)
+   && !/prev\s*&&\s*prev\.bottom/.test(smpBody), smpBody.slice(0, 400));
+ok('  free area is measured from the map element minus padding',
+   /getElementById\('mapwrap'\)/.test(html.slice(html.indexOf('function mapFreeArea('))));
 ok('the constructor keeps its pre-fit fallback center and zoom',
    /center: \{ lat: 39\.5, lng: -98\.35 \}/.test(html) && /zoom: 5,/.test(html));
 ok('the padding machinery is declared BEFORE the startup block that calls it (TDZ guard)',

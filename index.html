@@ -895,29 +895,29 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.20.1"></script>
+<script src="lib/fuelplan.js?v=1.20.2"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.20.1"></script>
+<script src="lib/triptext.js?v=1.20.2"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.20.1"></script>
+<script src="lib/location.js?v=1.20.2"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.20.1"></script>
+<script src="lib/gauge.js?v=1.20.2"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.20.1"></script>
+<script src="lib/extract-version.js?v=1.20.2"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.20.1"></script>
+<script src="lib/autosuggest.js?v=1.20.2"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.20.1"></script>
+<script src="lib/baselayer.js?v=1.20.2"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.20.1"></script>
+<script src="lib/memocache.js?v=1.20.2"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.20.1"></script>
+<script src="lib/routerank.js?v=1.20.2"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.20.1"></script>
+<script src="lib/vehicleprofile.js?v=1.20.2"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.20.1"></script>
+<script src="lib/escape.js?v=1.20.2"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.20.1"></script>
+<script src="lib/navlinks.js?v=1.20.2"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -933,7 +933,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.20.1')
+fetch('lib/fuelplan-adaptive.js?v=1.20.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -950,7 +950,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.20.1')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.20.1')
+fetch('lib/shorttrip.js?v=1.20.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -961,7 +961,7 @@ fetch('lib/shorttrip.js?v=1.20.1')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.20.1"></script>
+<script src="lib/flexible-polyline.js?v=1.20.2"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1121,7 +1121,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.20.1';
+const APP_VERSION = '1.20.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1310,7 +1310,13 @@ window.addEventListener('resize', () => { map.getViewPort().resize(); syncMapPad
 let mapwrapResizeTimer = 0;
 new ResizeObserver(() => {
   clearTimeout(mapwrapResizeTimer);
-  mapwrapResizeTimer = setTimeout(() => { map.getViewPort().resize(); syncMapPadding(); }, 120);
+  mapwrapResizeTimer = setTimeout(() => {
+    map.getViewPort().resize();
+    // First observation with a real size is the earliest point the engine
+    // can actually honour a bounds fit — see fitNetworkOnce. No-op once done.
+    fitNetworkOnce();
+    syncMapPadding();
+  }, 120);
 }).observe(document.getElementById('mapwrap'));
 
 // The results panel sits absolutely over the map's bottom edge (up to 62%
@@ -1332,14 +1338,82 @@ new ResizeObserver(() => {
 // crash at startup — the exact bug class that took the app down once
 // before (the icon cache's first placement, and the service worker's $
 // helper before that).
-// The bounds drawRoute last fitted, kept so padding changes can re-run the
-// same fit. setPadding alone shifts the centre but keeps the zoom — a real
-// re-fit is what makes collapsing the panel actually use the freed space,
-// and what corrects the fit after the panel's own height settles (its
-// max-height is 62% of #mapwrap, which GROWS ~250ms after a plan renders
-// when the trip drawer collapses — so the height at fit time is not the
-// height it ends up at). Cleared whenever the route it described is.
+// The bounds drawRoute last fitted, kept so later geometry changes can
+// re-run the same fit. setPadding alone shifts the centre but keeps the
+// zoom — a real re-fit is what makes collapsing the panel actually use the
+// freed space.
+//
+// lastFitFree is the FREE AREA (map element minus padding) that fit was
+// computed against, and it is what the re-fit decision keys on. Keying on
+// the padding alone — the v1.19.3 version — missed the case that matters
+// most: right after a plan renders, renderPlan collapses the trip drawer,
+// which grows #mapwrap over 250ms. The panel's height never changes, so
+// the padding never changes, so no re-fit fired — and the route stayed
+// fitted to the smaller pre-collapse viewport, zoomed way out. Tapping an
+// alternate route hid it, because that re-runs drawRoute against the
+// settled geometry. Free area moves when EITHER the padding or the map
+// element does, so it catches both.
 let lastFitBounds = null;
+let lastFitFree = null;
+
+// One-shot fit of the first view to the whole network.
+//
+// This has to wait for the map engine to have a real viewport. The first
+// version ran synchronously in the marker build, in the same script task
+// as the map constructor, on the theory that fitting before the first
+// paint means the fallback view is never seen. It is never seen because
+// it never changes: measured against the real SDK, the camera stayed at
+// exactly the constructor's centre/zoom while a true fit of the network's
+// 52° span is ~3.1. setLookAtData that early is simply dropped. (The test
+// that let that ship asserted only the CALL SEQUENCE against a stub, which
+// cannot compute a zoom — a test shaped to pass whether or not the feature
+// worked.)
+//
+// So: attempt it once per opportunity until one succeeds — from the marker
+// build, and from the #mapwrap ResizeObserver, which fires as soon as the
+// element has a size. The guard makes it one-shot; the driver owns the
+// camera from then on and nothing re-fits.
+let networkFitDone = false;
+function fitNetworkOnce(){
+  if(networkFitDone) return;
+  const r = document.getElementById('mapwrap').getBoundingClientRect();
+  if(r.width < 1 || r.height < 1) return;   // no layout yet; a later call gets it
+  const b = markerGroup.getBoundingBox();
+  if(!b) return;
+  networkFitDone = true;
+  // Symmetric margin so the extreme pins (Seattle, Maine, South Florida,
+  // SoCal) aren't clipped.
+  map.getViewPort().setPadding(MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN);
+  map.getViewModel().setLookAtData({ bounds: b });
+  // Padding must go back to its DOM-derived value (all zeros in Stops
+  // mode) — but NOT synchronously. setLookAtData schedules a view change;
+  // changing padding before it has settled CANCELS it, which is precisely
+  // why the original of this never moved the camera at all. Measured on the
+  // real build: pad -> fit -> pad in one task leaves the constructor's zoom
+  // untouched, while the same fit with nothing after it lands correctly.
+  // Waiting for the map's own settle event is the ordering fix. If the
+  // event never arrives, padding simply stays at the margin until the next
+  // syncMapPadding, which is harmless.
+  const restorePadding = () => {
+    map.removeEventListener('mapviewchangeend', restorePadding);
+    syncMapPadding();
+  };
+  map.addEventListener('mapviewchangeend', restorePadding);
+}
+
+// The free area a bounds fit actually gets: the map element inset by the
+// current viewport padding.
+function mapFreeArea(){
+  const r = document.getElementById('mapwrap').getBoundingClientRect();
+  const p = map.getViewPort().padding || { top:0, right:0, bottom:0, left:0 };
+  return { w: Math.round(r.width - p.left - p.right),
+           h: Math.round(r.height - p.top - p.bottom) };
+}
+// Fit the remembered bounds and record the geometry it was fitted against.
+function fitLastBounds(){
+  lastFitFree = mapFreeArea();
+  map.getViewModel().setLookAtData({ bounds: lastFitBounds });
+}
 // Breathing room around a fitted view. Without it a fit runs the geometry
 // hard against the viewport edges, which reads cramped and can clip the
 // ~30px pin graphics drawn above the points — the fit knows coordinates,
@@ -1358,14 +1432,15 @@ function syncMapPadding(){
   const h = (p && p.classList.contains('show'))
     ? Math.round(p.getBoundingClientRect().height) : 0;
   const m = h > 0 ? MAP_FIT_MARGIN : 0;
-  const prev = map.getViewPort().padding;
   map.getViewPort().setPadding(m, m, h + m, m);
-  // Re-fit only when the padded area actually changed, only while a route
-  // is on screen, and only in Route mode — switching to Stops must never
-  // yank the map to the route's bounds.
-  if(lastFitBounds && Math.abs((h + m) - ((prev && prev.bottom) || 0)) > 1
-     && document.body.classList.contains('route-mode')){
-    map.getViewModel().setLookAtData({ bounds: lastFitBounds });
+  // Re-fit only while a route is on screen, only in Route mode (switching
+  // to Stops must never yank the map to the route's bounds), and only when
+  // the area the fit gets has actually moved — measured after the padding
+  // above is applied, so it accounts for the panel AND the map element.
+  if(!lastFitBounds || !document.body.classList.contains('route-mode')) return;
+  const free = mapFreeArea();
+  if(!lastFitFree || Math.abs(free.w - lastFitFree.w) > 1 || Math.abs(free.h - lastFitFree.h) > 1){
+    fitLastBounds();
   }
 }
 
@@ -1770,12 +1845,10 @@ const STOP_MARKERS = new Map();   // DATA row -> its DomMarker
   // Deliberately does NOT touch lastFitBounds — that variable belongs to
   // the route lifecycle and drives the Route-mode re-fit guard; this fit
   // is one-shot, and the driver owns the camera from first paint on.
-  const netBounds = markerGroup.getBoundingBox();
-  if(netBounds){
-    map.getViewPort().setPadding(MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN);
-    map.getViewModel().setLookAtData({ bounds: netBounds });
-    syncMapPadding();
-  }
+  // Deferred, NOT called inline here: see fitNetworkOnce. The map element
+  // already has its size at this point in the parse, so an element-size
+  // check would pass and burn the one-shot on an attempt the engine drops.
+  requestAnimationFrame(fitNetworkOnce);
 }
 
 function renderMarkers(filtered){
@@ -2661,7 +2734,7 @@ function drawRoute(poly, chosen, resumeStops, availableStops){
   // this same fit — see syncMapPadding.
   syncMapPadding();
   lastFitBounds = line.getBoundingBox();
-  map.getViewModel().setLookAtData({ bounds: lastFitBounds });
+  fitLastBounds();
 }
 
 /* ---- Result rendering ---- */
@@ -2856,7 +2929,7 @@ function clearTrip(){
   planStops = [];
   clearRouteOptions();
 
-  lastFitBounds = null;     // before the sync below — no re-fit to a route being cleared
+  lastFitBounds = null; lastFitFree = null;   // before the sync below — no re-fit to a route being cleared
   $('routeResultsBody').innerHTML = '';
   $('routeResults').classList.remove('show');
   syncRrTabShowing();
@@ -3159,7 +3232,7 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
   planStops = [];
   // No routing call was made, so there are no alternatives to offer.
   clearRouteOptions();
-  lastFitBounds = null;   // no route at this fill level — nothing to re-fit to
+  lastFitBounds = null; lastFitFree = null;   // no route at this fill level — nothing to re-fit to
   const limpMiles = FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS); // 125 — the one reserved tick
   lastTrip = {
     pickupAddr: pickup.label,
@@ -3919,7 +3992,7 @@ async function startPlan(){
 
   btn.disabled = true;
   btn.textContent = 'Looking up…';
-  lastFitBounds = null;   // the old route is going away — don't re-fit to it
+  lastFitBounds = null; lastFitFree = null;   // the old route is going away — don't re-fit to it
   showRoutePanel('<div class="rr-note">Looking up both addresses…</div>');
   routeGroup.removeAll();
 
@@ -4044,7 +4117,7 @@ async function planLoad(pickup, delivery){
     // switcher renders nothing and ranked[0] is the only plan there was.
     selectRouteOption(0);
   } catch(err){
-    lastFitBounds = null;   // whatever was fitted no longer matches what's shown
+    lastFitBounds = null; lastFitFree = null;   // whatever was fitted no longer matches what's shown
     setRoutebarOpen(true);
     showRoutePanel(!navigator.onLine ? offlineNote('Lost signal mid-plan.')
       : `<div class="rr-note"><b>Could not plan this load.</b><br>${
