@@ -32,9 +32,20 @@ lib/extract-version.js      pulls APP_VERSION out of fetched page source for the
 lib/flexible-polyline.js    HERE's reference polyline decoder, vendored unmodified (MIT)
 test/*.test.js              plain-node tests, no framework
 test/run.js                 runs every test file and reports a combined total
+test/fixtures/*.html        saved TA location pages the amenity parser tests run against
 tools/geocode.js            one-off script that geocoded the 146 station coordinates
 tools/geocode-report.txt    output of that run
+tools/amenity-audit.js      audits DATA's amenity column against TA's location pages
+tools/amenityparse.js       pure parsing/matching for that audit (no network, tested)
+tools/amenity-audit-report.txt  output of that run
 ```
+
+`tools/amenity-audit.js` is **read-only** — unlike `geocode.js`, which rewrites
+coordinates behind a distance gate, it never modifies `index.html`. Coordinates
+have a plausibility test; amenities do not. A code on one source and not the
+other can mean the fuel book is stale or that TA's listing is incomplete, and
+nothing in the response distinguishes them. The report states disagreements and
+a human decides.
 
 `lib/` and `tools/` are CommonJS so the tests run under plain `node` with no
 install and no build step. `index.html` loads the `lib/` files as classic

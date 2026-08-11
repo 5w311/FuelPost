@@ -1,0 +1,402 @@
+FuelPost amenity audit — 2026-08-11T23:39:26.494Z
+Source: TA location pages on ta-petro.com, discovered via TA's published sitemap.
+This report is READ ONLY. No DATA row was changed by this tool.
+
+TOTALS
+  Rows in DATA:                 146
+  Fuel stops audited:           144 (terminals excluded — FUEL_STOPS filters them)
+  Matched to a TA page:         140
+  Unmatched (no address match): 4
+  Unfetched (network failures): 0
+  Amenity codes agree exactly:  30
+  Amenity codes disagree:       110
+
+SOURCE LIMITATIONS — READ BEFORE ACTING ON ANYTHING BELOW
+  Three fields the brief asked for cannot be fully collected from TA's site.
+  These are properties of the source, confirmed against raw HTML, not parser bugs:
+
+  1. SHOWER COUNTS ARE NOT PUBLISHED. TA location pages carry no shower
+     number anywhere. The only mention is boilerplate prose ("use our laundry
+     and shower facilities"). DATA's shower column cannot be audited against
+     this source at all. The hand check that produced the known-answer shower
+     figures must have used another source.
+
+  2. TA NO LONGER LISTS "STAYFIT Walking Trail" AT ANY LOCATION. Not one page
+     fetched in this run mentions a walking trail. DATA carries W on many rows.
+     Every one of those therefore reports as "in DATA, not on TA" below. That is
+     one systematic source difference, NOT that many independent data errors,
+     and it should be decided as a single question: did TA retire the amenity,
+     or retire the listing?
+
+  3. RESTAURANT LISTS ARE THINNER THAN THE HAND CHECK. TA's pages list fewer
+     brands than the by-hand spot check found — including TA's own Country
+     Pride, absent from the Baldwin page. Treat the brand lists below as a
+     lower bound on what is actually at each stop.
+
+AMENITY CODE DIFF
+  Grouped by direction. The first group is the one that hides stops from a
+  filter: the stop has the amenity, DATA does not say so, so a filter on that
+  code silently drops it.
+
+  --- IN TA, MISSING FROM DATA (23 rows) ---
+  TA Lincoln                 Lincoln, AL            DATA=[-          ] TA=[BT    ] missing: B,T
+  Petro Corning              Corning, CA            DATA=[-          ] TA=[T     ] missing: T
+  Petro Gary                 Gary, IN               DATA=[-          ] TA=[FT    ] missing: F,T
+  TA Tallulah                Tallulah, LA           DATA=[-          ] TA=[BT    ] missing: B,T
+  Petro Shreveport           Shreveport, LA         DATA=[-          ] TA=[T     ] missing: T
+  TA Meridian                Meridian, MS           DATA=[-          ] TA=[T     ] missing: T
+  TA Oak Grove               Oak Grove, MO          DATA=[W,H        ] TA=[T     ] missing: T
+  Petro North Las Vegas      North Las Vegas, NV    DATA=[-          ] TA=[H     ] missing: H
+  TA Oklahoma City West      Oklahoma City, OK      DATA=[-          ] TA=[FT    ] missing: F,T
+  TA Spartanburg             Duncan, SC             DATA=[W          ] TA=[T     ] missing: T
+  TA Manning                 Manning, SC            DATA=[F          ] TA=[FT    ] missing: T
+  Petro Florence             Florence, SC           DATA=[-          ] TA=[FH    ] missing: F,H
+  TA Antioch                 Antioch, TN            DATA=[W,B        ] TA=[BT    ] missing: T
+  TA Knoxville West          Knoxville, TN          DATA=[-          ] TA=[T     ] missing: T
+  Petro Amarillo             Amarillo, TX           DATA=[-          ] TA=[T     ] missing: T
+  TA Dallas South            Dallas, TX             DATA=[-          ] TA=[T     ] missing: T
+  TA Ganado                  Ganado, TX             DATA=[W,H        ] TA=[HT    ] missing: T
+  TA Terrell                 Terrell, TX            DATA=[W          ] TA=[T     ] missing: T
+  TA Denton                  Denton, TX             DATA=[W          ] TA=[T     ] missing: T
+  Petro San Antonio          San Antonio, TX        DATA=[-          ] TA=[HBT   ] missing: H,B,T
+  Petro Raphine              Raphine, VA            DATA=[-          ] TA=[F     ] missing: F
+  TA Madison                 DeForest, WI           DATA=[W          ] TA=[T     ] missing: T
+  TA Cheyenne                Burns, WY              DATA=[F,W        ] TA=[FT    ] missing: T
+
+  --- IN DATA, NOT LISTED BY TA (95 rows) ---
+  Petro Shorter              Shorter, AL            DATA=[W          ] TA=[-     ] extra: W
+  Petro Eloy                 Casa Grande, AZ        DATA=[W,T        ] TA=[T     ] extra: W
+  TA Eloy                    Eloy, AZ               DATA=[W,H,T      ] TA=[HT    ] extra: W
+  TA Tonopah                 Tonopah, AZ            DATA=[W,B        ] TA=[B     ] extra: W
+  Petro North Little Rock    North Little Rock, AR  DATA=[W,H,B      ] TA=[HB    ] extra: W
+  TA Livingston              Livingston, CA         DATA=[W,T        ] TA=[T     ] extra: W
+  TA Ontario                 Ontario, CA            DATA=[W,T        ] TA=[T     ] extra: W
+  TA Santa Nella             Santa Nella, CA        DATA=[W,T        ] TA=[T     ] extra: W
+  TA Commerce City           Commerce City, CO      DATA=[W,T        ] TA=[T     ] extra: W
+  TA Wheat Ridge             Wheat Ridge, CO        DATA=[W,T        ] TA=[T     ] extra: W
+  TA New Haven               Branford, CT           DATA=[F,W,T      ] TA=[FT    ] extra: W
+  TA Marianna                Marianna, FL           DATA=[W,H,B,T    ] TA=[HBT   ] extra: W
+  TA Tampa                   Seffner, FL            DATA=[F,W,T      ] TA=[FT    ] extra: W
+  TA Vero Beach              Vero Beach, FL         DATA=[F,W,H,B,T  ] TA=[FHBT  ] extra: W
+  TA Madison                 Madison, GA            DATA=[W,H,T      ] TA=[HT    ] extra: W
+  TA Cartersville            Cartersville, GA       DATA=[W,T        ] TA=[T     ] extra: W
+  TA Commerce                Commerce, GA           DATA=[F,W,T      ] TA=[FT    ] extra: W
+  TA Boise                   Boise, ID              DATA=[F,W,T      ] TA=[FT    ] extra: W
+  TA Bloomington             Bloomington, IL        DATA=[W,T        ] TA=[T     ] extra: W
+  TA Chicago North           Zion, IL               DATA=[W,T        ] TA=[T     ] extra: W
+  TA Effingham               Effingham, IL          DATA=[W,T        ] TA=[T     ] extra: W
+  Petro Effingham            Effingham, IL          DATA=[W,T        ] TA=[T     ] extra: W
+  TA Morris                  Morris, IL             DATA=[W,T        ] TA=[T     ] extra: W
+  TA Seymour                 Seymour, IN            DATA=[W,T        ] TA=[T     ] extra: W
+  TA DeMotte                 DeMotte, IN            DATA=[W,T        ] TA=[T     ] extra: W
+  Petro Gaston               Gaston, IN             DATA=[W          ] TA=[-     ] extra: W
+  TA Council Bluffs          Council Bluffs, IA     DATA=[W          ] TA=[-     ] extra: W
+  TA Beto Junction           Lebo, KS               DATA=[W,T        ] TA=[T     ] extra: W
+  Petro Salina               Salina, KS             DATA=[O,W        ] TA=[O     ] extra: W
+  TA Florence                Florence, KY           DATA=[W,T        ] TA=[T     ] extra: W
+  Petro Glendale             Glendale, KY           DATA=[W          ] TA=[-     ] extra: W
+  Petro Hammond              Hammond, LA            DATA=[F,W,H,T    ] TA=[FHT   ] extra: W
+  TA Greenwood               Greenwood, LA          DATA=[W,T        ] TA=[T     ] extra: W
+  TA Lafayette               Lafayette, LA          DATA=[W,H,T      ] TA=[HT    ] extra: W
+  TA Monroe                  Monroe, MI             DATA=[W,T        ] TA=[T     ] extra: W
+  TA Saginaw                 Bridgeport, MI         DATA=[W,T        ] TA=[T     ] extra: W
+  TA Sawyer                  Sawyer, MI             DATA=[W,T        ] TA=[T     ] extra: W
+  TA Tekonsha                Tekonsha, MI           DATA=[T          ] TA=[-     ] extra: T
+  Petro Albert Lea           Albert Lea, MN         DATA=[W          ] TA=[-     ] extra: W
+  TA Rogers                  Rogers, MN             DATA=[H,B,T      ] TA=[-     ] extra: H,B,T
+  Petro Oak Grove            Oak Grove, MO          DATA=[F,W        ] TA=[-     ] extra: F,W
+  TA Oak Grove               Oak Grove, MO          DATA=[W,H        ] TA=[T     ] extra: W,H
+  TA Laurel                  Laurel, MT             DATA=[W,T        ] TA=[T     ] extra: W
+  TA Grand Island            Alda, NE               DATA=[F,W,T      ] TA=[FT    ] extra: W
+  TA Las Vegas               Las Vegas, NV          DATA=[F,W,T      ] TA=[FT    ] extra: W
+  TA Mill City               Mill City, NV          DATA=[W,H,B      ] TA=[HB    ] extra: W
+  TA Greenland               Greenland, NH          DATA=[W,B,T      ] TA=[BT    ] extra: W
+  TA Bloomsburry             Bloomsbury, NJ         DATA=[W,H,T      ] TA=[HT    ] extra: W
+  Petro Bordentown           Bordentown, NJ         DATA=[F,W,H,T    ] TA=[FHT   ] extra: W
+  TA Columbia                Columbia, NJ           DATA=[W,T        ] TA=[T     ] extra: W
+  TA Paulsboro               Paulsboro, NJ          DATA=[W          ] TA=[-     ] extra: W
+  TA Binghamton              Binghamton, NY         DATA=[F,W,B,T    ] TA=[FBT   ] extra: W
+  TA Fultonville             Fultonville, NY        DATA=[W,T        ] TA=[-     ] extra: W,T
+  TA Maybrook                Montgomery, NY         DATA=[W,H,T      ] TA=[HT    ] extra: W
+  TA Candler                 Candler, NC            DATA=[W,T        ] TA=[T     ] extra: W
+  TA Greensboro              Whitsett, NC           DATA=[F,W,T      ] TA=[FT    ] extra: W
+  Petro Kenly                Kenly, NC              DATA=[F,W        ] TA=[F     ] extra: W
+  TA Mocksville              Mocksville, NC         DATA=[F,W,T      ] TA=[FT    ] extra: W
+  TA Lodi                    Seville, OH            DATA=[W,H,T      ] TA=[HT    ] extra: W
+  TA North Canton            North Canton, OH       DATA=[W,T        ] TA=[T     ] extra: W
+  TA Jeffersonville          Jeffersonville, OH     DATA=[W,H,T      ] TA=[HT    ] extra: W
+  TA Youngstown              Youngstown, OH         DATA=[W,B,T      ] TA=[BT    ] extra: W
+  Petro North Baltimore      North Baltimore, OH    DATA=[F,W,H,B,T  ] TA=[FHBT  ] extra: W
+  TA Oklahoma City East      Oklahoma City, OK      DATA=[F,W,T      ] TA=[FT    ] extra: W
+  Petro Oklahoma City        Oklahoma City, OK      DATA=[W,T        ] TA=[T     ] extra: W
+  TA Aurora                  Aurora, OR             DATA=[F,W,T      ] TA=[FT    ] extra: W
+  TA Troutdale               Troutdale, OR          DATA=[W          ] TA=[-     ] extra: W
+  TA Bloomsburg              Bloomsburg, PA         DATA=[F,W,H,T    ] TA=[FH    ] extra: W,T
+  Petro Carlisle             Carlisle, PA           DATA=[W,H,T      ] TA=[HT    ] extra: W
+  TA Greencastle             Greencastle, PA        DATA=[F,W,H,T    ] TA=[FHT   ] extra: W
+  TA Harborcreek             Erie, PA               DATA=[W,B,T      ] TA=[BT    ] extra: W
+  TA Harrisburg              Harrisburg, PA         DATA=[W,H,T      ] TA=[HT    ] extra: W
+  TA Spartanburg             Duncan, SC             DATA=[W          ] TA=[T     ] extra: W
+  TA Columbia North          Columbia, SC           DATA=[F,W        ] TA=[-     ] extra: F,W
+  TA Antioch                 Antioch, TN            DATA=[W,B        ] TA=[BT    ] extra: W
+  TA Franklin                Franklin, TN           DATA=[W,H,T      ] TA=[-     ] extra: W,H,T
+  Petro Knoxville            Knoxville, TN          DATA=[W,H,T      ] TA=[HT    ] extra: W
+  TA Amarillo                Amarillo, TX           DATA=[W,T        ] TA=[T     ] extra: W
+  TA Ganado                  Ganado, TX             DATA=[W,H        ] TA=[HT    ] extra: W
+  Petro Carl's Corner        Hillsboro, TX          DATA=[W,H,T      ] TA=[-     ] extra: W,H,T
+  TA New Braunfels           New Braunfels, TX      DATA=[W,T        ] TA=[T     ] extra: W
+  TA Terrell                 Terrell, TX            DATA=[W          ] TA=[T     ] extra: W
+  TA Hillsboro               Hillsboro, TX          DATA=[F,W        ] TA=[F     ] extra: W
+  TA Rockwall                Rockwall, TX           DATA=[W,H,T      ] TA=[HT    ] extra: W
+  TA Edinburg                Edinburg, TX           DATA=[O,W,B      ] TA=[OB    ] extra: W
+  TA Denton                  Denton, TX             DATA=[W          ] TA=[T     ] extra: W
+  TA Parowan                 Parowan, UT            DATA=[W,H,T      ] TA=[HT    ] extra: W
+  TA Ashland                 Ashland, VA            DATA=[W,H,T      ] TA=[HT    ] extra: W
+  TA Richmond                Ashland, VA            DATA=[W,T        ] TA=[T     ] extra: W
+  TA Wytheville              Wytheville, VA         DATA=[W          ] TA=[-     ] extra: W
+  TA Seattle East            North Bend, WA         DATA=[B          ] TA=[-     ] extra: B
+  Petro Spokane              Spokane, WA            DATA=[W,H        ] TA=[H     ] extra: W
+  TA Hurricane               Hurricane, WV          DATA=[W,H,B,T    ] TA=[HBT   ] extra: W
+  TA Madison                 DeForest, WI           DATA=[W          ] TA=[T     ] extra: W
+  TA Cheyenne                Burns, WY              DATA=[F,W        ] TA=[FT    ] extra: W
+
+PREVALENCE — the number that decides whether something becomes a filter
+  Out of 140 matched stops, as listed by TA:
+
+  Laundry                        138 / 140   98.6%
+
+  O — Outdoor Fitness Room         2 / 140    1.4%
+  F — Fitness Room                33 / 140   23.6%
+  W — Walking Trail                0 / 140    0.0%
+  B — Basketball Hoop             24 / 140   17.1%
+  H — Horseshoe Pit               34 / 140   24.3%
+  T — Bean Bag Toss              103 / 140   73.6%
+
+  Any restaurant listed           96 / 140   68.6%
+
+RESTAURANTS — raw brand names, deliberately unclassified
+  Sit-down vs quick-serve is domain knowledge and is not guessed at here.
+
+  --- distinct brands across the network (30) ---
+  Popeyes                             45 stops
+  Burger King                         20 stops
+  Subway                              19 stops
+  Pizza Hut Express                   15 stops
+  Taco Bell                           11 stops
+  Starbucks                            7 stops
+  Taco Bell & Pizza Hut Express        7 stops
+  Miss J’s Café                        6 stops
+  Sbarro                               5 stops
+  Dunkin'                              4 stops
+  Arby's                               3 stops
+  Charleys Philly Steaks               3 stops
+  Fazoli's                             3 stops
+  Highway Kitchen                      3 stops
+  Miss J's                             3 stops
+  Taco Bell Express                    3 stops
+  Wendy's                              3 stops
+  Dairy Queen                          2 stops
+  KFC                                  2 stops
+  Mcdonald's                           2 stops
+  Pizza Hut                            2 stops
+  A&W All American Food                1 stops
+  Baskin Robbins                       1 stops
+  Blimpie                              1 stops
+  Caribou Coffee                       1 stops
+  Nathan's Famous Express              1 stops
+  Papa John's Pizza                    1 stops
+  Taco Time                            1 stops
+  Tim Horton's                         1 stops
+  Tule Tree Legendary Burritos         1 stops
+
+  --- per stop ---
+  Petro Shorter              Charleys Philly Steaks, Miss J’s Café
+  TA Tuscaloosa              Popeyes
+  TA Lincoln                 Popeyes
+  Petro Eloy                 (none listed)
+  TA Eloy                    A&W All American Food, Sbarro, Taco Bell
+  TA Tonopah                 Subway, Taco Bell & Pizza Hut Express
+  TA Holbrook                Popeyes
+  Petro North Little Rock    (none listed)
+  Petro W. Memphis           (none listed)
+  TA Livingston              Burger King, Popeyes
+  TA Ontario                 Pizza Hut Express, Taco Bell
+  TA Santa Nella             Popeyes
+  Petro Corning              (none listed)
+  TA Commerce City           Burger King, Pizza Hut Express, Popeyes
+  TA Wheat Ridge             Highway Kitchen
+  TA New Haven               Pizza Hut Express, Popeyes, Starbucks
+  TA Baldwin                 Arby's
+  TA Jacksonville South      Popeyes, Subway
+  TA Marianna                Popeyes, Taco Bell & Pizza Hut Express
+  TA Tampa                   Arby's, Popeyes
+  TA Vero Beach              Popeyes, Subway
+  TA Wildwood                Pizza Hut Express, Popeyes
+  TA Madison                 Popeyes
+  TA Cartersville            Burger King, Popeyes, Taco Bell & Pizza Hut Express
+  TA Commerce                (none listed)
+  TA Atlanta South           Subway
+  TA Boise                   Subway, Taco Bell
+  TA Bloomington             (none listed)
+  TA Chicago North           (none listed)
+  TA Effingham               Dunkin', Popeyes, Sbarro
+  Petro Effingham            (none listed)
+  TA Elgin                   Popeyes
+  TA Morris                  Charleys Philly Steaks
+  TA Mt. Vernon              Popeyes
+  TA Troy                    Baskin Robbins, Dunkin'
+  TA Gary                    Pizza Hut Express, Taco Bell
+  Petro Gary                 Taco Bell & Pizza Hut Express
+  TA Seymour                 Charleys Philly Steaks, Highway Kitchen
+  TA DeMotte                 Burger King
+  Petro Gaston               (none listed)
+  TA Council Bluffs          (none listed)
+  TA Beto Junction           Wendy's
+  Petro Salina               Miss J's, Popeyes
+  TA Florence                Popeyes, Subway
+  Petro Glendale             (none listed)
+  TA Walton                  Highway Kitchen, KFC
+  Petro Hammond              (none listed)
+  TA Greenwood               KFC, Subway
+  TA Lafayette               Sbarro
+  TA Slidell                 (none listed)
+  TA Tallulah                (none listed)
+  Petro Shreveport           (none listed)
+  TA Express Laplace         Subway
+  TA Baltimore               (none listed)
+  TA Baltimore South         (none listed)
+  TA Ann Arbor               Popeyes
+  TA Monroe                  Fazoli's, Popeyes, Tim Horton's
+  TA Saginaw                 (none listed)
+  TA Sawyer                  Burger King, Pizza Hut, Popeyes, Taco Bell Express
+  TA Tekonsha                (none listed)
+  Petro Albert Lea           Caribou Coffee, Mcdonald's, Sbarro, Taco Bell
+  TA Rogers                  (none listed)
+  TA Meridian                (none listed)
+  Petro Joplin               Blimpie, Dairy Queen, Mcdonald's, Starbucks, Taco Bell & Pizza Hut Express
+  Petro Oak Grove            Wendy's
+  TA Oak Grove               Popeyes
+  TA Laurel                  (none listed)
+  TA Grand Island            (none listed)
+  TA Las Vegas               Burger King, Taco Time
+  TA Mill City               Taco Bell Express
+  Petro North Las Vegas      Dunkin'
+  TA Greenland               (none listed)
+  TA Bloomsburry             Burger King
+  Petro Bordentown           Arby's
+  TA Columbia                Pizza Hut Express, Taco Bell Express
+  TA Paulsboro               Miss J’s Café
+  TA Binghamton              (none listed)
+  TA Dansville               (none listed)
+  TA Fultonville             Miss J's, Sbarro
+  TA Maybrook                Pizza Hut Express
+  TA Pembroke                (none listed)
+  TA Candler                 (none listed)
+  TA Greensboro              Burger King, Popeyes
+  Petro Kenly                Dairy Queen, Pizza Hut Express, Starbucks, Subway, Taco Bell, Wendy's
+  TA Mocksville              Popeyes
+  TA Lodi                    Burger King, Popeyes, Starbucks
+  TA London                  Popeyes
+  TA North Canton            (none listed)
+  TA Jeffersonville          Pizza Hut Express, Popeyes
+  TA Youngstown              (none listed)
+  Petro North Baltimore      Taco Bell & Pizza Hut Express
+  TA Oklahoma City East      (none listed)
+  Petro Oklahoma City        (none listed)
+  TA Oklahoma City West      Fazoli's, Popeyes
+  TA Aurora                  Popeyes
+  TA Troutdale               Popeyes, Subway
+  TA Bloomsburg              Subway
+  TA Brookville              Taco Bell
+  Petro Carlisle             (none listed)
+  TA Greencastle             (none listed)
+  TA Harborcreek             Pizza Hut Express, Subway
+  TA Harrisburg              (none listed)
+  TA Florence                Miss J’s Café, Popeyes
+  TA Spartanburg             (none listed)
+  TA Columbia North          Dunkin', Miss J’s Café, Taco Bell
+  TA Manning                 Popeyes
+  Petro Columbia             Starbucks
+  Petro Florence             (none listed)
+  TA Antioch                 Burger King, Popeyes
+  TA Franklin                Miss J’s Café
+  TA Caryville               Popeyes
+  TA Knoxville West          Burger King, Pizza Hut Express, Popeyes, Subway
+  Petro Knoxville            (none listed)
+  TA Amarillo                Burger King, Pizza Hut Express, Popeyes
+  Petro Amarillo             (none listed)
+  TA Baytown                 (none listed)
+  TA Dallas South            Burger King, Taco Bell & Pizza Hut Express
+  Petro El Paso              (none listed)
+  TA Ganado                  Burger King, Subway
+  Petro Carl's Corner        Miss J's
+  TA New Braunfels           Popeyes, Subway
+  TA San Antonio             Burger King, Fazoli's, Popeyes
+  TA Terrell                 Pizza Hut Express, Subway
+  Petro Weatherford          Popeyes
+  TA Hillsboro               Burger King
+  TA Rockwall                Burger King, Pizza Hut Express
+  TA Edinburg                Tule Tree Legendary Burritos
+  TA Denton                  Burger King, Pizza Hut
+  Petro San Antonio          (none listed)
+  TA Parowan                 Subway, Taco Bell
+  TA Ashland                 (none listed)
+  TA Richmond                Pizza Hut Express, Popeyes
+  TA Wytheville              Popeyes, Subway, Taco Bell
+  Petro Raphine              Burger King, Nathan's Famous Express, Papa John's Pizza, Popeyes, Subway
+  TA Seattle East            Popeyes, Starbucks
+  Petro Spokane              Starbucks
+  TA Hurricane               (none listed)
+  TA Hudson                  Miss J’s Café
+  TA Madison                 Popeyes
+  TA Cheyenne                Burger King, Taco Bell
+
+NUMERIC FIELD DISAGREEMENTS
+  Parking and service bays are published by TA and compared here. Showers are
+  not published (see limitation 1) and are therefore not compared at all.
+
+  Petro Shorter              parking: DATA=50 TA=53
+  TA Marianna                parking: DATA=87 TA=123
+  TA Baltimore South         bays:    DATA=4 TA=3
+  TA Mill City               bays:    DATA=3 TA=2
+  Petro Carl's Corner        parking: DATA=109 TA=91
+
+UNMATCHED ROWS
+  No TA page in the row's state matched on street address, so nothing above
+  counts these rows. Never guessed at — no amenity code from the pages named
+  below has been applied to anything.
+
+  Where DATA's nav code (which carries TA's site number: CVENTA016 -> #0016)
+  points at a real TA page, that page and its address are shown. In every such
+  case the two sources disagree about the ADDRESS, which is a finding in its
+  own right and is probably worth a separate look at the coordinate data.
+
+  TA Corning (nav CVENTA040, 16 pages tried)
+      DATA: 3524 South Highway 99 W, Corning CA
+      TA  : (TA publishes no street address on this page)   [ #0040]
+      TA lists codes [-] — NOT applied, and not counted above.
+  TA Whitestown (nav CVENTA173, 16 pages tried)
+      DATA: 5930 East State Road 334, Whitestown IN
+      TA  : 5930 Whitestown Pkwy, Whitestown IN   [TA Whitestown #0173]
+      TA lists codes [FT] — NOT applied, and not counted above.
+  TA Tooele (nav CVENTA060, 4 pages tried)
+      DATA: 8836 Clinton Landing Road, Tooele UT
+      TA  : 8836 North Highway 40, Salt Lake City UT   [TA Tooele #0060]
+      TA lists codes [FHBT] — NOT applied, and not counted above.
+  TA Wheeling (nav CVENTA032, 4 pages tried)
+      DATA: 196 W. Alexander Road, Valley Grove WV
+      TA  : 270 W. Alexander Road, Valley Grove WV   [TA Wheeling #0032]
+      TA lists codes [FHBT] — NOT applied, and not counted above.
+
+UNFETCHED ROWS
+  Network failures after retries. Re-running will retry these; cached pages are reused.
+
+  (none)
+
+PROVENANCE
+  DATA's stations come from the Covenant fuel book Rev 01-2026, and that book
+  governs which stops are in network. TA's site governs what is currently at
+  those stops. Where they disagree about amenities the site is more current;
+  where they disagree about a station existing, the book wins and the row stays.
+  This report states disagreements. It does not resolve them, and it neither
+  removed nor added a row.
