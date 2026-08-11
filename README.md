@@ -116,6 +116,50 @@ follow, not just this one:
 
 ## Version history
 
+### v1.21.0
+
+**The Covenant nav code now rides along with the plan — on every result
+card, and in the shared text.**
+
+The code was already in the data and already in the station sheet, but a
+driver reading a finished plan had to tap into each stop to get it. It
+now sits on the result card, under the exit line, mono and at the meta
+weight: `Nav code CVENTA260`. Its own line rather than appended to the
+exit, because the longest exit string in the data is `I-40E/I-35, Exit
+127 / I-40W, Exit 154` and a code on the end of that wraps badly on a
+phone.
+
+All three kinds of stop card carry it — required plan stops, the
+short-trip "available if you want to top off" stops (including the ones
+behind the more-stops toggle), and the post-gap resume stops. They share
+one `navLine` helper rather than three copies, because the obvious
+failure here is doing one and missing the others.
+
+The code is **display only**: no copy button, no tap target of its own.
+Each result card is already a `<button>`, and a button nested inside a
+button is invalid HTML — it breaks screen-reader navigation and swallows
+the tap-through to the station sheet. The station sheet is not a button
+and already has the copyable row.
+
+Share text gains the code on each stop line, in both the `FUEL STOPS`
+section and the post-gap section:
+
+```
+1. TA Cheyenne — mile 423  (423 mi leg)  Nav code CVENTA260
+```
+
+`lib/triptext.js` stays a pure formatter with a documented input shape —
+it reads an explicit `s.nav` field that `index.html` maps on from the row
+alongside the existing `legMiles` rounding, rather than reaching into
+DATA column order itself. A missing `nav` omits the tag entirely rather
+than printing a dangling separator; that cannot happen with real data
+(all 144 fuel stops have a code; only the two terminals don't, and
+terminals are filtered out of planning) but the formatter is tested
+independently of DATA and doesn't assume the field is set.
+
+Short-trip available stops still aren't in the share text — only plan and
+post-gap stops carry codes there.
+
 ### v1.20.2
 
 **Two map-zoom fixes, both in the fit machinery, both found by
