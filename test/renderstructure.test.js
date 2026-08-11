@@ -104,6 +104,57 @@ ok('a cache miss stores what it built', /iconCache\.set\(key, icon\)/.test(biBod
 ok('the cache key distinguishes exclusive and faded variants',
    /const key = `\$\{cls\} \$\{exclClass\}\$\{faded\}`/.test(biBody), biBody.slice(0, 300));
 
+console.log('\n=== the nav code rides on EVERY result card type ===');
+// renderPlan builds stop cards in three places — required plan stops, the
+// short-trip "available" stops, and the post-gap resume stops. Adding a
+// field to one and missing the others is the obvious failure, so these pin
+// all three off one extraction rather than three hand-written checks.
+const rpFn = html.slice(html.indexOf('function renderPlan('));
+const rpBody = rpFn.slice(0, rpFn.indexOf('\n}\n') + 3);
+const cards = [...rpBody.matchAll(/<button class="rr-stop[\s\S]*?<\/button>/g)].map(m => m[0]);
+ok('renderPlan builds exactly three kinds of stop card', cards.length === 3, String(cards.length));
+ok('>>> all three render the nav line', cards.every(c => c.includes('navLine(s.row)')),
+   JSON.stringify(cards.map(c => c.slice(0, 60))));
+ok('all three put it BELOW the exit line',
+   cards.every(c => c.indexOf('s.row[7]') >= 0 && c.indexOf('s.row[7]') < c.indexOf('navLine(s.row)')));
+// A button inside a button is invalid HTML: it breaks screen-reader
+// navigation and swallows the card's tap-through to the station sheet.
+// This is why the nav code is display-only, and this pin is what stops a
+// later change from adding a copy control and quietly breaking the card.
+ok('>>> no <button> is nested inside a stop card (no copy control crept in)',
+   cards.every(c => !c.slice(1).includes('<button')),
+   JSON.stringify(cards.filter(c => c.slice(1).includes('<button'))));
+ok('the card tap still opens the station sheet, unchanged',
+   /querySelectorAll\('\.rr-stop'\)[\s\S]{0,120}openSheet\(planStops\[\+el\.dataset\.idx\]\.row\)/.test(html));
+
+ok('navLine is defined exactly once, not copied per card',
+   (html.match(/const navLine =/g) || []).length === 1);
+ok('it renders a labelled, mono code at the existing meta weight',
+   /class="rr-meta rr-nav">Nav code <span class="mono">\$\{row\[20\]\}<\/span>/.test(html));
+ok('it is unconditional — every stop reaching a card has a code',
+   !/const navLine = row =>[^\n]*\?/.test(html), 'no empty-string branch on the result path');
+ok('openSheet keeps ITS conditional, because terminals do reach the sheet',
+   /if\(nav\) html \+= `<div class="row"><div class="k">Nav code<\/div>/.test(html));
+
+console.log('\n=== the share text carries the codes without coupling to DATA ===');
+// lib/triptext.js is a pure formatter with a documented input shape. The
+// row is mapped to an explicit `nav` field at the call site so the
+// formatter never depends on DATA column order.
+ok('the trip object maps nav on for plan stops',
+   /plan: stops\.map\(s => \(\{ \.\.\.s, legMiles: Math\.round\(s\.legMiles\), nav: s\.row\[20\] \}\)\)/.test(html));
+ok('and for post-gap stops',
+   /result\.resume\.plan\.map\(s => \(\{ \.\.\.s, legMiles: Math\.round\(s\.legMiles\), nav: s\.row\[20\] \}\)\)/.test(html));
+const triptextSrc = fs.readFileSync(path.join(__dirname, '..', 'lib', 'triptext.js'), 'utf8');
+// Comments stripped first: the header comment legitimately EXPLAINS that
+// index.html maps the field on from row[20], and matching that text would
+// make this pin pass or fail on prose rather than on code. No string or
+// template literal in this file contains "//", so this is safe here.
+const triptextCode = triptextSrc.split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n');
+ok('>>> the formatter never reaches into a row array index',
+   !/\brow\b\s*\[/.test(triptextCode) && !/\[20\]/.test(triptextCode), triptextCode.match(/.*row.*/));
+ok('the formatter reads the explicit field and guards its absence',
+   /s\.nav \? {2}`/.test(triptextSrc) || /return s\.nav \?/.test(triptextSrc));
+
 console.log('\n=== the station sheet hands off to a nav app ===');
 const osFn = html.slice(html.indexOf('function openSheet('));
 const osBody = osFn.slice(0, osFn.indexOf('\n}\n') + 3);

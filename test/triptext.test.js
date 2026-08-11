@@ -120,6 +120,65 @@ ok('a plan WITH stops never grows these lines even if the fields leak through',
      arrivalRange: 634, nearestToDelivery: { name:'X', miles: 2 } });
      return !t.includes('You arrive with about') && !t.includes('Nearest network fuel'); })());
 
+console.log('\n=== nav codes on stop lines (v1.21.0) ===');
+// Byte-exact on the whole line, not a substring: the point of putting the
+// code here is that a driver can read it off a pasted message, so the
+// separator and the label are part of the contract, not incidental.
+const tn = formatTripText({
+  pickupAddr: 'A', deliveryAddr: 'B',
+  plan: [
+    {name:'TA Cheyenne', mile:423, legMiles:423, tier:'prim', nav:'CVENTA260'},
+    {name:'TA Holbrook', mile:881, legMiles:458, tier:'excl', nav:'CVENTA016'}
+  ],
+  gap: null, finalLegMiles: 151, detourMax: 8
+});
+console.log(tn);
+ok('a plan stop line carries its nav code, exactly',
+   tn.includes('1. TA Cheyenne — mile 423  (423 mi leg)  Nav code CVENTA260'),
+   tn.split('\n').find(l => l.startsWith('1.')));
+ok('the code lands AFTER the tier badge, so the line shape is unchanged up to it',
+   tn.includes('2. TA Holbrook — mile 881  (458 mi leg)  [Exclusive]  Nav code CVENTA016'),
+   tn.split('\n').find(l => l.startsWith('2.')));
+ok('the code is labelled the same way the card and the station sheet label it',
+   !/\bNav [A-Z]{4}/.test(tn) && tn.includes('Nav code '));
+
+// Post-gap stops get the same treatment — the section a gapped plan needs
+// most, since those are the stops the approval call is about.
+const tng = formatTripText({
+  pickupAddr: 'A', deliveryAddr: 'B',
+  plan: [{name:'TA Tooele', mile:241, legMiles:241, tier:'excl', nav:'CVENTA555'}],
+  gap: {fromMile:242, deadMile:1117},
+  postGapPlan: [{name:'TA Amarillo', mile:1150, legMiles:908, tier:'prim', nav:'CVENTA777'}],
+  postGapFinalLegMiles: 300, finalLegMiles: null, detourMax: 50
+});
+ok('a post-gap stop line carries its nav code, exactly',
+   tng.includes('2. TA Amarillo — mile 1150  (908 mi leg)  Nav code CVENTA777'),
+   tng.split('\n').find(l => l.startsWith('2.')));
+ok('the pre-gap stop in the same trip still carries its own',
+   tng.includes('1. TA Tooele — mile 241  (241 mi leg)  [Exclusive]  Nav code CVENTA555'));
+
+// THE GUARD: this formatter is pure and tested without DATA, so it must not
+// assume the caller mapped the field on. Absent means no tag at all — never
+// a trailing separator or a "Nav code undefined".
+const tnm = formatTripText({
+  pickupAddr: 'A', deliveryAddr: 'B',
+  plan: [{name:'S1', mile:100, legMiles:100, tier:'prim'}],
+  gap: {fromMile:101, deadMile:900},
+  postGapPlan: [{name:'S2', mile:950, legMiles:850, tier:'prim'}],
+  postGapFinalLegMiles: 40, detourMax: 8
+});
+ok('>>> a stop with no nav field prints no label and no dangling separator',
+   tnm.includes('1. S1 — mile 100  (100 mi leg)\n'),
+   tnm.split('\n').find(l => l.startsWith('1.')));
+ok('>>> same for a post-gap stop with no nav field',
+   tnm.includes('2. S2 — mile 950  (850 mi leg)\n'),
+   tnm.split('\n').find(l => l.startsWith('2.')));
+ok('no "Nav code" text appears anywhere when no entry has one', !tnm.includes('Nav code'));
+ok('nothing prints undefined', !tnm.includes('undefined'));
+// The pre-existing fixtures never set nav, so their output must be untouched.
+ok('plans built without nav are byte-identical to before this feature',
+   !t1.includes('Nav code') && !t3.includes('Nav code') && !t7.includes('Nav code'));
+
 console.log('\n=== missing optional fields do not throw or print garbage ===');
 const t4 = formatTripText({ pickupAddr:'A', deliveryAddr:'B', maxRange:800, plan:[], gap:null });
 ok('minimal input does not throw', typeof t4 === 'string');

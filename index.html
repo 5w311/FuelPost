@@ -895,29 +895,29 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.20.2"></script>
+<script src="lib/fuelplan.js?v=1.21.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.20.2"></script>
+<script src="lib/triptext.js?v=1.21.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.20.2"></script>
+<script src="lib/location.js?v=1.21.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.20.2"></script>
+<script src="lib/gauge.js?v=1.21.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.20.2"></script>
+<script src="lib/extract-version.js?v=1.21.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.20.2"></script>
+<script src="lib/autosuggest.js?v=1.21.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.20.2"></script>
+<script src="lib/baselayer.js?v=1.21.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.20.2"></script>
+<script src="lib/memocache.js?v=1.21.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.20.2"></script>
+<script src="lib/routerank.js?v=1.21.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.20.2"></script>
+<script src="lib/vehicleprofile.js?v=1.21.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.20.2"></script>
+<script src="lib/escape.js?v=1.21.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.20.2"></script>
+<script src="lib/navlinks.js?v=1.21.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -933,7 +933,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.20.2')
+fetch('lib/fuelplan-adaptive.js?v=1.21.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -950,7 +950,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.20.2')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.20.2')
+fetch('lib/shorttrip.js?v=1.21.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -961,7 +961,7 @@ fetch('lib/shorttrip.js?v=1.20.2')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.20.2"></script>
+<script src="lib/flexible-polyline.js?v=1.21.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1121,7 +1121,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.20.2';
+const APP_VERSION = '1.21.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -2746,6 +2746,27 @@ function tierBadge(tier){
     : '<span class="badge-pill b-prim">Primary</span>';
 }
 
+// The Covenant nav code, on its own line under the exit line. Its own line
+// and not appended to the exit: the longest exit string in DATA is
+// "I-40E/I-35, Exit 127 / I-40W, Exit 154", and a code on the end of that
+// wraps badly on a phone.
+//
+// DISPLAY ONLY — no copy button, no tap target of its own, deliberately.
+// Every result card is already a <button>, and a <button> nested inside a
+// <button> is invalid HTML: it breaks screen-reader navigation and swallows
+// the tap-through that opens the station sheet. A copy control for this
+// field belongs in the station sheet, which is not a button, and it is
+// already there. Do not add one here.
+//
+// One helper rather than three copies because renderPlan builds stop cards
+// in three places — required plan stops, short-trip available stops, and
+// post-gap resume stops — and they have to stay in step. Unconditional: only
+// the two terminals have no code (column 20 is empty for them), and
+// FUEL_STOPS filters type 'term' out of planning, so no stop reaching a
+// result card can be missing one. openSheet keeps its own conditional,
+// because terminals genuinely do reach the sheet.
+const navLine = row => `<div class="rr-meta rr-nav">Nav code <span class="mono">${row[20]}</span></div>`;
+
 // summary: pass a short string (e.g. "4 fuel stops · 3,058 mi") to offer the
 // collapse tab for this render — the final plan/gap result only. Omit it for
 // every other state (loading notes, errors, the confirm-address step) so the
@@ -2980,14 +3001,18 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     deliveryAddr: delivery.label,
     maxRange: ranges.maxRange,
     rangeAtPickup: ranges.rangeAtPickup,
-    plan: stops.map(s => ({ ...s, legMiles: Math.round(s.legMiles) })),
+    // nav is mapped onto an explicit field here rather than read from the
+    // row inside the formatter: lib/triptext.js is a pure function with a
+    // documented input shape, tested independently of DATA, and reaching
+    // into row[20] there would couple it to DATA column order.
+    plan: stops.map(s => ({ ...s, legMiles: Math.round(s.legMiles), nav: s.row[20] })),
     gap: result.ok ? null : result.gap,
     finalLegMiles: result.ok ? Math.round(result.finalLegMiles) : null,
     // The post-gap remainder of a gapped route, when one exists — so a
     // shared gap plan carries the same "here's what the rest fuels like"
     // information the screen shows. Omitted entirely on completable plans.
     postGapPlan: (!result.ok && result.resume)
-      ? result.resume.plan.map(s => ({ ...s, legMiles: Math.round(s.legMiles) })) : undefined,
+      ? result.resume.plan.map(s => ({ ...s, legMiles: Math.round(s.legMiles), nav: s.row[20] })) : undefined,
     postGapFinalLegMiles: (!result.ok && result.resume && result.resume.ok)
       ? Math.round(result.resume.finalLegMiles) : undefined,
     postGapSecondGap: (!result.ok && result.resume && !result.resume.ok)
@@ -3057,6 +3082,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
         <div class="rr-name">${i+1}. ${s.name} ${tierBadge(s.tier)}</div>
         <div class="rr-meta mono">${mi(s.legMiles)} mi this leg &middot; ${s.detour.toFixed(1)} mi off route</div>
         <div class="rr-meta">${s.row[7] || ''}</div>
+        ${navLine(s.row)}
       </div>
       <div class="rr-chev">›</div>
     </button>`;
@@ -3097,6 +3123,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
               <div class="rr-meta mono">${mi(s.milesFromDelivery)} mi before delivery &middot; ${s.detour.toFixed(1)} mi off route</div>
               ${last && shortTrip.onRoute.length > 1 ? '<div class="rr-meta rr-avail-last">Last network fuel before delivery</div>' : ''}
               <div class="rr-meta">${s.row[7] || ''}</div>
+              ${navLine(s.row)}
             </div>
             <div class="rr-chev">›</div>
           </button>`;
@@ -3174,6 +3201,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
             <div class="rr-name">${stops.length + i + 1}. ${s.name} ${tierBadge(s.tier)}</div>
             <div class="rr-meta mono">${mi(s.legMiles)} mi this leg &middot; ${s.detour.toFixed(1)} mi off route</div>
             <div class="rr-meta">${s.row[7] || ''}</div>
+            ${navLine(s.row)}
           </div>
           <div class="rr-chev">›</div>
         </button>`;
