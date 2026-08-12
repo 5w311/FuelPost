@@ -196,6 +196,17 @@
   .b-term{background:#E3E9F2;color:var(--navy);}
   .b-ta{background:#DCEBFF;color:var(--ta);}
   .b-petro{background:#DCF3E5;color:var(--petro);}
+  /* Closed-station banner. Colour is not carrying the meaning on its own:
+     the block leads with a ✕ and the words "Permanently closed", so it still
+     reads on a monochrome screen or to a driver who can't separate the red.
+     Background stays transparent and only border+text take --danger-text,
+     which is already redefined for dark mode (5.1:1 on --surface there) —
+     a fixed light-red fill would be unreadable in the dark theme. */
+  #sheet .closedNote{border:1px solid var(--danger-text);border-radius:10px;padding:10px 12px;margin:2px 0 10px;font-size:12.5px;line-height:1.45;color:var(--danger-text);}
+  #sheet .closedNote b{font-weight:800;}
+  #sheet .closedNote>b{display:block;font-size:13.5px;margin-bottom:3px;}
+  #sheet .closedAlt{display:block;margin-top:6px;}
+  .list-item .tag-closed{background:var(--danger-text);color:var(--surface);}
   #sheet .row{display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:13px;}
   #sheet .row .k{color:var(--sub);}
   #sheet .row .v{font-weight:600;text-align:right;max-width:65%;}
@@ -895,29 +906,29 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.21.0"></script>
+<script src="lib/fuelplan.js?v=1.22.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.21.0"></script>
+<script src="lib/triptext.js?v=1.22.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.21.0"></script>
+<script src="lib/location.js?v=1.22.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.21.0"></script>
+<script src="lib/gauge.js?v=1.22.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.21.0"></script>
+<script src="lib/extract-version.js?v=1.22.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.21.0"></script>
+<script src="lib/autosuggest.js?v=1.22.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.21.0"></script>
+<script src="lib/baselayer.js?v=1.22.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.21.0"></script>
+<script src="lib/memocache.js?v=1.22.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.21.0"></script>
+<script src="lib/routerank.js?v=1.22.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.21.0"></script>
+<script src="lib/vehicleprofile.js?v=1.22.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.21.0"></script>
+<script src="lib/escape.js?v=1.22.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.21.0"></script>
+<script src="lib/navlinks.js?v=1.22.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -933,7 +944,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.21.0')
+fetch('lib/fuelplan-adaptive.js?v=1.22.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -950,7 +961,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.21.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.21.0')
+fetch('lib/shorttrip.js?v=1.22.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -961,7 +972,7 @@ fetch('lib/shorttrip.js?v=1.21.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.21.0"></script>
+<script src="lib/flexible-polyline.js?v=1.22.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1041,7 +1052,7 @@ const DATA = [
 ["NV2","TA","TA Mill City","6000 E. Frontage Road","Mill City","NV","89418","I-80, Exit 151(W)/149(E)","(775) 538-7311",40.6937,-118.0557,"prim",152,1,10,3,"W,H,B","",1,1,"CVENTA181"],
 ["NV3","Petro","Petro North Las Vegas","6595 North Hollywood Blvd","North Las Vegas","NV","89115","I-15, Exit 54","(702) 632-2640",36.2794,-115.0255,"prim",207,1,16,5,"","",1,1,"CVENPE331"],
 ["NH1","TA","TA Greenland","108 Ocean Road","Greenland","NH","03840","I-95, Exit 3(N), 3B(S)","(603) 436-3636",43.0426,-70.8181,"prim",72,1,7,0,"W,B,T","",1,1,"CVENTA211"],
-["NJ1","TA","TA Bloomsburry","975 S.R. 173","Bloomsbury","NJ","08804","I-78, Exit 7","(908) 479-4136",40.6594,-75.0750,"excl",122,1,7,4,"W,H,T","",1,1,"CVENTA048"],
+["NJ1","TA","TA Bloomsbury","975 S.R. 173","Bloomsbury","NJ","08804","I-78, Exit 7","(908) 479-4136",40.6594,-75.0750,"excl",122,1,7,4,"W,H,T","",1,1,"CVENTA048"],
 ["NJ2","Petro","Petro Bordentown","402 Rising Sun Square Road","Bordentown","NJ","08505","I-295, Exit 57 / Tpike, Exit 7","(609) 298-6070",40.1232,-74.7133,"prim",490,1,20,6,"F,W,H,T","M,T,P",1,1,"CVENPE314"],
 ["NJ3","TA","TA Columbia","2 Simpson Road","Columbia","NJ","07832","I-80, Exit 4A","(908) 496-4124",40.9319,-75.0966,"excl",172,1,7,5,"W,T","",1,1,"CVENTA006"],
 ["NJ4","TA","TA Paulsboro","171 Berkley Road","Paulsboro","NJ","08066","I-295, Exit 18","(856) 423-5500",39.8193,-75.2384,"excl",175,1,8,3,"W","",1,1,"CVENTA218"],
@@ -1121,7 +1132,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.21.0';
+const APP_VERSION = '1.22.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -1700,6 +1711,18 @@ function openSheet(row){
       <button class="close" onclick="closeSheet()">✕</button>
     </div>
     <div class="badges">${brandBadge}${typeBadge}</div>`;
+  // Closed stations: the first thing in the sheet after the name and badges,
+  // never a row buried among the amenities — a driver skimming must not miss
+  // it. Where a real alternative exists at the same exit it is named; TA
+  // Saginaw has none and none is invented.
+  if(CLOSED_STOP_IDS.has(id)){
+    const alt = DATA.find(r => r[0] === CLOSED_STOP_ALT[id]);
+    html += `<div class="closedNote">
+      <b><span aria-hidden="true">✕</span> Permanently closed</b>
+      This stop is not in TA's location master (08-2026) and appears to have closed.
+      It is not used for fuel planning.${alt ? `
+      <span class="closedAlt">Use <b>${alt[2]}</b> instead — same exit (${alt[7]}).</span>` : ''}</div>`;
+  }
   // How far the truck is from this stop right now — first row, because it's
   // the "should I even consider this one" number. Straight-line miles, same
   // measure as every other "X mi from" figure in the app. Only shown once a
@@ -1871,7 +1894,8 @@ function renderList(filtered){
     item.className='list-item';
     item.innerHTML = `<div class="dot" style="background:${dotColor}">${row[1]==='TA'?'T':(row[1]==='Petro'?'P':'HQ')}</div>
       <div class="info">
-        <div class="name">${row[2]}${row[11]==='excl'?'<span class="tag">Exclusive</span>':''}</div>
+        <div class="name">${row[2]}${row[11]==='excl'?'<span class="tag">Exclusive</span>':''}${
+          CLOSED_STOP_IDS.has(row[0])?'<span class="tag tag-closed">Closed</span>':''}</div>
         <div class="addr">${row[3]}, ${row[4]}, ${row[5]} ${row[6]}</div>
         <div class="meta mono">${row[7]||'Terminal'}</div>
       </div>`;
@@ -2291,8 +2315,39 @@ renderLocateOffState();
    switches to ROUTE, so STOPS mode never depends on it.
    ========================================================================== */
 
-// Terminals are not fuel stops — exclude them from planning.
-const FUEL_STOPS = DATA.filter(r => r[11] !== 'term').map(r => ({
+// Stations that have CLOSED since the fuel book was issued. Source: TA's own
+// location master dated 08-2026, in which neither row appears.
+//
+// The rows are deliberately NOT deleted. DATA's station list is sourced from
+// the Covenant fuel book edition named in FUEL_BOOK_REV (stated there and
+// nowhere else, by design), and dropping rows would put DATA out of agreement
+// with the book it claims to come from. They keep their markers,
+// their list entries and their station sheets — a driver who knows the stop
+// and goes looking for it should find it and learn why it is gone, rather
+// than wonder whether the app lost it — and the sheet says plainly that it is
+// closed. They are simply never selected for a plan.
+//
+// TEMPORARY BY DESIGN: this set is deleted when the fuel book revs and the
+// rows go with it. That expiry is why it is a two-id set here and not a
+// column on DATA, which would drag FIELD_COUNT, tools/geocode.js and the data
+// tests along with it for a marker with a known end date.
+//
+// TA Corning is NOT a rename of Petro Corning. They are two separate rows at
+// the same I-5 exit 630 with different addresses and phone numbers; Petro
+// Corning (CA4) IS in TA's master and stays plannable.
+const CLOSED_STOP_IDS = new Set(['CA5', 'MI3']);
+// Named alternatives at the same exit, for the sheet. Only where one really
+// exists — TA Saginaw has no sibling and none is invented for it.
+const CLOSED_STOP_ALT = { CA5: 'CA4' };
+
+// Terminals are not fuel stops — exclude them from planning. Closed stations
+// are excluded here too, at the source rather than as a ranking penalty: a
+// closed stop must never be selected, not even as a last resort when nothing
+// else is in range. That case — the only stop in range is closed — is exactly
+// a driver on a quarter tank being routed somewhere they cannot fuel, and
+// "no stop in range" is the more useful answer. Every planning path takes
+// FUEL_STOPS, so this one filter is the whole exclusion.
+const FUEL_STOPS = DATA.filter(r => r[11] !== 'term' && !CLOSED_STOP_IDS.has(r[0])).map(r => ({
   id: r[0], name: r[2], lat: r[9], lng: r[10], tier: r[11], row: r
 }));
 

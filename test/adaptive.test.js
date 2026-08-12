@@ -2,7 +2,7 @@
 // The provided test drives against a fixture stops.json; that fixture wasn't
 // shipped with the brief, and building one by hand risks drifting from the
 // real station data. Instead this derives the same {id,name,lat,lng,tier,row}
-// shape straight from the live DATA array in index.html (144 fuel stops,
+// shape straight from the live DATA array in index.html (142 fuel stops,
 // terminals excluded) — the exact set the app plans against, always in sync.
 
 const fs = require('fs');
@@ -16,7 +16,13 @@ const ok = (n, c, e = '') => { c ? (p++, console.log('  PASS', n)) : (f++, conso
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const DATA = splitDataBlock(html).rowLines.map(parseRowLine);
-const stops = DATA.filter(r => r[11] !== 'term').map(r => ({
+// Closed ids are read out of index.html rather than hardcoded, so this stays
+// the set the app actually plans against as that list changes (and empties,
+// when the fuel book revs).
+const CLOSED_STOP_IDS = new Set(
+  (html.match(/const CLOSED_STOP_IDS = new Set\(\[([^\]]*)\]\)/) || [, ''])[1]
+    .split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean));
+const stops = DATA.filter(r => r[11] !== 'term' && !CLOSED_STOP_IDS.has(r[0])).map(r => ({
   id: r[0], name: r[2], lat: r[9], lng: r[10], tier: r[11], row: r
 }));
 

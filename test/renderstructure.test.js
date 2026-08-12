@@ -155,6 +155,35 @@ ok('>>> the formatter never reaches into a row array index',
 ok('the formatter reads the explicit field and guards its absence',
    /s\.nav \? {2}`/.test(triptextSrc) || /return s\.nav \?/.test(triptextSrc));
 
+console.log('\n=== closed stations are marked, loudly, in the sheet ===');
+// The rows stay visible everywhere — a driver who knows the stop and goes
+// looking for it must find it and learn why it is gone. What must not happen
+// is the closed state being a quiet row lost among the amenities.
+const osFn0 = html.slice(html.indexOf('function openSheet('));
+const osBody0 = osFn0.slice(0, osFn0.indexOf('\n}\n') + 3);
+ok('the sheet renders a closed indicator for closed rows',
+   /CLOSED_STOP_IDS\.has\(id\)/.test(osBody0) && /class="closedNote"/.test(osBody0));
+ok('>>> it sits at the TOP — before the first data row, not among the amenities',
+   osBody0.indexOf('class="closedNote"') < osBody0.indexOf('class="k">Address'),
+   'closedNote must precede the address row');
+ok('  and immediately after the badges', osBody0.indexOf('class="badges"') < osBody0.indexOf('class="closedNote"'));
+ok('it says plainly that the stop is closed and is not planned',
+   /Permanently closed/.test(osBody0) && /not used for fuel planning/i.test(osBody0));
+// Colour must not be the only carrier: a ✕ and the words do the work too.
+ok('>>> meaning does not rest on colour alone (a mark and words carry it)',
+   /✕/.test(osBody0) && /Permanently closed<\/b>/.test(osBody0));
+ok('the banner uses theme custom properties, not a fixed light-mode red',
+   /#sheet \.closedNote\{[^}]*var\(--danger-text\)/.test(html)
+   && !/#sheet \.closedNote\{[^}]*background:#[0-9A-Fa-f]{6}/.test(html));
+// An alternative is named only where one exists — TA Saginaw has no sibling
+// and the sheet must not invent one.
+ok('>>> the alternative is looked up, never hardcoded per station',
+   /CLOSED_STOP_ALT\[id\]/.test(osBody0) && /\$\{alt \?/.test(osBody0));
+ok('  the alt map names Petro Corning for TA Corning and nothing for Saginaw',
+   /const CLOSED_STOP_ALT = \{ CA5: 'CA4' \};/.test(html));
+ok('the list row also carries a closed tag',
+   /CLOSED_STOP_IDS\.has\(row\[0\]\)\?'<span class="tag tag-closed">Closed<\/span>'/.test(html));
+
 console.log('\n=== the station sheet hands off to a nav app ===');
 const osFn = html.slice(html.indexOf('function openSheet('));
 const osBody = osFn.slice(0, osFn.indexOf('\n}\n') + 3);

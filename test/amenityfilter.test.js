@@ -57,7 +57,10 @@ ok('showers (10+) keeps 76',   applyAll(DATA, ['showers']).length === 76,  Strin
 ok('service (4+ bays) keeps 102', applyAll(DATA, ['service']).length === 102, String(applyAll(DATA, ['service']).length));
 // CAT scale is genuinely near-universal here; asserted so the near-no-op is a
 // recorded fact rather than an accident nobody noticed.
-ok('CAT scale keeps 144 — every fuel stop has one, only the 2 terminals do not',
+// 144, not 142: this filters over all of DATA, and the two closed stations
+// are still DATA rows with a CAT scale on them. The number that dropped to
+// 142 is FUEL_STOPS, which is a different measurement — see datastops.
+ok('CAT scale keeps 144 of the 146 DATA rows — only the 2 terminals lack one',
    applyAll(DATA, ['scale']).length === 144, String(applyAll(DATA, ['scale']).length));
 
 console.log('\n=== filters AND together ===');
