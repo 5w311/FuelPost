@@ -162,6 +162,43 @@ follow, not just this one:
 
 ## Version history
 
+### v1.22.2
+
+**A closed station was drawing on top of the open one beside it.**
+
+Petro Corning and TA Corning sit **0.43 miles apart** on I-5 exit 630, so at
+any normal zoom their pins overlap and only the top one is visible. The
+**closed** TA pin was the one on top, so the driver saw a blue TA pin for a
+station that no longer exists while the Petro that is actually there was
+hidden underneath it.
+
+Closed stations now get an explicit low z-index (`CLOSED_PIN_Z`) in the marker
+build, so they sit behind everything.
+
+**It is not fixed by marker add order, which is the obvious approach and does
+not work.** The map engine writes its own inline `z-index` onto every marker,
+assigned by screen Y so that lower-on-screen pins paint in front, and it
+recomputes them on every view change. TA Corning is 0.006° *south* of Petro
+Corning, so it lands lower on screen and the engine put it in front — measured,
+`z-index: 1` against Petro's `0` — regardless of which marker was added first.
+Sorting the build array changes nothing. An explicit `setZIndex` overrides the
+engine's value and survives pan and zoom; that was verified against the real
+HERE SDK, since the test stub paints nothing and cannot answer the question at
+all.
+
+**This does not fix pin overlap.** At the zoom where both are on screen there
+is still one visible pin, not two — this only decides which one. Showing both
+would need clustering or spiderfying, which is a much larger piece of work and
+is not started here. Ties between two *open* stations in one city stay
+incidental, deliberately.
+
+`CLOSED_STOP_IDS` and `CLOSED_STOP_ALT` moved from beside `FUEL_STOPS` to above
+the marker build. That is not tidying — it is required. The marker block runs
+at **parse time**, so reading the set from a `const` declared 500 lines below
+it is a temporal-dead-zone crash on load: measured, the map builds **zero**
+markers and the app is blank. A pointer comment sits at the old site and
+`datastops` pins the ordering.
+
 ### v1.22.1
 
 **Correction: TA Saginaw is not closed. v1.22.0 got it wrong and made an open
