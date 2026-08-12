@@ -93,6 +93,39 @@ They answer different questions and must not be conflated:
 - **`APP_VERSION`** (`1.3.0`) — the code. Shown in the **legend card** as a
   support detail. Bumped for every shipped change.
 
+### Two stations are marked closed, pending the next fuel book
+
+`DATA` holds **146 rows**, but only **142** are plannable: two Covenant
+terminals, plus two stations that have closed since the book was issued.
+
+- **TA Corning** (`CA5`, nav `CVENTA040`) — 3524 South Highway 99 W, Corning CA
+- **TA Saginaw** (`MI3`, nav `CVENTA198`) — 6364 Dixie Highway, Bridgeport MI
+
+Neither appears in TA's own location master dated **08-2026**. They are listed
+in `CLOSED_STOP_IDS`, next to `FUEL_STOPS` in `index.html`, and filtered out of
+planning there.
+
+**The rows are deliberately not deleted.** `DATA`'s station list is sourced
+from the fuel book edition in `FUEL_BOOK_REV`, and dropping rows would put
+`DATA` out of agreement with the book it claims to come from. The rows go when
+the book revs — and `CLOSED_STOP_IDS` gets deleted with them. That expiry is
+why the marker is a two-id set rather than a column on `DATA`, which would drag
+`FIELD_COUNT`, `tools/geocode.js` and the data tests along with it.
+
+They stay visible on the map, in the list, and in their station sheets, where a
+banner says the stop appears permanently closed and is not used for planning. A
+driver who knows the stop and goes looking for it should find it and learn why
+it is gone, rather than wonder whether the app lost it.
+
+**TA Corning is not a rename of Petro Corning.** They are two separate rows at
+the same I-5 exit 630 with different addresses and phone numbers. Petro Corning
+(`CA4`) is in TA's master, stays plannable, and is named in TA Corning's sheet
+as the alternative at that exit. TA Saginaw has no such sibling and none is
+invented for it.
+
+The header still reads **146 stops** — it counts stations in the book, and the
+book has not revved.
+
 ## Persisted settings (localStorage)
 
 `fuelpost.theme.v1` (dark mode, v1.7.0) is the first thing this app persists,
@@ -115,6 +148,51 @@ follow, not just this one:
   silently produce a result the driver never chose.
 
 ## Version history
+
+### v1.22.0
+
+**Two closed stations are excluded from planning but kept in view, and a
+misspelled station name is fixed.**
+
+TA Corning (`CA5`) and TA Saginaw (`MI3`) are absent from TA's own location
+master dated 08-2026 and appear to have closed. Both are now in
+`CLOSED_STOP_IDS` and filtered out of `FUEL_STOPS` alongside the two
+terminals, so **`FUEL_STOPS` drops from 144 to 142**. `DATA` keeps all 146
+rows and the header still reads 146 — it counts stations in the book, and the
+book has not revved. See *Two stations are marked closed* above for why the
+rows stay.
+
+The exclusion is a filter at the source, not a ranking penalty. A closed stop
+is never selected, not even as a last resort when nothing else is in range —
+that case is a driver on a quarter tank being routed somewhere they cannot
+fuel, and "no stop in range" is the more useful answer.
+
+The rows keep their markers, list entries and station sheets. The sheet leads
+with a closed banner directly under the badges, before any data row, saying
+the stop appears permanently closed and is not used for planning. TA Corning's
+banner names **Petro Corning** as the alternative at the same exit (I-5, Exit
+630) — a genuinely different station, not a rename; TA Saginaw has no sibling
+and none is invented. The list row carries a matching **Closed** tag.
+
+The banner does not rest on colour: it leads with a ✕ and the words
+"Permanently closed", and takes `--danger-text` (already tuned for both
+themes) with a transparent fill, since a fixed light-red background would be
+unreadable in dark mode.
+
+**The map pin is unchanged, deliberately.** The obvious treatment is a fade,
+but `.pin-faded` already means "available but not selected" in route mode, and
+two similar fades meaning different things is worse than one missing cue. The
+list tag and the sheet banner carry the state instead.
+
+`TA Bloomsburry` is corrected to **`TA Bloomsbury`** (`NJ1`) — display name
+only; nav code, address and city untouched. `TA Bloomsburg` (`PA1`) is a
+different station in Pennsylvania and is untouched.
+
+Two test files were mirroring the old `FUEL_STOPS` filter by hand and kept
+passing against a stale copy of the rule; both now read `CLOSED_STOP_IDS` out
+of `index.html` so they cannot drift again. `amenityfilter`'s CAT-scale
+assertion of 144 is unchanged and correct — it measures filtering over all 146
+`DATA` rows, not over `FUEL_STOPS`.
 
 ### v1.21.0
 
