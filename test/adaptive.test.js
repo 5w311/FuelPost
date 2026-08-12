@@ -2,7 +2,7 @@
 // The provided test drives against a fixture stops.json; that fixture wasn't
 // shipped with the brief, and building one by hand risks drifting from the
 // real station data. Instead this derives the same {id,name,lat,lng,tier,row}
-// shape straight from the live DATA array in index.html (142 fuel stops,
+// shape straight from the live DATA array in index.html (143 fuel stops,
 // terminals excluded) — the exact set the app plans against, always in sync.
 
 const fs = require('fs');
