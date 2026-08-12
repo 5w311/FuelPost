@@ -101,6 +101,46 @@ ok('  and it really is a separate row at the same exit as TA Corning',
 ok('the exclusion is a filter on FUEL_STOPS, not a penalty applied later',
    /DATA\.filter\(r => r\[11\] !== 'term' && !CLOSED_STOP_IDS\.has\(r\[0\]\)\)/.test(html));
 
+console.log('\n=== marker stacking: a closed pin never hides an open one ===');
+// Petro Corning and TA Corning are 0.43 mi apart on I-5 exit 630, so at any
+// normal zoom their pins overlap and only the top one is visible. The closed
+// TA pin was winning that overlap, showing the driver a station that no
+// longer exists and hiding the Petro that is actually there.
+//
+// The fix is an explicit z-index, NOT marker add order. The map engine writes
+// its own inline z-index on every marker, assigned by screen Y so lower pins
+// paint in front, and rewrites them on every view change — add order does not
+// survive that. TA Corning is SOUTH of Petro Corning, so the engine put it in
+// front regardless of which was added first. Measured against the real SDK;
+// the behaviour cannot be reproduced here, so this file pins the wiring and
+// scratchpad/pw-pinorder.js pins the painted result.
+{
+  ok('fixture: CA4 and CA5 really are the same state and city (they overlap)',
+     (() => { const a = DATA.find(r => r[0] === 'CA4'), b = DATA.find(r => r[0] === 'CA5');
+       return a[5] === b[5] && a[4] === b[4]; })());
+  ok('  and CA5 (closed) is SOUTH of CA4, which is why the engine favoured it',
+     DATA.find(r => r[0] === 'CA5')[9] < DATA.find(r => r[0] === 'CA4')[9]);
+
+  ok('>>> the marker build pushes closed stations behind with setZIndex',
+     /if\(CLOSED_STOP_IDS\.has\(row\[0\]\)\) marker\.setZIndex\(CLOSED_PIN_Z\);/.test(html));
+  ok('  CLOSED_PIN_Z is below every default the engine assigns',
+     /const CLOSED_PIN_Z = -1;/.test(html));
+  ok('  only closed rows get it — open pins keep the engine default',
+     (html.match(/marker\.setZIndex\(/g) || []).length === 1);
+  // The sort is deliberately untouched: it matches render()'s list order and
+  // has nothing to do with stacking.
+  ok('  the build sort is unchanged (state, then city)',
+     /\[\.\.\.DATA\]\.sort\(\(a,b\)=> a\[5\]===b\[5\] \? a\[4\]\.localeCompare\(b\[4\]\) : a\[5\]\.localeCompare\(b\[5\]\)\)/.test(html));
+
+  // The set is read at parse time by the marker build, so it must be declared
+  // above it. This exact ordering was a startup crash when first written:
+  // "Cannot access 'CLOSED_STOP_IDS' before initialization", zero markers.
+  ok('>>> CLOSED_STOP_IDS is declared ABOVE the marker build (TDZ guard)',
+     html.indexOf('const CLOSED_STOP_IDS') < html.indexOf('const STOP_MARKERS'),
+     'declaring it below the marker build is a blank map on load');
+  ok('  so is CLOSED_PIN_Z', html.indexOf('const CLOSED_PIN_Z') < html.indexOf('const STOP_MARKERS'));
+}
+
 console.log('\n=== the Bloomsbury spelling ===');
 ok('NJ1 is spelled TA Bloomsbury, matching TA and the post office',
    (DATA.find(r => r[0] === 'NJ1') || [])[2] === 'TA Bloomsbury',
