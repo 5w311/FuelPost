@@ -37,10 +37,10 @@ ok('exactly 2 terminal rows in DATA', terms.length === 2, JSON.stringify(terms.m
 ok('  they are the two Covenant terminals', terms.map(r => r[0]).sort().join() === 'TN6,TN7',
    JSON.stringify(terms.map(r => r[0])));
 
-// 146 rows - 2 terminals - 2 closed = 142. DATA itself keeps all 146 and the
+// 146 rows - 2 terminals - 1 closed = 143. DATA itself keeps all 146 and the
 // header still counts 146: the header counts stations in the book, and the
 // book has not revved.
-ok('mapping yields 142 fuel stops', FUEL_STOPS.length === 142, FUEL_STOPS.length);
+ok('mapping yields 143 fuel stops', FUEL_STOPS.length === 143, FUEL_STOPS.length);
 ok('no terminal survives the filter', FUEL_STOPS.every(s => s.tier !== 'term'),
    JSON.stringify(FUEL_STOPS.filter(s => s.tier === 'term').map(s => s.id)));
 ok('  neither TN6 nor TN7 is a fuel stop',
@@ -50,28 +50,44 @@ ok('every fuel stop is excl or prim',
    JSON.stringify([...new Set(FUEL_STOPS.map(s => s.tier))]));
 
 console.log('\n=== closed stations: excluded from planning, kept in DATA ===');
-// TA Corning (CA5) and TA Saginaw (MI3) are absent from TA's location master
-// 08-2026. The rows stay so DATA still agrees with the fuel book it is
-// sourced from; only planning drops them.
+// One row: TA Corning (CA5), whose address and phone are both absent from
+// TA's location master 08-2026. The row stays so DATA still agrees with the
+// fuel book it is sourced from; only planning drops it.
 ok('the closed set was actually found in index.html (not an empty regex match)',
-   CLOSED_STOP_IDS.size === 2, JSON.stringify([...CLOSED_STOP_IDS]));
-ok('  it is exactly CA5 and MI3', [...CLOSED_STOP_IDS].sort().join() === 'CA5,MI3',
+   CLOSED_STOP_IDS.size === 1, JSON.stringify([...CLOSED_STOP_IDS]));
+ok('  it is exactly CA5', [...CLOSED_STOP_IDS].sort().join() === 'CA5',
    JSON.stringify([...CLOSED_STOP_IDS]));
+// THE REGRESSION THIS FILE EXISTS TO CATCH FROM NOW ON: v1.22.0 marked TA
+// Saginaw (MI3) closed because it was looked up under "Saginaw" while TA
+// lists it as "TA Bridgeport" — same address, same phone, same coordinates.
+// An absent NAME is not evidence of closure; an open station spent a release
+// unplannable on that mistake.
+ok('>>> TA Saginaw (MI3) IS plannable — a rename is not a closure',
+   FUEL_STOPS.some(s => s.id === 'MI3'),
+   JSON.stringify([...CLOSED_STOP_IDS]));
+ok('  and MI3 is not in the closed set at all', !CLOSED_STOP_IDS.has('MI3'));
+ok('>>> TA Corning (CA5) is still excluded', !FUEL_STOPS.some(s => s.id === 'CA5')
+   && CLOSED_STOP_IDS.has('CA5'));
 // THE FAILURE MODE WORTH PINNING: a typo'd id silently matches nothing, the
 // closed stop stays plannable, and every count above still adds up because
 // the typo just never fires. Check each id against DATA.
 ok('>>> every closed id exists in DATA (a typo would exclude nothing, silently)',
    [...CLOSED_STOP_IDS].every(id => DATA.some(r => r[0] === id)),
    JSON.stringify([...CLOSED_STOP_IDS].filter(id => !DATA.some(r => r[0] === id))));
-ok('>>> neither closed stop survives into FUEL_STOPS',
+ok('>>> no closed stop survives into FUEL_STOPS',
    !FUEL_STOPS.some(s => CLOSED_STOP_IDS.has(s.id)),
    JSON.stringify(FUEL_STOPS.filter(s => CLOSED_STOP_IDS.has(s.id)).map(s => s.id)));
-ok('>>> both rows are still IN DATA — visible on the map, in the list, in a sheet',
+ok('>>> the closed row is still IN DATA — on the map, in the list, in a sheet',
    [...CLOSED_STOP_IDS].every(id => DATA.some(r => r[0] === id)) && DATA.length === 146);
 ok('  TA Corning is still in DATA under its own name',
    (DATA.find(r => r[0] === 'CA5') || [])[2] === 'TA Corning');
-ok('  TA Saginaw is still in DATA under its own name',
+// The fuel book names stations, not TA's site. MI3 keeps the name a Covenant
+// driver recognises even though TA now calls it TA Bridgeport, and keeps its
+// nav code, which the book is likewise the authority on.
+ok('  TA Saginaw keeps its fuel-book name, not TA\'s current one',
    (DATA.find(r => r[0] === 'MI3') || [])[2] === 'TA Saginaw');
+ok('  and keeps nav code CVENTA198',
+   (DATA.find(r => r[0] === 'MI3') || [])[20] === 'CVENTA198');
 // Petro Corning is a DIFFERENT station at the same exit, not a rename, and it
 // is in TA's master. Losing it to an over-broad exclusion would be the
 // expensive mistake here.

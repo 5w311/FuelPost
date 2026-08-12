@@ -93,35 +93,48 @@ They answer different questions and must not be conflated:
 - **`APP_VERSION`** (`1.3.0`) — the code. Shown in the **legend card** as a
   support detail. Bumped for every shipped change.
 
-### Two stations are marked closed, pending the next fuel book
+### One station is marked closed, pending the next fuel book
 
-`DATA` holds **146 rows**, but only **142** are plannable: two Covenant
-terminals, plus two stations that have closed since the book was issued.
+`DATA` holds **146 rows**, but only **143** are plannable: two Covenant
+terminals, plus one station that has closed since the book was issued.
 
 - **TA Corning** (`CA5`, nav `CVENTA040`) — 3524 South Highway 99 W, Corning CA
-- **TA Saginaw** (`MI3`, nav `CVENTA198`) — 6364 Dixie Highway, Bridgeport MI
 
-Neither appears in TA's own location master dated **08-2026**. They are listed
-in `CLOSED_STOP_IDS`, next to `FUEL_STOPS` in `index.html`, and filtered out of
-planning there.
+Neither its address nor its phone (530-824-4646) appears in TA's own location
+master dated **08-2026**. It is listed in `CLOSED_STOP_IDS`, next to
+`FUEL_STOPS` in `index.html`, and filtered out of planning there.
 
-**The rows are deliberately not deleted.** `DATA`'s station list is sourced
+> **Correction (v1.22.1).** v1.22.0 also marked **TA Saginaw** (`MI3`) closed.
+> That was wrong, and the error was in the lookup rather than the master: the
+> station was searched for under *Saginaw*, and TA lists it as **TA Bridgeport**
+> (site 0528) — same address, same phone, same coordinates. It is open, and it
+> was wrongly unplannable for the whole of v1.22.0. It is plannable again as of
+> v1.22.1. If you saw a closed banner on TA Saginaw, that banner was an error.
+>
+> **A station being absent under its old name is not evidence of closure.** TA
+> renames stations and the fuel book keeps the old name. Match on address,
+> phone and coordinates before adding an id to `CLOSED_STOP_IDS`.
+
+**The row is deliberately not deleted.** `DATA`'s station list is sourced
 from the fuel book edition in `FUEL_BOOK_REV`, and dropping rows would put
-`DATA` out of agreement with the book it claims to come from. The rows go when
-the book revs — and `CLOSED_STOP_IDS` gets deleted with them. That expiry is
-why the marker is a two-id set rather than a column on `DATA`, which would drag
+`DATA` out of agreement with the book it claims to come from. The row goes when
+the book revs — and `CLOSED_STOP_IDS` gets deleted with it. That expiry is
+why the marker is a one-id set rather than a column on `DATA`, which would drag
 `FIELD_COUNT`, `tools/geocode.js` and the data tests along with it.
 
-They stay visible on the map, in the list, and in their station sheets, where a
+It stays visible on the map, in the list, and in its station sheet, where a
 banner says the stop appears permanently closed and is not used for planning. A
 driver who knows the stop and goes looking for it should find it and learn why
 it is gone, rather than wonder whether the app lost it.
 
-**TA Corning is not a rename of Petro Corning.** They are two separate rows at
-the same I-5 exit 630 with different addresses and phone numbers. Petro Corning
-(`CA4`) is in TA's master, stays plannable, and is named in TA Corning's sheet
-as the alternative at that exit. TA Saginaw has no such sibling and none is
-invented for it.
+**TA Corning is not a rename of Petro Corning** — the same trap as TA Saginaw,
+in the other direction. They are two separate rows at the same I-5 exit 630 with
+different addresses and phone numbers. Petro Corning (`CA4`, 2151 South Avenue)
+is in TA's master, stays plannable, and is named in TA Corning's sheet as the
+alternative at that exit.
+
+TA Saginaw keeps the name the fuel book gives it, not TA's current one — that
+is the name a Covenant driver recognises — and keeps nav code `CVENTA198`.
 
 The header still reads **146 stops** — it counts stations in the book, and the
 book has not revved.
@@ -149,6 +162,38 @@ follow, not just this one:
 
 ## Version history
 
+### v1.22.1
+
+**Correction: TA Saginaw is not closed. v1.22.0 got it wrong and made an open
+station unplannable.**
+
+v1.22.0 marked TA Saginaw (`MI3`) permanently closed on the strength of it
+being absent from TA's location master. The master was right; the lookup was
+wrong. The station was searched for under *Saginaw*, and TA lists it as **TA
+Bridgeport**, site 0528, 6364 Dixie Hwy, 989-777-7650, at 43.3517 / -83.869 —
+the same address, phone and coordinates as `MI3`. It is the same station under
+a new name, it is open, and for the whole of v1.22.0 the planner refused to
+route anyone to it.
+
+`MI3` is removed from `CLOSED_STOP_IDS`, which now holds only `CA5`. It
+returns to `FUEL_STOPS`, and its sheet and list row lose the closed treatment
+automatically. **`FUEL_STOPS` goes 142 → 143.** `DATA` still has 146 rows and
+the header still reads 146.
+
+Nothing else about the row changes. It keeps the name **TA Saginaw**, matching
+the fuel book, which is the name a Covenant driver recognises, and it keeps nav
+code `CVENTA198`. The fuel book is the authority on both; TA's site number for
+the station is not FuelPost's business.
+
+**TA Corning (`CA5`) is unaffected and stays closed.** Its address and phone
+appear nowhere in the master, and its page on TA's site is a hollow stub with
+no address and no phone at all, while Petro Corning (`CA4`) is fully listed.
+
+The comment above `CLOSED_STOP_IDS` now carries the lesson in the place someone
+will actually meet it: **absence under an old name is not evidence of closure,
+because TA renames stations and the fuel book keeps the old name.** Match on
+address, phone and coordinates. `datastops` gained a matching regression pin.
+
 ### v1.22.0
 
 **Two closed stations are excluded from planning but kept in view, and a
@@ -159,7 +204,7 @@ master dated 08-2026 and appear to have closed. Both are now in
 `CLOSED_STOP_IDS` and filtered out of `FUEL_STOPS` alongside the two
 terminals, so **`FUEL_STOPS` drops from 144 to 142**. `DATA` keeps all 146
 rows and the header still reads 146 — it counts stations in the book, and the
-book has not revved. See *Two stations are marked closed* above for why the
+book has not revved. See *One station is marked closed* above for why the
 rows stay.
 
 The exclusion is a filter at the source, not a ranking penalty. A closed stop

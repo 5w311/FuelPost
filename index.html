@@ -906,29 +906,29 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.22.0"></script>
+<script src="lib/fuelplan.js?v=1.22.1"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.22.0"></script>
+<script src="lib/triptext.js?v=1.22.1"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.22.0"></script>
+<script src="lib/location.js?v=1.22.1"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.22.0"></script>
+<script src="lib/gauge.js?v=1.22.1"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.22.0"></script>
+<script src="lib/extract-version.js?v=1.22.1"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.22.0"></script>
+<script src="lib/autosuggest.js?v=1.22.1"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.22.0"></script>
+<script src="lib/baselayer.js?v=1.22.1"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.22.0"></script>
+<script src="lib/memocache.js?v=1.22.1"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.22.0"></script>
+<script src="lib/routerank.js?v=1.22.1"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.22.0"></script>
+<script src="lib/vehicleprofile.js?v=1.22.1"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.22.0"></script>
+<script src="lib/escape.js?v=1.22.1"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.22.0"></script>
+<script src="lib/navlinks.js?v=1.22.1"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -944,7 +944,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.22.0')
+fetch('lib/fuelplan-adaptive.js?v=1.22.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -961,7 +961,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.22.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.22.0')
+fetch('lib/shorttrip.js?v=1.22.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -972,7 +972,7 @@ fetch('lib/shorttrip.js?v=1.22.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.22.0"></script>
+<script src="lib/flexible-polyline.js?v=1.22.1"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1132,7 +1132,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.22.0';
+const APP_VERSION = '1.22.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
@@ -2315,29 +2315,40 @@ renderLocateOffState();
    switches to ROUTE, so STOPS mode never depends on it.
    ========================================================================== */
 
-// Stations that have CLOSED since the fuel book was issued. Source: TA's own
-// location master dated 08-2026, in which neither row appears.
+// Stations that have CLOSED since the fuel book was issued. One row: TA
+// Corning (CA5). Source: TA's own location master dated 08-2026, in which
+// neither its address (3524 South Highway 99 W) nor its phone
+// (530-824-4646) appears.
 //
-// The rows are deliberately NOT deleted. DATA's station list is sourced from
+// ===> BEFORE YOU ADD AN ID HERE: absence under a station's old name is NOT
+// evidence of closure. TA renames stations, and the fuel book keeps the old
+// name. v1.22.0 marked TA Saginaw (MI3) closed on exactly that mistake — it
+// was searched for under Saginaw, while TA lists it as "TA Bridgeport" (site
+// 0528). Same address, same phone, same coordinates; an open station, wrongly
+// unplannable in production for a whole release. Match on ADDRESS, PHONE and
+// COORDINATES before concluding anything, never on name.
+//
+// The row is deliberately NOT deleted. DATA's station list is sourced from
 // the Covenant fuel book edition named in FUEL_BOOK_REV (stated there and
 // nowhere else, by design), and dropping rows would put DATA out of agreement
-// with the book it claims to come from. They keep their markers,
-// their list entries and their station sheets — a driver who knows the stop
-// and goes looking for it should find it and learn why it is gone, rather
-// than wonder whether the app lost it — and the sheet says plainly that it is
-// closed. They are simply never selected for a plan.
+// with the book it claims to come from. It keeps its marker, its list entry
+// and its station sheet — a driver who knows the stop and goes looking for it
+// should find it and learn why it is gone, rather than wonder whether the app
+// lost it — and the sheet says plainly that it is closed. It is simply never
+// selected for a plan.
 //
 // TEMPORARY BY DESIGN: this set is deleted when the fuel book revs and the
-// rows go with it. That expiry is why it is a two-id set here and not a
+// row goes with it. That expiry is why it is a one-id set here and not a
 // column on DATA, which would drag FIELD_COUNT, tools/geocode.js and the data
 // tests along with it for a marker with a known end date.
 //
-// TA Corning is NOT a rename of Petro Corning. They are two separate rows at
-// the same I-5 exit 630 with different addresses and phone numbers; Petro
-// Corning (CA4) IS in TA's master and stays plannable.
-const CLOSED_STOP_IDS = new Set(['CA5', 'MI3']);
+// TA Corning is NOT a rename of Petro Corning — the trap above, in the other
+// direction. They are two separate rows at the same I-5 exit 630 with
+// different addresses and phone numbers; Petro Corning (CA4), at 2151 South
+// Avenue, IS in TA's master and stays plannable.
+const CLOSED_STOP_IDS = new Set(['CA5']);
 // Named alternatives at the same exit, for the sheet. Only where one really
-// exists — TA Saginaw has no sibling and none is invented for it.
+// exists; a closed row with no entry here simply names none.
 const CLOSED_STOP_ALT = { CA5: 'CA4' };
 
 // Terminals are not fuel stops — exclude them from planning. Closed stations
