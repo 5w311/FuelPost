@@ -224,6 +224,50 @@ ok('no lib script carries defer', !libTags.some(t => /\bdefer\b/.test(t)),
 ok('no lib script carries async', !libTags.some(t => /\basync\b/.test(t)),
    JSON.stringify(libTags.filter(t => /\basync\b/.test(t))));
 
+console.log('\n=== the startup loading state over the map ===');
+// Since the stylesheet stopped blocking, the header paints in ~100ms and
+// used to frame an empty rectangle while the SDK downloaded — which reads
+// as broken, not loading. These pin the shape that fixes it. The timing
+// itself is not unit-testable here and no test pretends otherwise; the
+// browser harness (scratchpad/pw-maploading.js) covers behaviour.
+const mapwrapHtml = html.slice(html.indexOf('<div id="mapwrap">'), html.indexOf('id="routeResults"'));
+ok('>>> #mapLoading exists in the INITIAL HTML, not script-created',
+   /<div id="mapLoading" role="status">/.test(mapwrapHtml), 'must be on screen before any script runs');
+ok('>>> it is a SIBLING of #map inside #mapwrap, never inside #map',
+   /<div id="map"><\/div>/.test(mapwrapHtml)
+   && mapwrapHtml.indexOf('id="mapLoading"') > mapwrapHtml.indexOf('<div id="map"></div>'),
+   'H.Map owns #map\'s children; an existing child is undefined territory');
+ok('it is a polite live region and holds no tab stop',
+   /role="status"/.test(mapwrapHtml) && !/id="mapLoading"[^>]*tabindex/.test(mapwrapHtml));
+ok('its z-index sits below the list (350) and the legend/locate buttons (400)',
+   /#mapLoading\{[^}]*z-index:300/.test(html));
+ok('the spinner is hidden from screen readers and respects reduced motion',
+   /class="mapLoadingSpin" aria-hidden="true"/.test(html)
+   && /prefers-reduced-motion: reduce[^}]*\{ \.mapLoadingSpin\{animation:none;\}/.test(html));
+// THE FAILURE CASE: if the SDK never loads, the main script dies at its
+// first `H` reference and can show nothing — so the watchdog must be an
+// inline script that parses BEFORE the HERE script tags.
+const watchdogIdx = html.indexOf('window.__mapLoadTimer = setTimeout');
+ok('>>> a load watchdog exists', watchdogIdx > 0);
+ok('>>> and it parses BEFORE the first HERE script tag, so it runs when they never do',
+   watchdogIdx < html.indexOf('<script src="https://js.api.here.com'),
+   'a watchdog below the SDK tags can never report the SDK missing');
+ok('  at 20s, with the reasoning commented against the measured load times',
+   /}, 20000\);/.test(html) && /~757ms/.test(html));
+ok('  the failure message tells the truth and does not claim the list still works',
+   /could not be loaded\. Check your connection/.test(html)
+   && !/list.*(still|continues to) work/i.test(html.slice(watchdogIdx - 2000, watchdogIdx + 800)));
+// Removal: exactly one signal, self-removing, watchdog cleared, not sticky.
+ok('>>> removal rides the FIRST mapviewchangeend — the earliest signal meaning pixels',
+   /const clearMapLoading = \(\) => \{\s*\n\s*map\.removeEventListener\('mapviewchangeend', clearMapLoading\);/.test(html)
+   && /map\.addEventListener\('mapviewchangeend', clearMapLoading\);/.test(html));
+ok('  it clears the watchdog and removes the element outright (startup only, never reattached)',
+   /clearTimeout\(window\.__mapLoadTimer\);/.test(html)
+   && (html.match(/getElementById\('mapLoading'\)/g) || []).length === 1);
+ok('  exactly one removal site in the whole file',
+   (html.match(/clearMapLoading/g) || []).length === 3, // const + removeEventListener + addEventListener
+   String((html.match(/clearMapLoading/g) || []).length));
+
 console.log('\n=== connection hints ===');
 ok('preconnect to js.api.here.com with crossorigin',
    /<link rel="preconnect" href="https:\/\/js\.api\.here\.com" crossorigin>/.test(html));
