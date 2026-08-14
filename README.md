@@ -198,6 +198,58 @@ them as unexplained drift:
 Note that `TN6`, the Covenant HQ terminal, also carries `F`. Fitness counts over
 *stops* therefore run one lower than counts over all 146 `DATA` rows.
 
+## Amenity filters
+
+Three, under *What do you need tonight?*, AND-combined with brand, type, state
+and search:
+
+| Filter | Matches | Keeps |
+|---|---|---|
+| **10+ showers** | `showers >= SHOWERS_MANY` | 76 of 146 rows (52%) |
+| **Fitness room** | amenity codes contain `F` **or** `O` | 38 (26%) |
+| **Sit-down restaurant** | amenity codes contain `R` | 70 (48%) |
+
+**A filter earns its place by landing roughly between 15% and 60% of stops.**
+Below that it returns almost nothing; above it, almost everything.
+
+### What was removed in v1.24.0, and why it must not come back
+
+The row used to filter on things nearly every stop has, while the genuinely
+selective amenities sat in the data unfiltered:
+
+| Removed | Kept | Verdict |
+|---|---|---|
+| **CAT scale** | 144 of 144 stops | **Inert.** Could not remove a single stop. |
+| **100+ parking** | 79% | Every stop has parking; the threshold was too low to narrow anything. |
+| **Service (4+ bays)** | 71% | Too broad. |
+
+**The DATA fields all remain, and the station sheet still shows every one of
+them** — a driver who opens a stop still sees its parking count, its bays and
+its CAT scale. Only the filters went.
+
+### Gotchas
+
+- **The gym filter must test `F` *or* `O`.** The outdoor variant is only two
+  rows, but neither also carries `F`, so testing `F` alone would silently hide
+  those two stops from a driver searching for a gym.
+- **Membership is exact, split on comma — never a substring test.** No code is
+  a substring of another today, but that is luck rather than design.
+  `row[16].includes('R')` would match a future multi-letter code containing
+  `R`, and fail silently.
+- **Counts depend on the population.** `passes()` runs over all **146** `DATA`
+  rows, terminals included, so that is what the on-screen count reflects. Over
+  the 144 non-terminal stops, showers is 75 and gym 37 — the difference is
+  `TN6`, the Covenant HQ terminal, which has a fitness room and 30 showers.
+- **Zero results are reachable** by design — gym + sit-down + 10 showers inside
+  one state returns nothing in, for example, Alabama. The empty state says so
+  and offers **Clear filters**. Nothing auto-widens or silently drops a filter
+  to dodge it, and `amenityfilter` pins that `render()` and `passes()` never
+  write filter state.
+
+Deliberately **not** filters: laundry (99% of stops — another inert control)
+and walking trail (66%, too broad, and the `W` code is known to be
+systematically over-claimed — see *Amenity codes*).
+
 ## Persisted settings (localStorage)
 
 `fuelpost.theme.v1` (dark mode, v1.7.0) is the first thing this app persists,
@@ -220,6 +272,39 @@ follow, not just this one:
   silently produce a result the driver never chose.
 
 ## Version history
+
+### v1.24.0
+
+**The filter row was inverted relative to the data. Three filters in, three
+out.**
+
+It filtered on things nearly every stop has while the genuinely selective
+amenities sat unfiltered. **CAT scale matched 144 of 144 — literally inert**,
+a control that could not remove a single stop. 100+ parking matched 79% and
+4+ bays 71%. All three are removed: buttons, state keys, `passes()` branches,
+active-filter count, and the `PARKING_LARGE` / `BAYS_MANY` constants.
+
+In their place, the two most selective things in the dataset: **Fitness room**
+(`F` or `O`, 26%) and **Sit-down restaurant** (`R`, 48% — the closest thing to
+an even split there is). **10+ showers** is unchanged in every respect.
+
+The DATA fields all stay, and the station sheet still shows parking, bays and
+CAT scale on every stop. Only the filters went.
+
+The two new filters test for a letter in a comma-separated column, which is a
+different shape from the numeric comparisons: they **split on comma and test
+exact membership**, never `includes()`. No code is a substring of another
+today, but that is luck, and the test asserts a hypothetical `BR` code is not
+matched by the `R` filter — the whole reason for splitting.
+
+The new set is narrow enough that three taps in one state genuinely returns
+nothing. The existing no-match chip had no way out, so it gained a **Clear
+filters** button that resets the amenity toggles plus brand, type and state,
+driving the controls from state so `aria-pressed` cannot drift. Search is left
+alone — it is visible in its own box with its own clear button.
+
+See *Amenity filters* above for the selectivity reasoning and the gotchas,
+including why the gym filter must test `O` as well as `F`.
 
 ### v1.23.0
 

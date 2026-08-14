@@ -1,14 +1,24 @@
 // Amenity filters, asserted against the REAL DATA array.
 //
-// passes() lives in index.html (per the brief, filtering stays there rather
-// than moving to a lib), so this mirrors its amenity predicates — but the
-// thresholds are PARSED OUT OF THE SOURCE rather than repeated here. If a
-// constant is retuned, this test follows it automatically; if the parse
-// fails, the test fails loudly rather than silently checking nothing.
+// passes() lives in index.html (per the original brief, filtering stays there
+// rather than moving to a lib), so this mirrors its amenity predicates — but
+// SHOWERS_MANY is PARSED OUT OF THE SOURCE rather than repeated here. If the
+// threshold is retuned this test follows it automatically; if the parse fails,
+// the test fails loudly rather than silently checking nothing.
 //
 // The counts below are the point: they catch a future DATA refresh that
-// quietly invalidates a threshold (e.g. a filter that starts matching
-// everything, which is a control that looks broken to a driver).
+// quietly invalidates a filter — specifically one that starts matching
+// everything, which is a control that looks broken to a driver. That is not
+// hypothetical. The previous set was removed for exactly this: CAT scale
+// matched 144 of 144 rows and could not remove a single stop, 100+ parking
+// matched 79%, and 4+ bays 71%. A filter earns its place by landing roughly
+// between 15% and 60%.
+//
+// POPULATION MATTERS AND IS EASY TO GET WRONG. passes() runs over all 146 DATA
+// rows, terminals included, so the count a driver sees on screen is over 146.
+// Counts over the 144 non-terminal stops differ, because TN6 (the Covenant HQ
+// terminal) carries both a fitness room and 30 showers. Both are asserted
+// below and labelled, so neither can quietly rot into the other.
 
 const fs = require('fs');
 const path = require('path');
@@ -24,76 +34,165 @@ const constOf = name => {
   const m = html.match(new RegExp(`const ${name}\\s*=\\s*(\\d+)`));
   return m ? Number(m[1]) : null;
 };
-const PARKING_LARGE = constOf('PARKING_LARGE');
-const SHOWERS_MANY  = constOf('SHOWERS_MANY');
-const BAYS_MANY     = constOf('BAYS_MANY');
+const SHOWERS_MANY = constOf('SHOWERS_MANY');
 
-console.log('=== thresholds are readable from source ===');
-ok('PARKING_LARGE parsed', PARKING_LARGE !== null, String(PARKING_LARGE));
-ok('SHOWERS_MANY parsed',  SHOWERS_MANY  !== null, String(SHOWERS_MANY));
-ok('BAYS_MANY parsed',     BAYS_MANY     !== null, String(BAYS_MANY));
+console.log('=== the threshold is readable from source ===');
+ok('SHOWERS_MANY parsed', SHOWERS_MANY !== null, String(SHOWERS_MANY));
+ok('  and is unchanged at 10', SHOWERS_MANY === 10, String(SHOWERS_MANY));
+// Removed constants must be gone, not merely unreferenced.
+ok('PARKING_LARGE is gone from the source', constOf('PARKING_LARGE') === null);
+ok('BAYS_MANY is gone from the source', constOf('BAYS_MANY') === null);
 
-// Mirrors passes()'s amenity clauses exactly.
+// Mirrors passes()'s amenity clauses exactly, including EXACT membership on
+// the comma-separated amenity column rather than a substring test.
+const hasCode = (r, c) => String(r[16] || '').split(',').some(x => x.trim() === c);
 const amen = {
-  parking: r => Number(r[12]) >= PARKING_LARGE,
-  showers: r => Number(r[14]) >= SHOWERS_MANY,
-  service: r => Number(r[15]) >= BAYS_MANY,
-  scale:   r => !!r[18]
+  showers:    r => Number(r[14]) >= SHOWERS_MANY,
+  gym:        r => hasCode(r, 'F') || hasCode(r, 'O'),
+  restaurant: r => hasCode(r, 'R')
 };
 const applyAll = (rows, keys) => rows.filter(r => keys.every(k => amen[k](r)));
+const STOPS = DATA.filter(r => r[11] !== 'term');
 
-console.log('\n=== each filter in isolation actually discriminates ===');
-const TOTAL = DATA.length;
-ok(`fixture: DATA has ${TOTAL} rows`, TOTAL === 146, String(TOTAL));
-for (const k of ['parking', 'showers', 'service']) {
+console.log('\n=== each filter discriminates, and none is a dead control ===');
+ok(`fixture: DATA has 146 rows`, DATA.length === 146, String(DATA.length));
+for (const k of ['showers', 'gym', 'restaurant']) {
   const n = applyAll(DATA, [k]).length;
-  // A filter matching every row is a dead control — that is the failure mode
-  // this test exists to catch on a data refresh.
-  ok(`${k}: keeps ${n}/${TOTAL}, and is neither a no-op nor empty`,
-     n > 0 && n < TOTAL, `${n}/${TOTAL}`);
+  const pct = 100 * n / DATA.length;
+  ok(`${k}: keeps ${n}/146 (${pct.toFixed(0)}%), neither a no-op nor empty`,
+     n > 0 && n < DATA.length, `${n}/146`);
+  ok(`  and lands in the 15-60% band a filter has to earn`,
+     pct >= 15 && pct <= 60, `${pct.toFixed(1)}%`);
 }
-ok('parking (100+) keeps 116', applyAll(DATA, ['parking']).length === 116, String(applyAll(DATA, ['parking']).length));
-ok('showers (10+) keeps 76',   applyAll(DATA, ['showers']).length === 76,  String(applyAll(DATA, ['showers']).length));
-ok('service (4+ bays) keeps 102', applyAll(DATA, ['service']).length === 102, String(applyAll(DATA, ['service']).length));
-// CAT scale is genuinely near-universal here; asserted so the near-no-op is a
-// recorded fact rather than an accident nobody noticed.
-// 144, not 142: this filters over all of DATA, and the two closed stations
-// are still DATA rows with a CAT scale on them. The number that dropped to
-// 142 is FUEL_STOPS, which is a different measurement — see datastops.
-ok('CAT scale keeps 144 of the 146 DATA rows — only the 2 terminals lack one',
-   applyAll(DATA, ['scale']).length === 144, String(applyAll(DATA, ['scale']).length));
+
+console.log('\n=== exact counts, over BOTH populations ===');
+// What a driver actually sees, since passes() runs over all of DATA.
+ok('10+ showers keeps 76 of 146 DATA rows', applyAll(DATA, ['showers']).length === 76,
+   String(applyAll(DATA, ['showers']).length));
+ok('gym keeps 38 of 146 DATA rows', applyAll(DATA, ['gym']).length === 38,
+   String(applyAll(DATA, ['gym']).length));
+ok('sit-down keeps 70 of 146 DATA rows', applyAll(DATA, ['restaurant']).length === 70,
+   String(applyAll(DATA, ['restaurant']).length));
+// Over stops only — one lower for showers and gym, because the HQ terminal
+// TN6 has a fitness room and 30 showers.
+ok('  over the 144 non-terminal stops: showers 75', applyAll(STOPS, ['showers']).length === 75,
+   String(applyAll(STOPS, ['showers']).length));
+ok('  over the 144 non-terminal stops: gym 37', applyAll(STOPS, ['gym']).length === 37,
+   String(applyAll(STOPS, ['gym']).length));
+ok('  over the 144 non-terminal stops: sit-down 70', applyAll(STOPS, ['restaurant']).length === 70,
+   String(applyAll(STOPS, ['restaurant']).length));
+ok('  the difference is exactly TN6, which has a gym and 30 showers',
+   amen.gym(DATA.find(r => r[0] === 'TN6')) && amen.showers(DATA.find(r => r[0] === 'TN6')));
+
+console.log('\n=== gym counts BOTH F and O ===');
+// O is only two rows, but NEITHER also carries F, so a filter that tested F
+// alone would silently hide them from a driver looking for a gym.
+const oRows = DATA.filter(r => hasCode(r, 'O'));
+ok('there really are O rows to lose', oRows.length === 2, JSON.stringify(oRows.map(r => r[0])));
+ok('>>> and none of them also carries F — dropping O would hide them entirely',
+   oRows.every(r => !hasCode(r, 'F')), JSON.stringify(oRows.map(r => r[16])));
+ok('>>> the gym filter matches every O row', oRows.every(amen.gym));
+ok('the gym filter matches F rows', DATA.filter(r => hasCode(r, 'F')).every(amen.gym));
+ok('and excludes rows with neither F nor O',
+   DATA.filter(r => !hasCode(r, 'F') && !hasCode(r, 'O')).every(r => !amen.gym(r)));
+// Named rows from the device check.
+ok('  Petro Raphine (VA4) is matched by the gym filter', amen.gym(DATA.find(r => r[0] === 'VA4')));
+ok('  TA Tuscaloosa (AL2, bean bag toss only) is not', !amen.gym(DATA.find(r => r[0] === 'AL2')));
+
+console.log('\n=== membership is EXACT, not substring ===');
+// The whole reason for splitting on comma. No code is a substring of another
+// today, so a naive includes() would pass every real-data test and fail the
+// day someone adds one — assert against a hypothetical directly.
+const fake = ['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 0, 0, 'prim', 0, 0, 0, 0, 'W,BR', '', 1, 1, 'X'];
+ok('>>> a row whose codes contain "BR" is NOT matched by the R filter',
+   !amen.restaurant(fake), JSON.stringify(fake[16]));
+ok('  a naive substring test WOULD have matched it (proving the guard is live)',
+   String(fake[16]).includes('R'));
+const fakeF = ['X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 0, 0, 'prim', 0, 0, 0, 0, 'FX', '', 1, 1, 'X'];
+ok('>>> a row whose codes contain "FX" is NOT matched by the gym filter',
+   !amen.gym(fakeF), JSON.stringify(fakeF[16]));
+ok('whitespace around a code still matches exactly',
+   amen.restaurant(['X','X','X','X','X','X','X','X','X',0,0,'prim',0,0,0,0,'W, R','',1,1,'X']));
+ok('an empty amenity column matches nothing',
+   !amen.gym(['X','X','X','X','X','X','X','X','X',0,0,'prim',0,0,0,0,'','',1,1,'X'])
+   && !amen.restaurant(['X','X','X','X','X','X','X','X','X',0,0,'prim',0,0,0,0,'','',1,1,'X']));
 
 console.log('\n=== filters AND together ===');
-const all4 = applyAll(DATA, ['parking', 'showers', 'service', 'scale']);
-ok('all four combined is a subset of each alone',
-   all4.length <= Math.min(...['parking','showers','service','scale'].map(k => applyAll(DATA, [k]).length)),
-   String(all4.length));
-ok('all four combined still returns stops (not an accidental dead end)',
-   all4.length > 0, String(all4.length));
-ok('every survivor of the combined filter satisfies all four predicates',
-   all4.every(r => amen.parking(r) && amen.showers(r) && amen.service(r) && amen.scale(r)));
-console.log(`  (all four combined: ${all4.length} stops)`);
+const all3 = applyAll(DATA, ['showers', 'gym', 'restaurant']);
+ok('all three combined is a subset of each alone',
+   all3.length <= Math.min(...['showers','gym','restaurant'].map(k => applyAll(DATA, [k]).length)),
+   String(all3.length));
+ok('every survivor satisfies all three predicates',
+   all3.every(r => amen.showers(r) && amen.gym(r) && amen.restaurant(r)));
+ok('the intersection is exactly the rows matching all three',
+   all3.length === DATA.filter(r => amen.showers(r) && amen.gym(r) && amen.restaurant(r)).length);
+console.log(`  (all three combined: ${all3.length} stops)`);
+const gr = applyAll(DATA, ['gym', 'restaurant']).length;
+ok('two combined is no larger than either alone',
+   gr <= applyAll(DATA, ['gym']).length && gr <= applyAll(DATA, ['restaurant']).length,
+   String(gr));
 
-const pk = applyAll(DATA, ['parking']).length, sh = applyAll(DATA, ['showers']).length;
-const both = applyAll(DATA, ['parking','showers']).length;
-ok('two combined is no larger than either alone', both <= pk && both <= sh, `${both} vs ${pk}/${sh}`);
-
-console.log('\n=== combined with an existing brand/state filter ===');
+console.log('\n=== combined with brand / state, which still AND ===');
 const ta = DATA.filter(r => r[1] === 'TA');
-const taBig = applyAll(ta, ['parking']);
-ok('brand + parking narrows within the brand',
-   taBig.length > 0 && taBig.length <= ta.length && taBig.every(r => r[1] === 'TA'),
-   `${taBig.length}/${ta.length}`);
+const taGym = applyAll(ta, ['gym']);
+ok('brand + gym narrows within the brand',
+   taGym.length > 0 && taGym.length <= ta.length && taGym.every(r => r[1] === 'TA'),
+   `${taGym.length}/${ta.length}`);
 const tx = DATA.filter(r => r[5] === 'TX');
-const txAll = applyAll(tx, ['parking','showers','service']);
-ok('state + three amenities stays inside the state',
+const txAll = applyAll(tx, ['showers', 'gym', 'restaurant']);
+ok('state + all three amenities stays inside the state',
    txAll.every(r => r[5] === 'TX') && txAll.length <= tx.length, `${txAll.length}/${tx.length}`);
 
-console.log('\n=== a zero-result combination is reachable (the empty state is real) ===');
-// Narrow to one state and demand the strictest combination; whatever the
-// answer, the app must be able to render zero without breaking.
-const zero = DATA.filter(r => r[5] === 'RI' || r[5] === 'VT' || r[5] === 'AK');
-ok('a state with no network stops yields zero rows', zero.length === 0, String(zero.length));
+console.log('\n=== a zero result is genuinely reachable (the empty state is real) ===');
+// The new set is narrower than the old one, so three taps in one state can
+// return nothing — which is why the empty state gained a way back.
+const zeroState = DATA.filter(r => r[5] === 'AL');
+const zeroCombo = applyAll(zeroState, ['showers', 'gym', 'restaurant']);
+ok('>>> gym + sit-down + 10 showers in one state really can return zero',
+   zeroCombo.length === 0, `AL -> ${zeroCombo.length}`);
+
+console.log('\n=== the filter row itself ===');
+const wrap = html.slice(html.indexOf('id="amenWrap"'), html.indexOf('</div>', html.indexOf('id="amenWrap"')));
+const btns = [...wrap.matchAll(/data-amen="([a-z]+)"/g)].map(m => m[1]);
+ok('>>> exactly three amenity buttons', btns.length === 3, JSON.stringify(btns));
+ok('  they are showers, gym, restaurant, in that order',
+   btns.join(',') === 'showers,gym,restaurant', JSON.stringify(btns));
+ok('>>> no button carries a removed value',
+   !btns.some(b => ['parking','service','scale'].includes(b)), JSON.stringify(btns));
+ok('the removed buttons are DELETED, not hidden or disabled',
+   !/data-amen="(parking|service|scale)"/.test(html));
+// Accessibility landed once already; do not regress it while editing markup.
+ok('every button keeps aria-pressed', (wrap.match(/aria-pressed="false"/g) || []).length === 3);
+ok('the wrapper keeps role=group and its label',
+   /role="group" aria-label="Amenity filters"/.test(html));
+ok('the heading still describes the row', /What do you need tonight\?/.test(html));
+ok('the restaurant button says SIT-DOWN, not just "Restaurant"',
+   />Sit-down restaurant</.test(html) && !/>Restaurant</.test(html));
+ok('the gym button matches the sheet vocabulary ("Fitness room")',
+   />Fitness room</.test(html) && /F:"Fitness room"/.test(html));
+
+console.log('\n=== the empty state offers a way back ===');
+ok('there is a clear-filters control in the no-match chip',
+   /id="noMatch"[^>]*>[^<]*<button type="button" id="clearFiltersBtn">Clear filters<\/button>/.test(html));
+ok('it resets all three amenity toggles',
+   /state\.showers = state\.gym = state\.restaurant = false;/.test(html));
+ok('  and brand, type and state too',
+   /state\.brand = state\.type = state\.st = 'all';/.test(html));
+// Nothing may quietly relax a filter to avoid an empty result. Checked on
+// CODE, not prose: filter state is only ever written by the toggle handler
+// and the explicit clear button — never from render() or passes(), which is
+// where an "if nothing matched, drop a filter" fallback would have to live.
+const code = html.split('\n').map(l => l.replace(/^\s*\/\/.*$/, '')).join('\n');
+const renderFn = code.slice(code.indexOf('function render(){'));
+const renderBody = renderFn.slice(0, renderFn.indexOf('\n}\n') + 3);
+const passesFn = code.slice(code.indexOf('function passes(row){'));
+const passesBody = passesFn.slice(0, passesFn.indexOf('\n}\n') + 3);
+ok('>>> render() never writes filter state (no auto-widening fallback)',
+   !/state\.(showers|gym|restaurant|brand|type|st)\s*=[^=]/.test(renderBody));
+ok('>>> passes() never writes filter state either',
+   !/state\.\w+\s*=[^=]/.test(passesBody));
+ok('  passes() only ever rejects — every amenity clause is a plain guard',
+   (passesBody.match(/return false;/g) || []).length >= 3 && /return true;/.test(passesBody));
 
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
