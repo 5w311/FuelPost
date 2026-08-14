@@ -52,9 +52,9 @@
      The rel swap happens on this same element, so its attributes are
      identical by construction — which is the point.
      `this.onload=null` first: changing rel can re-fire onload otherwise. -->
-<link rel="preload" as="style" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css"
+<link rel="preload" as="style" href="https://js.api.here.com/v3/3.2.9.0/mapsjs-ui.css"
       onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" type="text/css" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css" /></noscript>
+<noscript><link rel="stylesheet" type="text/css" href="https://js.api.here.com/v3/3.2.9.0/mapsjs-ui.css" /></noscript>
 <style>
   :root{
     --navy:#0B2340; --navy2:#12335c; --ta:#0057B8; --petro:#00843D;
@@ -913,13 +913,22 @@
 
 </div>
 
-<script src="https://js.api.here.com/v3/3.1/mapsjs-core.js"></script>
-<!-- HARP is the rendering engine the map draws on; it depends on core, so it
-     must load after it and before the map is constructed. -->
-<script src="https://js.api.here.com/v3/3.1/mapsjs-harp.js"></script>
-<script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
-<script src="https://js.api.here.com/v3/3.1/mapsjs-mapevents.js"></script>
-<script src="https://js.api.here.com/v3/3.1/mapsjs-ui.js"></script>
+<!-- HERE Maps 3.2, PINNED to a full version rather than the evergreen 3.2
+     path. HERE recommends pinning for production continuity, and it fits how
+     this app already works: the ?v= cache-bust stamps exist precisely so
+     nothing changes underneath a running build, and the planned service
+     worker makes an evergreen URL that swaps content silently even worse.
+     The cost is that fixes arrive only by manual bump — accepted.
+
+     There is NO mapsjs-harp.js on 3.2 and none may be added: the HARP engine
+     was folded into mapsjs-core.js (which is why core grew from ~0.9MB to
+     ~2.2MB) and the 3.2 CDN path for the old module returns an error page.
+     On 3.1 a separate harp module had to load between core and the map
+     construction; that constraint is gone with the module. -->
+<script src="https://js.api.here.com/v3/3.2.9.0/mapsjs-core.js"></script>
+<script src="https://js.api.here.com/v3/3.2.9.0/mapsjs-service.js"></script>
+<script src="https://js.api.here.com/v3/3.2.9.0/mapsjs-mapevents.js"></script>
+<script src="https://js.api.here.com/v3/3.2.9.0/mapsjs-ui.js"></script>
 
 <!-- Planning logic and HERE's reference polyline decoder. Both are CommonJS so
      test/*.test.js runs under plain node with no build step; this three-line
@@ -933,29 +942,29 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.24.1"></script>
+<script src="lib/fuelplan.js?v=1.25.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.24.1"></script>
+<script src="lib/triptext.js?v=1.25.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.24.1"></script>
+<script src="lib/location.js?v=1.25.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.24.1"></script>
+<script src="lib/gauge.js?v=1.25.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.24.1"></script>
+<script src="lib/extract-version.js?v=1.25.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.24.1"></script>
+<script src="lib/autosuggest.js?v=1.25.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.24.1"></script>
+<script src="lib/baselayer.js?v=1.25.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.24.1"></script>
+<script src="lib/memocache.js?v=1.25.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.24.1"></script>
+<script src="lib/routerank.js?v=1.25.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.24.1"></script>
+<script src="lib/vehicleprofile.js?v=1.25.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.24.1"></script>
+<script src="lib/escape.js?v=1.25.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.24.1"></script>
+<script src="lib/navlinks.js?v=1.25.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -971,7 +980,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.24.1')
+fetch('lib/fuelplan-adaptive.js?v=1.25.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -988,7 +997,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.24.1')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.24.1')
+fetch('lib/shorttrip.js?v=1.25.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -999,7 +1008,7 @@ fetch('lib/shorttrip.js?v=1.24.1')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.24.1"></script>
+<script src="lib/flexible-polyline.js?v=1.25.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1159,7 +1168,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.24.1';
+const APP_VERSION = '1.25.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -1298,16 +1307,19 @@ const HERE_API_KEY = 'C7r-EHfOixmC3imxi1ATMEUnt_Fx9P7Cc1-0_UsJ0Uo';
 // answer worth caching, and truthiness would re-fetch it forever.
 const hereCache = MemoCache.createMemoCache(200);
 
-// The engine type has to be set in BOTH places or the map half-works:
-//   - createDefaultLayers({engineType}) builds layers whose styles the engine
-//     can actually parse. Omit it and HARP throws "Wrong style format for
-//     layer H-18" because it is handed WEBGL-format styles.
-//   - the H.Map option selects the engine that draws. Omit it and the map
-//     silently falls back to WEBGL, under which HERE's own MapSettingsControl
-//     disables Satellite and both Traffic entries ("Disabled with WEBGL
-//     engine") — they render greyed and cannot be picked.
-// Verified in a browser against the real library: HARP in both places gives a
-// HARP engine with all four view entries selectable. See PR notes.
+// On Maps API 3.2, HARP is the ONLY engine — H.Map.EngineType has exactly
+// one member, and passing engineType in createDefaultLayers and H.Map is
+// accepted and harmless (verified against the real 3.2.9.0 library). It is
+// kept in both places because removing it buys nothing and the explicitness
+// costs nothing.
+//
+// HISTORY, so nobody re-derives it: on 3.1 this was load-bearing in BOTH
+// places, and getting either wrong half-broke the map. Omitting it from
+// createDefaultLayers made HARP throw "Wrong style format for layer H-18"
+// (handed WEBGL-format styles); omitting it from the H.Map options silently
+// fell back to the WEBGL engine, under which HERE's own MapSettingsControl
+// greyed out Satellite. The 3.2 upgrade removed WEBGL and that entire
+// hazard with it.
 const HERE_ENGINE = H.Map.EngineType.HARP;
 
 const platform = new H.service.Platform({ apikey: HERE_API_KEY });
@@ -1462,9 +1474,23 @@ function mapFreeArea(){
            h: Math.round(r.height - p.top - p.bottom) };
 }
 // Fit the remembered bounds and record the geometry it was fitted against.
+//
+// The fit is issued one frame LATER, not synchronously. Maps 3.2 made
+// ViewPort.resize() asynchronous: the engine picks up the element's new size
+// on the next frame, where 3.1 applied it in the same task. A fit issued in
+// the task that called resize() therefore computes against the STALE
+// viewport — measured on 3.2: engine still 390x303 while the DOM was already
+// 390x694, zoom 2.17 instead of ~3.8 — which is the v1.20.2 zoom-out bug all
+// over again, reintroduced by the engine rather than by this code. One rAF
+// later the engine agrees with the DOM. lastFitFree is still recorded
+// synchronously (it is DOM-measured and already correct), and the guard
+// covers Clear trip landing between schedule and frame.
 function fitLastBounds(){
   lastFitFree = mapFreeArea();
-  map.getViewModel().setLookAtData({ bounds: lastFitBounds });
+  requestAnimationFrame(() => {
+    if(!lastFitBounds) return;
+    map.getViewModel().setLookAtData({ bounds: lastFitBounds });
+  });
 }
 // Breathing room around a fitted view. Without it a fit runs the geometry
 // hard against the viewport edges, which reads cramped and can clip the
