@@ -597,6 +597,13 @@
     max-width:calc(100% - 24px);background:var(--surface);border:1px solid var(--line);border-radius:9px;
     padding:8px 12px;font-size:12px;color:var(--ink);box-shadow:0 2px 6px rgba(0,0,0,.18);}
   #noMatch[hidden]{display:none;}
+  /* The way back out of an empty result. The three filters AND-combine and
+     current set is narrow enough that three taps in one state can
+     genuinely return nothing — a driver who lands there with a blank map and
+     no explanation concludes the app broke. Never auto-widen or silently
+     drop a filter to avoid this; say so and offer the exit. */
+  #clearFiltersBtn{display:block;margin:7px auto 0;background:var(--navy);color:#fff;border:none;
+    border-radius:7px;padding:5px 11px;font:inherit;font-size:11.5px;font-weight:700;}
   body.route-mode #noMatch{display:none;}
   .rr-veh{font-size:11.5px;color:var(--sub);line-height:1.4;margin:0 0 8px;}
   .rr-veh b{color:var(--ink);}
@@ -834,7 +841,7 @@
       </button>
       <div class="rr-body-wrap" id="routeResultsBodyWrap"><div class="rr-body" id="routeResultsBody"></div></div>
     </div>
-    <div id="noMatch" class="stops-only" hidden>No network stops match these filters.</div>
+    <div id="noMatch" class="stops-only" hidden>No network stops match these filters.<button type="button" id="clearFiltersBtn">Clear filters</button></div>
     <button id="legendBtn">Legend ⓘ</button>
     <button id="locateBtn" class="stops-only" title="Show my location" aria-label="Show my location">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><path d="M12 1.5v3.2M12 19.3v3.2M1.5 12h3.2M19.3 12h3.2"/></svg>
@@ -870,10 +877,9 @@
       <select class="stateSel stops-only" id="stateSel"><option value="all">All states</option></select>
       <div class="amen-head">What do you need tonight?</div>
       <div class="amen-wrap" id="amenWrap" role="group" aria-label="Amenity filters">
-        <button type="button" data-amen="parking" aria-pressed="false">100+ parking</button>
         <button type="button" data-amen="showers" aria-pressed="false">10+ showers</button>
-        <button type="button" data-amen="service" aria-pressed="false">Service (4+ bays)</button>
-        <button type="button" data-amen="scale" aria-pressed="false">CAT scale</button>
+        <button type="button" data-amen="gym" aria-pressed="false">Fitness room</button>
+        <button type="button" data-amen="restaurant" aria-pressed="false">Sit-down restaurant</button>
       </div>
     </div>
   </div>
@@ -906,29 +912,29 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.23.0"></script>
+<script src="lib/fuelplan.js?v=1.24.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.23.0"></script>
+<script src="lib/triptext.js?v=1.24.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.23.0"></script>
+<script src="lib/location.js?v=1.24.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.23.0"></script>
+<script src="lib/gauge.js?v=1.24.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.23.0"></script>
+<script src="lib/extract-version.js?v=1.24.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.23.0"></script>
+<script src="lib/autosuggest.js?v=1.24.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.23.0"></script>
+<script src="lib/baselayer.js?v=1.24.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.23.0"></script>
+<script src="lib/memocache.js?v=1.24.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.23.0"></script>
+<script src="lib/routerank.js?v=1.24.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.23.0"></script>
+<script src="lib/vehicleprofile.js?v=1.24.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.23.0"></script>
+<script src="lib/escape.js?v=1.24.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.23.0"></script>
+<script src="lib/navlinks.js?v=1.24.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -944,7 +950,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.23.0')
+fetch('lib/fuelplan-adaptive.js?v=1.24.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -961,7 +967,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.23.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.23.0')
+fetch('lib/shorttrip.js?v=1.24.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -972,7 +978,7 @@ fetch('lib/shorttrip.js?v=1.23.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.23.0"></script>
+<script src="lib/flexible-polyline.js?v=1.24.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1132,7 +1138,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.23.0';
+const APP_VERSION = '1.24.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -1662,12 +1668,10 @@ map.addObject(markerGroup);
               real service shop, keeping 102/146
    CAT scale is genuinely binary and near-universal here (only the two
    Covenant terminals lack one); it filters little but never misleads. */
-const PARKING_LARGE = 100;
 const SHOWERS_MANY  = 10;
-const BAYS_MANY     = 4;
 
 let state = {brand:'all', type:'all', st:'all', q:'',
-             parking:false, showers:false, service:false, scale:false};
+             showers:false, gym:false, restaurant:false};
 
 // One DomIcon per distinct pin APPEARANCE, not per call. There are only a
 // handful of appearances (brand × exclusive × faded — the letter follows
@@ -1816,6 +1820,19 @@ function closeSheet(){
 }
 document.getElementById('scrim').addEventListener('click', closeSheet);
 
+// Exact membership in the comma-separated amenity column, NOT a substring
+// test. row[16].includes('R') would also match a future multi-letter code
+// containing R, and indexOf has the same hole. No code is a substring of
+// another today, but that is luck rather than design, and this is precisely
+// the bug that passes review and fails silently the day a code is added.
+//
+// The station sheet splits the same column in amenChips. These are not
+// refactored into one another on purpose: amenChips turns codes into labels
+// for display, this answers a yes/no for filtering, and fusing them would
+// couple the filter path to the sheet's presentation.
+const hasAmenCode = (row, code) =>
+  String(row[16] || '').split(',').some(c => c.trim() === code);
+
 function passes(row){
   if(state.brand!=='all' && row[1]!==state.brand) return false;
   if(state.type!=='all' && row[11]!==state.type) return false;
@@ -1824,13 +1841,20 @@ function passes(row){
     const hay = (row[2]+' '+row[4]+' '+row[5]+' '+row[7]).toLowerCase();
     if(!hay.includes(state.q)) return false;
   }
-  // Amenity filters — the evening question ("fuel AND park AND shower"),
-  // AND-combined with everything above. Fields already exist on every row;
-  // only the filter was missing.
-  if(state.parking && !(Number(row[12]) >= PARKING_LARGE)) return false;
-  if(state.showers && !(Number(row[14]) >= SHOWERS_MANY)) return false;
-  if(state.service && !(Number(row[15]) >= BAYS_MANY)) return false;
-  if(state.scale   && !row[18]) return false;
+  // Amenity filters — the evening question, AND-combined with everything
+  // above. Three, chosen for SELECTIVITY: a filter earns its place by landing
+  // roughly between 15% and 60% of stops. Below that it returns almost
+  // nothing, above it almost everything.
+  //
+  // Removed because they could not narrow anything: CAT scale
+  // (144 of 144 — literally inert), 100+ parking (79%), 4+ bays (71%). The
+  // DATA fields all remain and the station sheet still shows them; only the
+  // filters went.
+  if(state.showers    && !(Number(row[14]) >= SHOWERS_MANY)) return false;
+  // F or O: the outdoor variant is only two rows, but NEITHER also carries F,
+  // so dropping it would silently hide those two stops from a gym search.
+  if(state.gym        && !(hasAmenCode(row,'F') || hasAmenCode(row,'O'))) return false;
+  if(state.restaurant && !hasAmenCode(row,'R')) return false;
   return true;
 }
 
@@ -2031,7 +2055,7 @@ function render(){
 function updateFilterBadge(){
   // Amenity toggles count as active filters too — a driver who left Showers
   // on must not later wonder why stops are missing.
-  const anyAmenity = state.parking || state.showers || state.service || state.scale;
+  const anyAmenity = state.showers || state.gym || state.restaurant;
   document.getElementById('filterBadge').hidden =
     state.brand==='all' && state.type==='all' && state.st==='all' && !anyAmenity;
 }
@@ -2059,6 +2083,28 @@ document.querySelectorAll('#amenWrap button').forEach(b=>{
     updateFilterBadge();
     render();
   });
+});
+
+// Clears everything that can empty the map — the amenity toggles plus brand,
+// type and state — and drives the controls from state rather than the other
+// way round, so aria-pressed and .on can never drift from what passes() reads.
+// Search is deliberately left alone: it is visible in its own box with its own
+// clear button, so wiping it here would erase something the driver can see
+// they typed.
+document.getElementById('clearFiltersBtn').addEventListener('click', ()=>{
+  state.showers = state.gym = state.restaurant = false;
+  state.brand = state.type = state.st = 'all';
+  document.querySelectorAll('#amenWrap button').forEach(b=>{
+    b.setAttribute('aria-pressed','false');
+    b.classList.remove('on');
+  });
+  document.querySelectorAll('#brandSeg button').forEach(x=>
+    x.classList.toggle('active', x.dataset.v==='all'));
+  document.querySelectorAll('#typeSeg button').forEach(x=>
+    x.classList.toggle('active', x.dataset.v==='all'));
+  document.getElementById('stateSel').value='all';
+  updateFilterBadge();
+  render();
 });
 
 document.getElementById('searchClearBtn').addEventListener('click', ()=>{
