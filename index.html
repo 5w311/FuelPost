@@ -25,15 +25,36 @@
   }catch(e){}
 })();
 </script>
-<!-- First contact with js.api.here.com is the render-blocking stylesheet
-     below, so DNS + TCP + TLS to a third-party origin all resolve there
-     before any map code starts downloading. These hints start that handshake
-     immediately instead. crossorigin is required: without it the
-     preconnected socket is not reused for these fetches and the hint does
-     nothing. dns-prefetch is the fallback where preconnect is ignored. -->
+<!-- Everything this page needs beyond its own HTML comes from
+     js.api.here.com, so DNS + TCP + TLS to a third-party origin sit in front
+     of the first byte of it. These hints start that handshake immediately,
+     before anything below has been requested. crossorigin is required:
+     without it the preconnected socket is not reused for these fetches and
+     the hint does nothing. dns-prefetch is the fallback where preconnect is
+     ignored. Keep both AHEAD of the stylesheet request below — a structural
+     test asserts that ordering, because a hint that arrives after the
+     request it was meant to warm is dead weight. -->
 <link rel="preconnect" href="https://js.api.here.com" crossorigin>
 <link rel="dns-prefetch" href="https://js.api.here.com">
-<link rel="stylesheet" type="text/css" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css" />
+<!-- The map UI stylesheet, requested WITHOUT blocking paint. As a plain
+     <link rel="stylesheet"> this held up first paint on a third-party round
+     trip: nothing at all appeared — not the header, not the toolbar — until
+     it landed. As a preload it is fetched at the same priority but off the
+     critical path, and the onload handler promotes it to a real stylesheet
+     the moment it arrives. noscript covers the case where that promotion
+     can never run.
+     NOTE it is worth knowing HERE serves this with `cache-control: no-cache`
+     (measured), so a repeat visitor still pays a revalidation round trip
+     here; this is not only a cold-cache improvement.
+     DO NOT add crossorigin to the preload without adding it to the noscript
+     link too. HERE sends `vary: Origin`, so a CORS preload and a non-CORS
+     stylesheet are separate cache entries and the file downloads TWICE.
+     The rel swap happens on this same element, so its attributes are
+     identical by construction — which is the point.
+     `this.onload=null` first: changing rel can re-fire onload otherwise. -->
+<link rel="preload" as="style" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css"
+      onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" type="text/css" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css" /></noscript>
 <style>
   :root{
     --navy:#0B2340; --navy2:#12335c; --ta:#0057B8; --petro:#00843D;
@@ -427,7 +448,7 @@
   /* Fuel gauge — needle, not a fill bar. The E-1/8 segment of the TRACK
      itself is permanently red (a fixed danger marking, like a tachometer
      redline); the needle's own color never changes with position, and its
-     usable range is clamped to ticks 2-8 (1/4 tank through F) in JS. */
+     usable range is clamped to ticks 1-8 (1/8 tank through F) in JS. */
   .gauge{margin-top:2px;-webkit-tap-highlight-color:transparent;}
   .gauge-labels{position:relative;height:13px;margin-bottom:4px;}
   .gauge-labels span{position:absolute;top:0;transform:translateX(-50%);font-size:9.5px;font-weight:800;color:var(--sub);white-space:nowrap;}
@@ -912,29 +933,29 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.24.0"></script>
+<script src="lib/fuelplan.js?v=1.24.1"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.24.0"></script>
+<script src="lib/triptext.js?v=1.24.1"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.24.0"></script>
+<script src="lib/location.js?v=1.24.1"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.24.0"></script>
+<script src="lib/gauge.js?v=1.24.1"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.24.0"></script>
+<script src="lib/extract-version.js?v=1.24.1"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.24.0"></script>
+<script src="lib/autosuggest.js?v=1.24.1"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.24.0"></script>
+<script src="lib/baselayer.js?v=1.24.1"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.24.0"></script>
+<script src="lib/memocache.js?v=1.24.1"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.24.0"></script>
+<script src="lib/routerank.js?v=1.24.1"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.24.0"></script>
+<script src="lib/vehicleprofile.js?v=1.24.1"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.24.0"></script>
+<script src="lib/escape.js?v=1.24.1"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.24.0"></script>
+<script src="lib/navlinks.js?v=1.24.1"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -950,7 +971,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.24.0')
+fetch('lib/fuelplan-adaptive.js?v=1.24.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -967,7 +988,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.24.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.24.0')
+fetch('lib/shorttrip.js?v=1.24.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -978,7 +999,7 @@ fetch('lib/shorttrip.js?v=1.24.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.24.0"></script>
+<script src="lib/flexible-polyline.js?v=1.24.1"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1138,7 +1159,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.24.0';
+const APP_VERSION = '1.24.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.

@@ -273,6 +273,47 @@ follow, not just this one:
 
 ## Version history
 
+### v1.24.1
+
+**The HERE stylesheet no longer blocks first paint.**
+
+As a plain `<link rel="stylesheet">` in the head, nothing at all appeared —
+not the header, not the toolbar — until a third-party CSS round trip
+completed. It is now requested as `rel="preload" as="style"` and promoted to a
+stylesheet by an `onload` handler, with a `<noscript>` fallback that loads it
+the normal way. Same URL; this is not a vendoring change.
+
+Measured in Chromium with the stylesheet delayed 1500ms to stand in for a slow
+cell round trip, five runs each: **first contentful paint 1588ms → 84ms**. The
+old build is blocked for essentially the whole delay; the new one paints in
+under a tenth of it.
+
+**Be clear-eyed about what that buys.** The app shell paints earlier but is not
+yet interactive — every handler is wired in the inline script at the bottom,
+after roughly a megabyte of HERE JS. The driver gets visible chrome that does
+not respond yet, instead of a white screen. Something on screen reads as
+loading; a blank screen reads as broken. It is a perceived-performance win, not
+a speed one.
+
+One thing worth recording, because it contradicts the assumption this change
+was scoped under: **HERE serves both the stylesheet and the JS bundles with
+`cache-control: no-cache`** (measured, not assumed). There are no long cache
+lifetimes here, so a repeat visitor still pays a revalidation round trip on
+every load — this is not purely a cold-cache improvement.
+
+Two gotchas are documented in the head, because both fail silently:
+
+- **Do not add `crossorigin` to the preload without adding it to the noscript
+  link too.** HERE sends `vary: Origin`, so a CORS preload and a non-CORS
+  stylesheet are separate cache entries and the file downloads twice.
+- **The preload does not delay the `load` event**, unlike the blocking
+  stylesheet it replaced. Anything sampling the swap at `load` will see
+  `rel="preload"` and conclude the promotion is broken when it is fine.
+
+Also corrected a fuel-gauge CSS comment that described the usable range as
+ticks 2-8 (1/4 tank through F). `GAUGE_MIN_TICK` is 1, and its own comment
+calls 1/8 the floor. Comment only — no gauge behaviour changed.
+
 ### v1.24.0
 
 **The filter row was inverted relative to the data. Three filters in, three
