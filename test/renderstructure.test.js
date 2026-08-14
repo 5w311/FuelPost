@@ -242,7 +242,7 @@ console.log('\n=== the map stylesheet does not block first paint ===');
 // real browser can, which is what scratchpad/pw-cssblocking.js measures.
 const headBlock = html.slice(0, html.indexOf('<style>'));
 ok('>>> the stylesheet is requested as a preload, not a blocking stylesheet',
-   /<link rel="preload" as="style" href="https:\/\/js\.api\.here\.com\/v3\/3\.1\/mapsjs-ui\.css"/.test(headBlock),
+   /<link rel="preload" as="style" href="https:\/\/js\.api\.here\.com\/v3\/[\d.]+\/mapsjs-ui\.css"/.test(headBlock),
    headBlock.slice(headBlock.indexOf('mapsjs-ui.css') - 120, headBlock.indexOf('mapsjs-ui.css') + 40));
 ok('>>> no render-blocking <link rel="stylesheet"> to HERE survives outside noscript',
    !/<link rel="stylesheet"[^>]*js\.api\.here\.com/.test(headBlock.replace(/<noscript>[\s\S]*?<\/noscript>/g, '')));
@@ -251,19 +251,42 @@ ok('>>> the swap promotes it to a stylesheet on load',
 ok('  onload is nulled first, so changing rel cannot re-fire it',
    /this\.onload=null;/.test(headBlock));
 ok('>>> a noscript fallback loads it the normal way',
-   /<noscript><link rel="stylesheet" type="text\/css" href="https:\/\/js\.api\.here\.com\/v3\/3\.1\/mapsjs-ui\.css"/.test(headBlock));
-ok('the URL is unchanged — this is not a vendoring change',
-   (headBlock.match(/https:\/\/js\.api\.here\.com\/v3\/3\.1\/mapsjs-ui\.css/g) || []).length === 2);
+   /<noscript><link rel="stylesheet" type="text\/css" href="https:\/\/js\.api\.here\.com\/v3\/[\d.]+\/mapsjs-ui\.css"/.test(headBlock));
+ok('the stylesheet is still served from HERE — never vendored',
+   (headBlock.match(/https:\/\/js\.api\.here\.com\/v3\/[\d.]+\/mapsjs-ui\.css/g) || []).length === 2);
 // THE DOUBLE-DOWNLOAD FOOTGUN: HERE sends `vary: Origin`, so a CORS preload
 // and a non-CORS stylesheet are separate cache entries and the file is
 // fetched twice. The preload and the noscript link must agree.
 ok('>>> preload and noscript fallback agree on crossorigin (neither uses it)',
    !/<link rel="preload" as="style"[^>]*crossorigin/.test(headBlock)
    && !/<noscript><link rel="stylesheet"[^>]*crossorigin/.test(headBlock));
-// The HERE JS bundles are deliberately untouched — the defer trap test exists
-// for a reason and this change must not have drifted into it.
-ok('the five HERE script tags are still plain, blocking, in order',
-   (html.match(/<script src="https:\/\/js\.api\.here\.com\/v3\/3\.1\/mapsjs-[a-z]+\.js"><\/script>/g) || []).length === 5);
+// The HERE JS bundles must stay plain and blocking — the defer trap test
+// exists for a reason. FOUR tags on 3.2, not five: mapsjs-harp.js was folded
+// into core and its 3.2 CDN path returns an error page.
+ok('the four HERE script tags are plain, blocking, in order',
+   (html.match(/<script src="https:\/\/js\.api\.here\.com\/v3\/[\d.]+\/mapsjs-[a-z]+\.js"><\/script>/g) || []).length === 4);
+
+console.log('\n=== HERE Maps 3.2: pinned version, and the harp trap ===');
+// Every HERE asset URL must carry the SAME full pinned version (3.2.x.y),
+// never the evergreen 3.2 path: pinning is the production-continuity choice
+// and a mixed set of versions is the failure a partial bump leaves behind.
+const hereVersions = [...new Set([...html.matchAll(/js\.api\.here\.com\/v3\/([\d.]+)\//g)].map(m => m[1]))];
+ok('>>> every HERE URL carries one and the same version', hereVersions.length === 1,
+   JSON.stringify(hereVersions));
+ok('  it is a FULL pin (3.2.x.y), not the evergreen 3.2',
+   /^3\.2\.\d+\.\d+$/.test(hereVersions[0] || ''), JSON.stringify(hereVersions));
+ok('  currently 3.2.9.0 — a bump is deliberate, so it edits this line too',
+   hereVersions[0] === '3.2.9.0', JSON.stringify(hereVersions));
+// THE TRAP: mapsjs-harp.js does not exist on 3.2. The HARP engine lives in
+// mapsjs-core.js now, and requesting the old module 403s — the map never
+// comes up. Checked with comments stripped, because the comment above the
+// script block deliberately names the module to warn against re-adding it.
+const codeOnly = html.replace(/<!--[\s\S]*?-->/g, '').split('\n')
+  .map(l => l.replace(/^\s*\/\/.*$/, '')).join('\n');
+ok('>>> NO mapsjs-harp.js reference anywhere outside comments',
+   !/mapsjs-harp/.test(codeOnly), 'the harp module does not exist on 3.2');
+ok('the engineType comment records the 3.1 history rather than deleting it',
+   /HISTORY, so nobody re-derives it/.test(html) && /Wrong style format for layer H-18/.test(html));
 
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;

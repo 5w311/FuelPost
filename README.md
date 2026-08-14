@@ -273,6 +273,47 @@ follow, not just this one:
 
 ## Version history
 
+### v1.25.0
+
+**HERE Maps API upgraded 3.1 → 3.2, pinned to 3.2.9.0.** 3.1 is deprecated by
+HERE; 3.2 is where support and fixes land. HARP is now the **only** rendering
+engine — WEBGL is gone, and with it the whole class of 3.1 hazards around
+setting `engineType` in two places (recorded in the comment at the
+`createDefaultLayers` call so nobody re-derives them).
+
+**Pinned to a full version, not the evergreen `3.2` path.** HERE recommends
+pinning for production continuity, and it fits this app: the `?v=` cache-bust
+stamps exist precisely so nothing changes underneath a running build, and the
+planned service worker makes an evergreen URL that silently swaps content
+worse. The cost — fixes arrive only by manual bump — is accepted, and a test
+pins that every HERE URL carries one and the same full version.
+
+**The trap:** `mapsjs-harp.js` does not exist on 3.2. The engine was folded
+into `mapsjs-core.js` (core grew ~0.9MB → ~2.2MB) and the old module's 3.2
+path returns an error page. The tag was **deleted**, not version-bumped, and a
+test pins that no reference to it survives outside comments.
+
+**One real behavioural incompatibility, found and fixed.** HERE's migration
+guide says HARP apps need "no additional steps". Not true here: on 3.2,
+`ViewPort.resize()` applies the element's new size **one frame later**, where
+3.1 applied it synchronously. Every route fit issued in the same task as a
+resize therefore computed against the stale viewport — which re-introduced the
+v1.20.2 zoom-out-after-plan bug exactly (measured: engine 390×303 while the
+DOM was 390×694, zoom 2.17 instead of ~3.8). `fitLastBounds` now issues its
+`setLookAtData` one `requestAnimationFrame` later, by which point the engine
+agrees with the DOM. Verified against the real 3.2.9.0 library: first-plan
+zoom 3.75, identical to an alternate's.
+
+Verified on the real 3.2.9.0 SDK end to end: startup network fit (zoom 3.12 ≈
+expected 3.14), all 146 pins with closed-pin stacking at Corning intact, the
+custom layer switcher shows Map view + Satellite both enabled and selectable,
+a theme change does not yank the driver off Satellite, and zero page errors
+throughout.
+
+`engineType: HARP` is **kept** in both call sites: 3.2 accepts it (the enum
+still exists, with HARP its only member), it is harmless, and removing it
+buys nothing.
+
 ### v1.24.1
 
 **The HERE stylesheet no longer blocks first paint.**
