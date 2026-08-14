@@ -228,8 +228,42 @@ console.log('\n=== connection hints ===');
 ok('preconnect to js.api.here.com with crossorigin',
    /<link rel="preconnect" href="https:\/\/js\.api\.here\.com" crossorigin>/.test(html));
 ok('dns-prefetch fallback', /<link rel="dns-prefetch" href="https:\/\/js\.api\.here\.com">/.test(html));
-ok('hints precede the mapsjs stylesheet',
-   html.indexOf('rel="preconnect"') < html.indexOf('mapsjs-ui.css'));
+// Still an ordering assertion, just against the preload that replaced the
+// blocking <link rel="stylesheet">. A hint that lands after the request it
+// was meant to warm is dead weight.
+ok('hints precede the mapsjs stylesheet request',
+   html.indexOf('rel="preconnect"') < html.indexOf('mapsjs-ui.css')
+   && html.indexOf('rel="dns-prefetch"') < html.indexOf('mapsjs-ui.css'));
+
+console.log('\n=== the map stylesheet does not block first paint ===');
+// As a plain <link rel="stylesheet"> this held up first paint on a
+// third-party round trip: no header, no toolbar, nothing, until it landed.
+// These are SOURCE-SHAPE assertions and cannot prove the swap fires — only a
+// real browser can, which is what scratchpad/pw-cssblocking.js measures.
+const headBlock = html.slice(0, html.indexOf('<style>'));
+ok('>>> the stylesheet is requested as a preload, not a blocking stylesheet',
+   /<link rel="preload" as="style" href="https:\/\/js\.api\.here\.com\/v3\/3\.1\/mapsjs-ui\.css"/.test(headBlock),
+   headBlock.slice(headBlock.indexOf('mapsjs-ui.css') - 120, headBlock.indexOf('mapsjs-ui.css') + 40));
+ok('>>> no render-blocking <link rel="stylesheet"> to HERE survives outside noscript',
+   !/<link rel="stylesheet"[^>]*js\.api\.here\.com/.test(headBlock.replace(/<noscript>[\s\S]*?<\/noscript>/g, '')));
+ok('>>> the swap promotes it to a stylesheet on load',
+   /onload="this\.onload=null;this\.rel='stylesheet'"/.test(headBlock));
+ok('  onload is nulled first, so changing rel cannot re-fire it',
+   /this\.onload=null;/.test(headBlock));
+ok('>>> a noscript fallback loads it the normal way',
+   /<noscript><link rel="stylesheet" type="text\/css" href="https:\/\/js\.api\.here\.com\/v3\/3\.1\/mapsjs-ui\.css"/.test(headBlock));
+ok('the URL is unchanged — this is not a vendoring change',
+   (headBlock.match(/https:\/\/js\.api\.here\.com\/v3\/3\.1\/mapsjs-ui\.css/g) || []).length === 2);
+// THE DOUBLE-DOWNLOAD FOOTGUN: HERE sends `vary: Origin`, so a CORS preload
+// and a non-CORS stylesheet are separate cache entries and the file is
+// fetched twice. The preload and the noscript link must agree.
+ok('>>> preload and noscript fallback agree on crossorigin (neither uses it)',
+   !/<link rel="preload" as="style"[^>]*crossorigin/.test(headBlock)
+   && !/<noscript><link rel="stylesheet"[^>]*crossorigin/.test(headBlock));
+// The HERE JS bundles are deliberately untouched — the defer trap test exists
+// for a reason and this change must not have drifted into it.
+ok('the five HERE script tags are still plain, blocking, in order',
+   (html.match(/<script src="https:\/\/js\.api\.here\.com\/v3\/3\.1\/mapsjs-[a-z]+\.js"><\/script>/g) || []).length === 5);
 
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
