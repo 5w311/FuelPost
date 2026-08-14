@@ -143,6 +143,17 @@
   #mapwrap{flex:1;position:relative;min-height:0;}
   #map{position:absolute;inset:0;}
 
+  /* Startup loading state over the map area. Same overlay pattern as
+     #listview below; z-index 300 keeps it under the list (350) and the
+     legend/locate buttons (400), which must stay tappable above it. Theme
+     custom properties only — the head's inline script has already applied
+     data-theme by the time this paints, so the first frame is correct in
+     dark mode too. Quiet on purpose: a small spinner and a label that read
+     as working, not an attention-grabbing animation. */
+  #mapLoading{position:absolute;inset:0;z-index:300;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:13px;color:var(--sub);text-align:center;padding:0 30px;line-height:1.5;}
+  .mapLoadingSpin{width:26px;height:26px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--navy-text);animation:mapLoadingTurn .9s linear infinite;}
+  @keyframes mapLoadingTurn{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion: reduce){ .mapLoadingSpin{animation:none;} }
   #listview{position:absolute;inset:0;background:var(--surface);overflow-y:auto;display:none;z-index:350;padding-bottom:20px;}
   #listview.show{display:block;}
   /* The list is a full-cover overlay (inset:0), but #legendBtn/#locateBtn/
@@ -854,6 +865,48 @@
 
   <div id="mapwrap">
     <div id="map"></div>
+    <!-- Startup loading state. IN THE INITIAL HTML, never script-created:
+         the whole point is to be on screen during the window between first
+         paint (~100ms since the stylesheet stopped blocking) and the map
+         engine's first render — an empty rectangle under a fully drawn
+         header reads as broken, not as loading. A SIBLING of #map, not a
+         child: H.Map appends its own canvas into #map and an existing child
+         inside the engine's element is undefined territory. role=status
+         makes it a polite live region, so a screen reader announces the
+         loading state and, if the timeout below fires, the failure message —
+         and a plain div holds no focus and sits in no tab order. -->
+    <div id="mapLoading" role="status">
+      <div class="mapLoadingSpin" aria-hidden="true"></div>
+      <div id="mapLoadingMsg">Loading map…</div>
+    </div>
+    <script>
+    // Runs during parse, BEFORE the HERE script tags at the bottom — which is
+    // what lets it fire when those scripts never arrive at all (no signal at
+    // a truck stop, a blocked CDN). In that case the main app script dies at
+    // its first `H` reference and nothing downstream can show an error, so
+    // the watchdog must not depend on any of it.
+    //
+    // 20s: median time to a usable map is ~757ms on a throttled ~9.6Mbps
+    // connection, and the full HERE payload is ~649KB compressed — even a
+    // ~40KB/s truck-stop cell link clears that in ~16s. 20s never fires on a
+    // slow-but-alive connection and still answers a dead one while the
+    // driver is looking at the screen.
+    //
+    // The message tells the truth and no more: when the SDK fails to load,
+    // the main script dies before wiring ANYTHING — measured, the list,
+    // search and filters are all dead too — so it must not claim the rest
+    // of the app still works.
+    //
+    // Not sticky: the map coming up late (scripts that limped in after 20s)
+    // still removes the whole element — the mapviewchangeend handler in the
+    // map setup below runs regardless of whether this fired first.
+    window.__mapLoadTimer = setTimeout(function(){
+      var m = document.getElementById('mapLoadingMsg');
+      var s = document.querySelector('.mapLoadingSpin');
+      if (m) m.textContent = 'The map could not be loaded. Check your connection and reload.';
+      if (s) s.remove();
+    }, 20000);
+    </script>
     <div id="listview"></div>
     <div id="routeResults">
       <button type="button" id="rrTab" class="rb-tab" aria-expanded="true" aria-controls="routeResultsBody" hidden>
@@ -942,29 +995,29 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.25.0"></script>
+<script src="lib/fuelplan.js?v=1.25.1"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.25.0"></script>
+<script src="lib/triptext.js?v=1.25.1"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.25.0"></script>
+<script src="lib/location.js?v=1.25.1"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.25.0"></script>
+<script src="lib/gauge.js?v=1.25.1"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.25.0"></script>
+<script src="lib/extract-version.js?v=1.25.1"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.25.0"></script>
+<script src="lib/autosuggest.js?v=1.25.1"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.25.0"></script>
+<script src="lib/baselayer.js?v=1.25.1"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.25.0"></script>
+<script src="lib/memocache.js?v=1.25.1"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.25.0"></script>
+<script src="lib/routerank.js?v=1.25.1"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.25.0"></script>
+<script src="lib/vehicleprofile.js?v=1.25.1"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.25.0"></script>
+<script src="lib/escape.js?v=1.25.1"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.25.0"></script>
+<script src="lib/navlinks.js?v=1.25.1"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -980,7 +1033,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.25.0')
+fetch('lib/fuelplan-adaptive.js?v=1.25.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -997,7 +1050,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.25.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.25.0')
+fetch('lib/shorttrip.js?v=1.25.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1008,7 +1061,7 @@ fetch('lib/shorttrip.js?v=1.25.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.25.0"></script>
+<script src="lib/flexible-polyline.js?v=1.25.1"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1168,7 +1221,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.25.0';
+const APP_VERSION = '1.25.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -1360,6 +1413,30 @@ const map = new H.Map(
     pixelRatio: window.devicePixelRatio || 1
   }
 );
+
+// Retire the startup loading state on the engine's FIRST settled render.
+// mapviewchangeend is the earliest 3.2 signal that genuinely means pixels:
+// the canvas element exists at construction, before anything is drawn, and
+// the 'render'/'update' events never fire on this engine (measured against
+// the real 3.2.9.0 library — first mapviewchangeend at ~417ms, canvas at
+// ~48ms). The constructor returning would hide the indicator onto an empty
+// container for a further beat.
+//
+// Exactly once, startup only — the listener removes itself, and the element
+// is removed outright so no later pan, plan or theme change can bring it
+// back. Also clears the watchdog from the inline script next to the markup,
+// and runs even if that watchdog already fired: a map that limps up after
+// the 20s timeout still clears the error message rather than leaving it
+// stuck over a working map.
+{
+  const clearMapLoading = () => {
+    map.removeEventListener('mapviewchangeend', clearMapLoading);
+    clearTimeout(window.__mapLoadTimer);
+    const el = document.getElementById('mapLoading');
+    if (el) el.remove();
+  };
+  map.addEventListener('mapviewchangeend', clearMapLoading);
+}
 window.addEventListener('resize', () => { map.getViewPort().resize(); syncMapPadding(); });
 // HERE's canvas only re-measures on a real window resize or an explicit
 // resize() call — it cannot see #mapwrap itself change height, which happens

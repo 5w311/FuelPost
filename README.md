@@ -273,6 +273,39 @@ follow, not just this one:
 
 ## Version history
 
+### v1.25.1
+
+**A loading state over the map area, from first paint until the engine's
+first render.**
+
+Since the stylesheet stopped blocking (v1.24.1), the header and toolbar paint
+in ~100ms and then framed an empty rectangle for the second or two the HERE
+SDK takes to download and construct — which reads as *broken*, not *loading*.
+The wait was always there; it used to hide behind a blank white page.
+
+`#mapLoading` lives in the **initial HTML** (the point is to be on screen
+before any script runs), as a sibling of `#map` inside `#mapwrap` — never
+inside `#map`, whose children belong to the engine. Quiet spinner + "Loading
+map…", theme variables only, `role="status"` so screen readers announce it,
+z-index 300 under the list (350) and the legend/locate buttons (400).
+
+**Removed on the first `mapviewchangeend`, exactly once.** Measured against
+the real 3.2.9.0 library: the canvas element exists at construction (~48ms,
+before anything is drawn), the `render`/`update` events never fire on this
+engine, and the first `mapviewchangeend` (~417ms) is the earliest signal that
+genuinely means pixels. Hiding when the constructor returns would expose an
+empty container for a further beat.
+
+**The failure case is a watchdog, not a spinner forever.** If the SDK never
+loads — no signal, blocked CDN — the main script dies at its first `H`
+reference and can show nothing, so a tiny inline script that parses *before*
+the HERE tags swaps the indicator to "The map could not be loaded. Check your
+connection and reload." after 20s (median load is ~757ms throttled; a
+~40KB/s cell link clears the 649KB payload in ~16s, so 20s never fires on a
+slow-but-alive connection). The message deliberately does **not** claim the
+list and search still work: measured, they die with the script. And it is not
+sticky — a map that limps up after the timeout still clears the whole element.
+
 ### v1.25.0
 
 **HERE Maps API upgraded 3.1 → 3.2, pinned to 3.2.9.0.** 3.1 is deprecated by
