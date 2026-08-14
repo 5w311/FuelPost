@@ -139,6 +139,65 @@ is the name a Covenant driver recognises — and keeps nav code `CVENTA198`.
 The header still reads **146 stops** — it counts stations in the book, and the
 book has not revved.
 
+## Amenity codes
+
+Column 16 of each `DATA` row, comma-separated, labelled by `AMEN_LABEL` in
+`index.html`. Every code in use **must** have a label: `amenChips` falls back to
+printing the raw code, so a missing entry shows the driver a bare `R` chip
+rather than failing. `datastops` pins that.
+
+| Code | Label | Source |
+|---|---|---|
+| `F` | Fitness room | Covenant fuel book, corrected against TA's location master 08-2026 |
+| `O` | Outdoor fitness | Covenant fuel book |
+| `W` | Walking trail | Covenant fuel book — **known over-claimed**, see below |
+| `H` | Horseshoes | Covenant fuel book |
+| `B` | Basketball court | Covenant fuel book |
+| `T` | Bean bag toss | Covenant fuel book |
+| `R` | Sit-down restaurant | **TA's location master, 08-2026** |
+
+`R` always sits **last** in a code string, so every pre-existing string keeps
+its `F,O,W,H,B,T` prefix and ordering untouched.
+
+`R` is a *food* amenity in a column of *recreation* amenities. That mixing is
+deliberate: a separate `DATA` column for one boolean would mean touching
+`FIELD_COUNT`, `tools/geocode.js` and the row-shape tests. Equally deliberate,
+`R` records only **that** a sit-down exists, never which brand — Country Pride,
+Iron Skillet, IHOP, Black Bear Diner and the rest are known per stop, but
+storing them needs a column.
+
+### What is trustworthy here, and what isn't
+
+- **`R` is complete and current** for all 143 matched stops, straight from TA's
+  master. `CA5` (TA Corning) has none — it is the one stop with no match in
+  TA's current data, consistent with it being closed.
+- **`F` is good but not complete.** Of 34 claimed fitness rooms, 32 were
+  confirmed and one contradicted — so what is recorded is largely right. But
+  only ~20 of the 110 non-fitness stops were sampled, and two of those turned
+  out to have a gym. **There are likely a few more missing**; a fuller audit is
+  expected to add rows.
+- **`W` is systematically over-claimed** and has not been corrected. TA's
+  current data lists a walking trail at no location at all, while `DATA` claims
+  one at 95 stops. That needs its own verification pass and was not attempted.
+- Nine stops carry **only** `R` (`AR2`, `CA4`, `LA5`, `LA6`, `MS1`, `NV3`,
+  `SC6`, `TX2`, `TX16`). Several are large Petros, so their recreation data is
+  probably missing rather than genuinely absent. No codes were invented for them.
+
+### Fitness room corrections (v1.23.0)
+
+Recorded here so a later reconciliation against the fuel book does not read
+them as unexplained drift:
+
+| Row | Change | Source |
+|---|---|---|
+| `MO2` Petro Oak Grove | `F` **removed** (`F,W` → `W`) | TA's page lists no fitness room |
+| `VA4` Petro Raphine | `F` **added** | TA's page lists a StayFit fitness room |
+| `IN2` Petro Gary | `F` **added** | documented in trade press coverage |
+| `CT1` TA New Haven | **unchanged** | could be neither confirmed nor refuted — an amenity is not removed on absence of evidence |
+
+Note that `TN6`, the Covenant HQ terminal, also carries `F`. Fitness counts over
+*stops* therefore run one lower than counts over all 146 `DATA` rows.
+
 ## Persisted settings (localStorage)
 
 `fuelpost.theme.v1` (dark mode, v1.7.0) is the first thing this app persists,
@@ -161,6 +220,32 @@ follow, not just this one:
   silently produce a result the driver never chose.
 
 ## Version history
+
+### v1.23.0
+
+**A sit-down restaurant code, and four fitness room corrections. Data only —
+no filter, no UI, no planner change.**
+
+New amenity code **`R` — Sit-down restaurant**, added to 70 stops from TA's
+location master (08-2026). It is the single most useful thing to filter on in
+the dataset: present at **70 of 143** stops, a near-perfect half split, where
+laundry sits at 99% and any-food at 94% and neither can narrow anything.
+
+`R` is appended last in every string, so each edit is a pure append and every
+pre-existing `F,O,W,H,B,T` prefix and ordering is untouched. `CA5` (TA Corning)
+gets none — no match in TA's current data, consistent with it being closed.
+
+Four **fitness room** corrections, independent of the `R` work: `MO2` Petro Oak
+Grove loses `F`, `VA4` Petro Raphine and `IN2` Petro Gary gain it, and `CT1` TA
+New Haven is deliberately left alone as neither confirmable nor refutable.
+Fitness rooms across the stops go 34 → **35**.
+
+See *Amenity codes* above for the full table, provenance, and what in this
+column is trustworthy — notably that `F` is good but probably still missing a
+few, and that `W` is known to be over-claimed and was **not** corrected here.
+
+No filter is added, removed or changed by this release. The filter rework that
+consumes this data is separate work.
 
 ### v1.22.2
 

@@ -141,6 +141,63 @@ console.log('\n=== marker stacking: a closed pin never hides an open one ===');
   ok('  so is CLOSED_PIN_Z', html.indexOf('const CLOSED_PIN_Z') < html.indexOf('const STOP_MARKERS'));
 }
 
+console.log('\n=== amenity codes ===');
+// Deliberately does NOT pin all 146 amenity strings verbatim: that would break
+// on every future data correction and pins far more than any one change.
+{
+  const codes = r => String(r[16] || '').split(',').map(s => s.trim()).filter(Boolean);
+  const has = (r, c) => codes(r).includes(c);
+
+  // THE BARE-CHIP FAILURE MODE: amenChips prints the raw code when a label is
+  // missing, so an unlabelled code shows the driver a bare "R" instead of
+  // erroring. Checked over every code actually in use, so it keeps catching
+  // this for any code added later, not just R.
+  const labels = new Set(
+    ((html.match(/const AMEN_LABEL = \{([^}]*)\}/) || [, ''])[1].match(/(\w+):"/g) || [])
+      .map(s => s.replace(':"', '')));
+  const used = [...new Set(DATA.flatMap(codes))].sort();
+  ok('AMEN_LABEL was actually parsed out of index.html', labels.size >= 6, JSON.stringify([...labels]));
+  ok('>>> every amenity code in DATA has an AMEN_LABEL entry (no bare chips)',
+     used.every(c => labels.has(c)), JSON.stringify(used.filter(c => !labels.has(c))));
+  ok('  R is labelled "Sit-down restaurant"', /R:"Sit-down restaurant"/.test(html));
+
+  console.log('\n  -- R, the sit-down restaurant code --');
+  const withR = DATA.filter(r => has(r, 'R'));
+  ok('>>> exactly 70 rows carry R', withR.length === 70, String(withR.length));
+  // R is appended, never interleaved, so every pre-existing string keeps its
+  // F,O,W,H,B,T prefix and ordering untouched.
+  ok('>>> R is always LAST in any string containing it',
+     withR.every(r => codes(r).pop() === 'R'),
+     JSON.stringify(withR.filter(r => codes(r).pop() !== 'R').map(r => [r[0], r[16]])));
+  // CA5 is the one stop with no match in TA's current location data, which is
+  // consistent with it being closed.
+  ok('>>> CA5 (TA Corning, closed) has no R', !has(DATA.find(r => r[0] === 'CA5'), 'R'),
+     JSON.stringify(DATA.find(r => r[0] === 'CA5')[16]));
+
+  console.log('\n  -- the four fitness room corrections --');
+  // Counted over STOPS, not all DATA rows: TN6, the Covenant HQ terminal, also
+  // carries F, so the all-rows figure is one higher and means something else.
+  const fStops = DATA.filter(r => r[11] !== 'term' && has(r, 'F'));
+  ok('>>> 35 fitness rooms across the stops after the corrections',
+     fStops.length === 35, String(fStops.length));
+  ok('  (the terminal TN6 carries F too, which is why the all-rows count is 36)',
+     DATA.filter(r => has(r, 'F')).length === 36 && has(DATA.find(r => r[0] === 'TN6'), 'F'));
+  ok('>>> MO2 Petro Oak Grove no longer claims F', !has(DATA.find(r => r[0] === 'MO2'), 'F'),
+     JSON.stringify(DATA.find(r => r[0] === 'MO2')[16]));
+  ok('  and it kept its walking trail', has(DATA.find(r => r[0] === 'MO2'), 'W'));
+  ok('>>> VA4 Petro Raphine now has F', has(DATA.find(r => r[0] === 'VA4'), 'F'),
+     JSON.stringify(DATA.find(r => r[0] === 'VA4')[16]));
+  ok('>>> IN2 Petro Gary now has F', has(DATA.find(r => r[0] === 'IN2'), 'F'),
+     JSON.stringify(DATA.find(r => r[0] === 'IN2')[16]));
+  // Absence of evidence is not evidence of absence: CT1 could be neither
+  // confirmed nor refuted, so it keeps what it claims.
+  ok('>>> CT1 TA New Haven still claims F (unconfirmed, deliberately untouched)',
+     has(DATA.find(r => r[0] === 'CT1'), 'F'), JSON.stringify(DATA.find(r => r[0] === 'CT1')[16]));
+
+  // Adding a code must not have disturbed the row shape.
+  ok('every row still has 21 fields', DATA.every(r => r.length === 21));
+}
+
 console.log('\n=== the Bloomsbury spelling ===');
 ok('NJ1 is spelled TA Bloomsbury, matching TA and the post office',
    (DATA.find(r => r[0] === 'NJ1') || [])[2] === 'TA Bloomsbury',

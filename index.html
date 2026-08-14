@@ -906,29 +906,29 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.22.2"></script>
+<script src="lib/fuelplan.js?v=1.23.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.22.2"></script>
+<script src="lib/triptext.js?v=1.23.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.22.2"></script>
+<script src="lib/location.js?v=1.23.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.22.2"></script>
+<script src="lib/gauge.js?v=1.23.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.22.2"></script>
+<script src="lib/extract-version.js?v=1.23.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.22.2"></script>
+<script src="lib/autosuggest.js?v=1.23.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.22.2"></script>
+<script src="lib/baselayer.js?v=1.23.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.22.2"></script>
+<script src="lib/memocache.js?v=1.23.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.22.2"></script>
+<script src="lib/routerank.js?v=1.23.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.22.2"></script>
+<script src="lib/vehicleprofile.js?v=1.23.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.22.2"></script>
+<script src="lib/escape.js?v=1.23.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.22.2"></script>
+<script src="lib/navlinks.js?v=1.23.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -944,7 +944,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.22.2')
+fetch('lib/fuelplan-adaptive.js?v=1.23.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -961,7 +961,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.22.2')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.22.2')
+fetch('lib/shorttrip.js?v=1.23.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -972,7 +972,7 @@ fetch('lib/shorttrip.js?v=1.22.2')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.22.2"></script>
+<script src="lib/flexible-polyline.js?v=1.23.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -981,16 +981,16 @@ const DATA = [
 ["AL1","Petro","Petro Shorter","428 Main Street","Shorter","AL","36075","I-85, Exit 22","(334) 727-3354",32.4055,-85.9559,"prim",50,1,6,0,"W","",1,1,"CVENPE505"],
 ["AL2","TA","TA Tuscaloosa","3501 Buttermilk Road","Tuscaloosa","AL","35453","I-20/I-59, Exit 77","(205) 554-0215",33.1758,-87.4468,"excl",151,1,12,6,"T","",1,1,"CVENTA016"],
 ["AL3","TA","TA Lincoln","75246 Alabama 77","Lincoln","AL","35096","I-20, Exit 168","(205) 763-2771",33.5865,-86.1247,"prim",45,1,4,4,"","",1,1,"CVENTA260"],
-["AZ1","Petro","Petro Eloy","5235 North Sunland Gin Road","Casa Grande","AZ","85131","I-10, Exit 200","(520) 836-3983",32.8070,-111.6709,"prim",175,1,10,4,"W,T","",1,1,"CVENPE306"],
+["AZ1","Petro","Petro Eloy","5235 North Sunland Gin Road","Casa Grande","AZ","85131","I-10, Exit 200","(520) 836-3983",32.8070,-111.6709,"prim",175,1,10,4,"W,T,R","",1,1,"CVENPE306"],
 ["AZ2","TA","TA Eloy","2949 North Toltec Road","Eloy","AZ","85131","I-10, Exit 203","(520) 466-7363",32.7735,-111.6172,"prim",234,1,11,6,"W,H,T","",1,1,"CVENTA007"],
-["AZ3","TA","TA Tonopah","1010 N. 339th Avenue","Tonopah","AZ","85354","I-10, Exit 103","(623) 386-6443",33.4587,-112.7826,"excl",407,1,18,5,"W,B","",1,1,"CVENTA225"],
+["AZ3","TA","TA Tonopah","1010 N. 339th Avenue","Tonopah","AZ","85354","I-10, Exit 103","(623) 386-6443",33.4587,-112.7826,"excl",407,1,18,5,"W,B,R","",1,1,"CVENTA225"],
 ["AZ4","TA","TA Holbrook","3747 Express Drive","Holbrook","AZ","86025","I-40, Exit 283","(928) 524-3006",34.9055,-110.2111,"excl",75,1,9,4,"","",1,1,"CVENTA246"],
-["AR1","Petro","Petro North Little Rock","3205 Valentine Road","North Little Rock","AR","72117","I-40, Exit 161","(501) 945-3206",34.7810,-92.1294,"prim",250,1,14,6,"W,H,B","",1,1,"CVENPE326"],
-["AR2","Petro","Petro W. Memphis","3900 Petro Rd","West Memphis","AR","72301","I-40, Exit 280 / I-55, Exit 4","(870) 702-5540",35.1541,-90.1363,"prim",280,1,17,6,"","",1,1,"CVENPE311"],
+["AR1","Petro","Petro North Little Rock","3205 Valentine Road","North Little Rock","AR","72117","I-40, Exit 161","(501) 945-3206",34.7810,-92.1294,"prim",250,1,14,6,"W,H,B,R","",1,1,"CVENPE326"],
+["AR2","Petro","Petro W. Memphis","3900 Petro Rd","West Memphis","AR","72301","I-40, Exit 280 / I-55, Exit 4","(870) 702-5540",35.1541,-90.1363,"prim",280,1,17,6,"R","",1,1,"CVENPE311"],
 ["CA1","TA","TA Livingston","435 Winton Parkway","Livingston","CA","95334","SR 99, Exit 203","(209) 799-3500",37.3876,-120.7377,"prim",102,1,7,5,"W,T","",1,1,"CVENTA170"],
-["CA2","TA","TA Ontario","4265 East Guasti Road","Ontario","CA","91761","I-10, Exit 57","(909) 390-2525",34.0645,-117.5600,"prim",549,1,17,6,"W,T","",1,1,"CVENTA162"],
-["CA3","TA","TA Santa Nella","12310 California Hwy 33","Santa Nella","CA","95322","I-5, Exit 407","(209) 826-0741",37.1101,-121.0151,"prim",216,1,12,4,"W,T","",1,1,"CVENTA163"],
-["CA4","Petro","Petro Corning","2151 South Avenue","Corning","CA","96021","I-5, Exit 630","(530) 824-4685",39.9061,-122.1962,"prim",120,1,14,6,"","",1,1,"CVENPE309"],
+["CA2","TA","TA Ontario","4265 East Guasti Road","Ontario","CA","91761","I-10, Exit 57","(909) 390-2525",34.0645,-117.5600,"prim",549,1,17,6,"W,T,R","",1,1,"CVENTA162"],
+["CA3","TA","TA Santa Nella","12310 California Hwy 33","Santa Nella","CA","95322","I-5, Exit 407","(209) 826-0741",37.1101,-121.0151,"prim",216,1,12,4,"W,T,R","",1,1,"CVENTA163"],
+["CA4","Petro","Petro Corning","2151 South Avenue","Corning","CA","96021","I-5, Exit 630","(530) 824-4685",39.9061,-122.1962,"prim",120,1,14,6,"R","",1,1,"CVENPE309"],
 ["CA5","TA","TA Corning","3524 South Highway 99 W","Corning","CA","96021","I-5, Exit 630","(530) 824-4646",39.8998,-122.1964,"prim",254,1,10,4,"W,T","",1,1,"CVENTA040"],
 ["CO1","TA","TA Commerce City","5101 Quebec Street","Commerce City","CO","80022","I-70/I-270, Exit 278","(303) 286-0123",39.7901,-104.9046,"prim",224,1,10,6,"W,T","",1,1,"CVENTA148"],
 ["CO2","TA","TA Wheat Ridge","12151 West 44th Avenue","Wheat Ridge","CO","80033","I-70, Exit 266","(303) 423-8250",39.7790,-105.1346,"prim",116,1,7,2,"W,T","M,T,P",1,1,"CVENTA174"],
@@ -1002,128 +1002,128 @@ const DATA = [
 ["FL5","TA","TA Vero Beach","8909 20th Street","Vero Beach","FL","32966","I-95, Exit 147","(772) 562-1791",27.6379,-80.5111,"prim",162,1,9,6,"F,W,H,B,T","",1,1,"CVENTA197"],
 ["FL6","TA","TA Wildwood","556 E. State Route 44","Wildwood","FL","34785","I-75, Exit 329","(352) 748-2501",28.8746,-82.0942,"prim",170,1,10,5,"H,T","C,T,P",1,1,"CVENTA053"],
 ["GA1","TA","TA Madison","2021 Eatonton Rd.","Madison","GA","30650","I-20/US441, Exit 114","(706) 342-4176",33.5525,-83.4744,"prim",149,1,7,6,"W,H,T","",1,1,"CVENTA045"],
-["GA2","TA","TA Cartersville","981 Cassville-White Road","Cartersville","GA","30121","I-75, Exit 296","(770) 607-8885",34.2725,-84.8077,"prim",212,1,10,6,"W,T","",1,1,"CVENTA146"],
-["GA3","TA","TA Commerce","30732 Hwy 441 South","Commerce","GA","30529","I-85/US441, Exit 149","(706) 335-5198",34.2530,-83.4629,"prim",89,1,14,4,"F,W,T","",1,1,"CVENTA156"],
-["GA4","TA","TA Atlanta South","122 Truckstop Way","Jackson","GA","30233","I-75/Hwy 36, Exit 201","(770) 775-2076",33.2065,-84.0589,"prim",108,0,8,4,"T","",1,1,"CVENTA268"],
-["ID1","TA","TA Boise","4115 Broadway","Boise","ID","83705","I-84, Exit 54","(208) 344-1091",43.5656,-116.1993,"prim",171,1,12,3,"F,W,T","",1,1,"CVENTA167"],
+["GA2","TA","TA Cartersville","981 Cassville-White Road","Cartersville","GA","30121","I-75, Exit 296","(770) 607-8885",34.2725,-84.8077,"prim",212,1,10,6,"W,T,R","",1,1,"CVENTA146"],
+["GA3","TA","TA Commerce","30732 Hwy 441 South","Commerce","GA","30529","I-85/US441, Exit 149","(706) 335-5198",34.2530,-83.4629,"prim",89,1,14,4,"F,W,T,R","",1,1,"CVENTA156"],
+["GA4","TA","TA Atlanta South","122 Truckstop Way","Jackson","GA","30233","I-75/Hwy 36, Exit 201","(770) 775-2076",33.2065,-84.0589,"prim",108,0,8,4,"T,R","",1,1,"CVENTA268"],
+["ID1","TA","TA Boise","4115 Broadway","Boise","ID","83705","I-84, Exit 54","(208) 344-1091",43.5656,-116.1993,"prim",171,1,12,3,"F,W,T,R","",1,1,"CVENTA167"],
 ["IL1","TA","TA Bloomington","505 Truckers Lane","Bloomington","IL","61701","I-55/I-74/I-39, Exit 160","(309) 827-4676",40.4879,-89.0263,"prim",160,1,8,6,"W,T","",1,1,"CVENTA092"],
 ["IL2","TA","TA Chicago North","16650 W. Russell Road","Zion","IL","60099","I-94, Exit 1/1A","(847) 395-5580",42.4867,-87.9510,"excl",215,1,12,3,"W,T","",1,1,"CVENTA030"],
 ["IL3","TA","TA Effingham","1702 West Evergreen","Effingham","IL","62401","I-57/I-70, Exit 160","(217) 347-7183",39.1362,-88.5664,"excl",137,1,10,6,"W,T","",1,1,"CVENTA035"],
-["IL4","Petro","Petro Effingham","1805 West Fayette Avenue","Effingham","IL","62401","I-70/I-57, Exit 159","(217) 347-0480",39.1204,-88.5716,"excl",212,1,19,5,"W,T","",1,1,"CVENPE321"],
+["IL4","Petro","Petro Effingham","1805 West Fayette Avenue","Effingham","IL","62401","I-70/I-57, Exit 159","(217) 347-0480",39.1204,-88.5716,"excl",212,1,19,5,"W,T,R","",1,1,"CVENPE321"],
 ["IL5","TA","TA Elgin","19 N 430 US Highway 20","Hampshire","IL","60140","I-90, Exit 42","(847) 683-4550",42.1454,-88.5094,"excl",92,1,10,2,"T","",1,1,"CVENTA044"],
-["IL6","TA","TA Morris","21 Romines Drive","Morris","IL","60450","I-80, Exit 112B","(815) 942-5690",41.3916,-88.4207,"excl",292,1,6,4,"W,T","",1,1,"CVENTA236"],
+["IL6","TA","TA Morris","21 Romines Drive","Morris","IL","60450","I-80, Exit 112B","(815) 942-5690",41.3916,-88.4207,"excl",292,1,6,4,"W,T,R","",1,1,"CVENTA236"],
 ["IL7","TA","TA Mt. Vernon","4510 Broadway","Mt. Vernon","IL","62864","I-57/I-64, MM95","(618) 244-4242",38.3131,-88.9592,"prim",136,1,11,6,"T","",1,1,"CVENTA043"],
 ["IL8","TA","TA Troy","819 Edwardsville Road","Troy","IL","62294","I-55/I-70, Exit 18","(618) 667-9931",38.7338,-89.9097,"excl",92,1,7,5,"T","",1,1,"CVENTA199"],
 ["IN1","TA","TA Gary","2510 Burr St.","Gary","IN","46406","I-80/I-94, Exit 6","(219) 845-3721",41.5732,-87.4038,"prim",318,1,14,6,"T","",1,1,"CVENTA010"],
-["IN2","Petro","Petro Gary","3001 Grant Street","Gary","IN","46408","I-80/I-94, Exit 9","(219) 884-1133",41.5635,-87.3571,"prim",405,1,15,6,"","",1,1,"CVENPE369"],
+["IN2","Petro","Petro Gary","3001 Grant Street","Gary","IN","46408","I-80/I-94, Exit 9","(219) 884-1133",41.5635,-87.3571,"prim",405,1,15,6,"F,R","",1,1,"CVENPE369"],
 ["IN3","TA","TA Seymour","2636 E. Tipton St.","Seymour","IN","47274","I-65/SR 50, Exit 50","(812) 522-6622",38.9576,-85.8366,"prim",184,1,9,6,"W,T","",1,1,"CVENTA065"],
 ["IN4","TA","TA DeMotte","11166 W. State Road 10","DeMotte","IN","46310","I-65, Exit 230","(219) 507-7013",41.1452,-87.2607,"prim",133,1,6,4,"W,T","",1,1,"CVENTA241"],
-["IN5","Petro","Petro Gaston","14000 W. 28 State Road","Gaston","IN","47342","I-69, Exit 245","(765) 358-3326",40.2771,-85.5526,"prim",150,1,7,5,"W","",1,1,"CVENPE380"],
+["IN5","Petro","Petro Gaston","14000 W. 28 State Road","Gaston","IN","47342","I-69, Exit 245","(765) 358-3326",40.2771,-85.5526,"prim",150,1,7,5,"W,R","",1,1,"CVENPE380"],
 ["IN6","TA","TA Whitestown","5930 East State Road 334","Whitestown","IN","46075","I-65, Exit 130","(317) 769-3291",39.9475,-86.3567,"prim",169,1,9,4,"F,T","",1,1,"CVENTA173"],
 ["IA1","TA","TA Council Bluffs","3210 South Seven Street","Council Bluffs","IA","51501","I-80 & I-29, Exit 3","(712) 366-2217",41.2286,-95.8533,"prim",78,1,8,2,"W","",1,1,"CVENTA066"],
-["KS1","TA","TA Beto Junction","2775 Highway 75","Lebo","KS","66856","U.S. 75 & I-35, Exit 155","(620) 256-6311",38.4274,-95.7275,"prim",226,1,8,3,"W,T","",1,1,"CVENTA252"],
+["KS1","TA","TA Beto Junction","2775 Highway 75","Lebo","KS","66856","U.S. 75 & I-35, Exit 155","(620) 256-6311",38.4274,-95.7275,"prim",226,1,8,3,"W,T,R","",1,1,"CVENTA252"],
 ["KS2","Petro","Petro Salina","2125 North 9th Street","Salina","KS","67401","I-70, Exit 252","(785) 825-7723",38.8792,-97.6128,"prim",75,1,6,4,"O,W","",1,1,"CVENPE366"],
 ["KY1","TA","TA Florence","7777 Burlington Pike","Florence","KY","41042","I-75, Exit 181","(859) 371-7166",39.0005,-84.6447,"prim",123,1,6,6,"W,T","",1,1,"CVENTA093"],
-["KY2","Petro","Petro Glendale","554 W. Glendale","Glendale","KY","42740","I-65, Exit 86","(270) 369-6840",37.6014,-85.9036,"prim",263,1,19,5,"W","",1,1,"CVENPE330"],
+["KY2","Petro","Petro Glendale","554 W. Glendale","Glendale","KY","42740","I-65, Exit 86","(270) 369-6840",37.6014,-85.9036,"prim",263,1,19,5,"W,R","",1,1,"CVENPE330"],
 ["KY3","TA","TA Walton","145 Richwood Road","Walton","KY","41094","I-75 & I-71, Exit 175","(859) 485-4111",38.9173,-84.6266,"prim",60,1,6,4,"","",1,1,"CVENTA028"],
-["LA1","Petro","Petro Hammond","2100 S.W. Railroad Avenue","Hammond","LA","70403","I-12, Exit 40","(985) 542-4981",30.4770,-90.4575,"prim",200,1,12,4,"F,W,H,T","T",1,1,"CVENPE310"],
+["LA1","Petro","Petro Hammond","2100 S.W. Railroad Avenue","Hammond","LA","70403","I-12, Exit 40","(985) 542-4981",30.4770,-90.4575,"prim",200,1,12,4,"F,W,H,T,R","T",1,1,"CVENPE310"],
 ["LA2","TA","TA Greenwood","8560 Greenwood Road","Greenwood","LA","71033","I-20, Exit 5","(318) 938-5411",32.4457,-93.9491,"prim",177,1,10,4,"W,T","",1,1,"CVENTA237"],
 ["LA3","TA","TA Lafayette","1701 North University Avenue","Lafayette","LA","70507","I-10, Exit 101","(337) 237-0176",30.2522,-92.0378,"prim",128,1,9,2,"W,H,T","",1,1,"CVENTA161"],
-["LA4","TA","TA Slidell","1682 Gause Boulevard","Slidell","LA","70458","I-10, Exit 266","(985) 643-9974",30.2861,-89.7509,"excl",111,1,10,3,"H,T","",1,1,"CVENTA180"],
-["LA5","TA","TA Tallulah","224 Highway 65 South","Tallulah","LA","71282","I-20, Exit 171","(318) 574-5900",32.3885,-91.2004,"prim",135,1,7,5,"","",1,1,"CVENTA046"],
-["LA6","Petro","Petro Shreveport","6910 W. Bert Kouns Industrial Loop","Shreveport","LA","71129","I-20, Exit 8","(318) 686-6111",32.4443,-93.9004,"prim",218,1,15,5,"","",1,1,"CVENPE308"],
+["LA4","TA","TA Slidell","1682 Gause Boulevard","Slidell","LA","70458","I-10, Exit 266","(985) 643-9974",30.2861,-89.7509,"excl",111,1,10,3,"H,T,R","",1,1,"CVENTA180"],
+["LA5","TA","TA Tallulah","224 Highway 65 South","Tallulah","LA","71282","I-20, Exit 171","(318) 574-5900",32.3885,-91.2004,"prim",135,1,7,5,"R","",1,1,"CVENTA046"],
+["LA6","Petro","Petro Shreveport","6910 W. Bert Kouns Industrial Loop","Shreveport","LA","71129","I-20, Exit 8","(318) 686-6111",32.4443,-93.9004,"prim",218,1,15,5,"R","",1,1,"CVENPE308"],
 ["LA7","TA","TA Express Laplace","4301 Main St.","Laplace","LA","70068","","(985) 315-8194",30.0861,-90.4450,"excl",117,1,8,0,"","",1,1,"CVENTA479"],
 ["MD1","TA","TA Baltimore","5501 O'Donnell Street Cutoff","Baltimore","MD","21224","I-95, Exit 57","(410) 633-4611",39.2777,-76.5492,"prim",181,1,11,3,"B,T","",1,1,"CVENTA216"],
-["MD2","TA","TA Baltimore South","7401 Assateague Drive","Jessup","MD","20794","I-95, Exit 41A","(410) 799-3835",39.1666,-76.7829,"prim",436,1,19,4,"F","",1,1,"CVENTA151"],
+["MD2","TA","TA Baltimore South","7401 Assateague Drive","Jessup","MD","20794","I-95, Exit 41A","(410) 799-3835",39.1666,-76.7829,"prim",436,1,19,4,"F,R","",1,1,"CVENTA151"],
 ["MI1","TA","TA Ann Arbor","200 Baker Road","Dexter","MI","48130","I-94, Exit 167","(734) 426-3951",42.2965,-83.8768,"prim",203,1,8,3,"F,T","",1,1,"CVENTA089"],
 ["MI2","TA","TA Monroe","1255 N Dixie Highway","Monroe","MI","48162","I-75, Exit 15","(734) 384-7952",41.9264,-83.3632,"prim",156,1,10,3,"W,T","",1,1,"CVENTA069"],
-["MI3","TA","TA Saginaw","6364 Dixie Highway","Bridgeport","MI","48722","I-75, Exit 144","(989) 777-7650",43.3520,-83.8689,"prim",70,1,4,2,"W,T","",1,1,"CVENTA198"],
+["MI3","TA","TA Saginaw","6364 Dixie Highway","Bridgeport","MI","48722","I-75, Exit 144","(989) 777-7650",43.3520,-83.8689,"prim",70,1,4,2,"W,T,R","",1,1,"CVENTA198"],
 ["MI4","TA","TA Sawyer","6100 Sawyer Road","Sawyer","MI","49125","I-94, Exit 12","(269) 426-4884",41.8848,-86.6000,"prim",155,1,9,3,"W,T","",1,1,"CVENTA116"],
 ["MI5","TA","TA Tekonsha","15587 M-60","Tekonsha","MI","49092","I-69, Exit 25","(517) 767-4135",42.1063,-84.9895,"prim",85,1,6,4,"T","",1,1,"CVENTA243"],
-["MN1","Petro","Petro Albert Lea","820 Happy Trails Lane","Albert Lea","MN","56007","I-90/I-35, Exit 11","(507) 373-4200",43.6570,-93.3174,"prim",300,1,10,7,"W","",1,1,"CVENPE398"],
+["MN1","Petro","Petro Albert Lea","820 Happy Trails Lane","Albert Lea","MN","56007","I-90/I-35, Exit 11","(507) 373-4200",43.6570,-93.3174,"prim",300,1,10,7,"W,R","",1,1,"CVENPE398"],
 ["MN2","TA","TA Rogers","13400 Rogers Drive","Rogers","MN","55374","I-94, Exit 207","(763) 428-2277",45.1968,-93.5492,"prim",80,1,8,3,"H,B,T","",1,1,"CVENTA190"],
-["MS1","TA","TA Meridian","2150 Russell Mt. Gilead Road","Meridian","MS","39301","I-20 & I-59, Exit 160","(601) 483-7611",32.3960,-88.5824,"excl",90,1,6,5,"","",1,1,"CVENTA047"],
-["MO1","Petro","Petro Joplin","4240 Highway 43","Joplin","MO","64804","I-44, Exit 4","(417) 624-3400",37.0070,-94.5523,"prim",465,1,18,8,"F","",1,1,"CVENPE354"],
-["MO2","Petro","Petro Oak Grove","301 SW First Street","Oak Grove","MO","64075","I-70, Exit 28","(816) 690-4455",39.0154,-94.1311,"prim",305,1,12,5,"F,W","",1,1,"CVENPE460"],
-["MO3","TA","TA Oak Grove","100 North Broadway","Oak Grove","MO","64075","I-70, Exit 28","(816) 690-4115",39.0179,-94.1287,"prim",118,1,9,3,"W,H","",1,1,"CVENTA052"],
-["MT1","TA","TA Laurel","11360 South Frontage Road","Laurel","MT","59044","I-90, Exit 437","(406) 628-4324",45.6825,-108.7041,"prim",80,1,4,0,"W,T","",1,1,"CVENTA261"],
-["NE1","TA","TA Grand Island","8033 West Holling Road","Alda","NE","68810","I-80, Exit 305","(308) 382-5902",40.7999,-98.4955,"prim",82,1,7,2,"F,W,T","",1,1,"CVENTA193"],
+["MS1","TA","TA Meridian","2150 Russell Mt. Gilead Road","Meridian","MS","39301","I-20 & I-59, Exit 160","(601) 483-7611",32.3960,-88.5824,"excl",90,1,6,5,"R","",1,1,"CVENTA047"],
+["MO1","Petro","Petro Joplin","4240 Highway 43","Joplin","MO","64804","I-44, Exit 4","(417) 624-3400",37.0070,-94.5523,"prim",465,1,18,8,"F,R","",1,1,"CVENPE354"],
+["MO2","Petro","Petro Oak Grove","301 SW First Street","Oak Grove","MO","64075","I-70, Exit 28","(816) 690-4455",39.0154,-94.1311,"prim",305,1,12,5,"W","",1,1,"CVENPE460"],
+["MO3","TA","TA Oak Grove","100 North Broadway","Oak Grove","MO","64075","I-70, Exit 28","(816) 690-4115",39.0179,-94.1287,"prim",118,1,9,3,"W,H,R","",1,1,"CVENTA052"],
+["MT1","TA","TA Laurel","11360 South Frontage Road","Laurel","MT","59044","I-90, Exit 437","(406) 628-4324",45.6825,-108.7041,"prim",80,1,4,0,"W,T,R","",1,1,"CVENTA261"],
+["NE1","TA","TA Grand Island","8033 West Holling Road","Alda","NE","68810","I-80, Exit 305","(308) 382-5902",40.7999,-98.4955,"prim",82,1,7,2,"F,W,T,R","",1,1,"CVENTA193"],
 ["NV1","TA","TA Las Vegas","8050 Dean Martin Drive","Las Vegas","NV","89139","I-15, Exit 33","(702) 361-1176",36.0433,-115.1873,"prim",144,1,13,3,"F,W,T","C,P",1,1,"CVENTA108"],
 ["NV2","TA","TA Mill City","6000 E. Frontage Road","Mill City","NV","89418","I-80, Exit 151(W)/149(E)","(775) 538-7311",40.6937,-118.0557,"prim",152,1,10,3,"W,H,B","",1,1,"CVENTA181"],
-["NV3","Petro","Petro North Las Vegas","6595 North Hollywood Blvd","North Las Vegas","NV","89115","I-15, Exit 54","(702) 632-2640",36.2794,-115.0255,"prim",207,1,16,5,"","",1,1,"CVENPE331"],
-["NH1","TA","TA Greenland","108 Ocean Road","Greenland","NH","03840","I-95, Exit 3(N), 3B(S)","(603) 436-3636",43.0426,-70.8181,"prim",72,1,7,0,"W,B,T","",1,1,"CVENTA211"],
-["NJ1","TA","TA Bloomsbury","975 S.R. 173","Bloomsbury","NJ","08804","I-78, Exit 7","(908) 479-4136",40.6594,-75.0750,"excl",122,1,7,4,"W,H,T","",1,1,"CVENTA048"],
-["NJ2","Petro","Petro Bordentown","402 Rising Sun Square Road","Bordentown","NJ","08505","I-295, Exit 57 / Tpike, Exit 7","(609) 298-6070",40.1232,-74.7133,"prim",490,1,20,6,"F,W,H,T","M,T,P",1,1,"CVENPE314"],
-["NJ3","TA","TA Columbia","2 Simpson Road","Columbia","NJ","07832","I-80, Exit 4A","(908) 496-4124",40.9319,-75.0966,"excl",172,1,7,5,"W,T","",1,1,"CVENTA006"],
+["NV3","Petro","Petro North Las Vegas","6595 North Hollywood Blvd","North Las Vegas","NV","89115","I-15, Exit 54","(702) 632-2640",36.2794,-115.0255,"prim",207,1,16,5,"R","",1,1,"CVENPE331"],
+["NH1","TA","TA Greenland","108 Ocean Road","Greenland","NH","03840","I-95, Exit 3(N), 3B(S)","(603) 436-3636",43.0426,-70.8181,"prim",72,1,7,0,"W,B,T,R","",1,1,"CVENTA211"],
+["NJ1","TA","TA Bloomsbury","975 S.R. 173","Bloomsbury","NJ","08804","I-78, Exit 7","(908) 479-4136",40.6594,-75.0750,"excl",122,1,7,4,"W,H,T,R","",1,1,"CVENTA048"],
+["NJ2","Petro","Petro Bordentown","402 Rising Sun Square Road","Bordentown","NJ","08505","I-295, Exit 57 / Tpike, Exit 7","(609) 298-6070",40.1232,-74.7133,"prim",490,1,20,6,"F,W,H,T,R","M,T,P",1,1,"CVENPE314"],
+["NJ3","TA","TA Columbia","2 Simpson Road","Columbia","NJ","07832","I-80, Exit 4A","(908) 496-4124",40.9319,-75.0966,"excl",172,1,7,5,"W,T,R","",1,1,"CVENTA006"],
 ["NJ4","TA","TA Paulsboro","171 Berkley Road","Paulsboro","NJ","08066","I-295, Exit 18","(856) 423-5500",39.8193,-75.2384,"excl",175,1,8,3,"W","",1,1,"CVENTA218"],
-["NY1","TA","TA Binghamton","753 Upper Court Street","Binghamton","NY","13904","I-81 N, Exit 2W / I-81 S, Exit 3","(607) 775-3500",42.1014,-75.8414,"prim",125,1,6,3,"F,W,B,T","",1,1,"CVENTA207"],
-["NY2","TA","TA Dansville","9616 Commerce Drive","Dansville","NY","14437","I-390, Exit 5","(585) 335-6023",42.5663,-77.7194,"prim",102,1,5,2,"B,T","",1,1,"CVENTA208"],
-["NY3","TA","TA Fultonville","40 Riverside Drive","Fultonville","NY","12072","I-90, Exit 28","(838) 292-9580",42.9485,-74.3635,"prim",121,1,8,2,"W,T","",1,1,"CVENTA508"],
-["NY4","TA","TA Maybrook","125 Neelytown Road","Montgomery","NY","12549","I-84, Exit 5","(845) 457-3163",41.5041,-74.2206,"prim",160,1,11,5,"W,H,T","",1,1,"CVENTA210"],
-["NY5","TA","TA Pembroke","8420 Alleghany","Corfu","NY","14036","I-90, Exit 48A","(585) 599-4577",43.0048,-78.4073,"prim",132,1,6,6,"B,T","",1,1,"CVENTA194"],
-["NC1","TA","TA Candler","153 Wiggins Road","Candler","NC","28715","I-40, Exit 37","(828) 665-1156",35.5434,-82.7539,"prim",106,1,8,4,"W,T","",1,1,"CVENTA221"],
+["NY1","TA","TA Binghamton","753 Upper Court Street","Binghamton","NY","13904","I-81 N, Exit 2W / I-81 S, Exit 3","(607) 775-3500",42.1014,-75.8414,"prim",125,1,6,3,"F,W,B,T,R","",1,1,"CVENTA207"],
+["NY2","TA","TA Dansville","9616 Commerce Drive","Dansville","NY","14437","I-390, Exit 5","(585) 335-6023",42.5663,-77.7194,"prim",102,1,5,2,"B,T,R","",1,1,"CVENTA208"],
+["NY3","TA","TA Fultonville","40 Riverside Drive","Fultonville","NY","12072","I-90, Exit 28","(838) 292-9580",42.9485,-74.3635,"prim",121,1,8,2,"W,T,R","",1,1,"CVENTA508"],
+["NY4","TA","TA Maybrook","125 Neelytown Road","Montgomery","NY","12549","I-84, Exit 5","(845) 457-3163",41.5041,-74.2206,"prim",160,1,11,5,"W,H,T,R","",1,1,"CVENTA210"],
+["NY5","TA","TA Pembroke","8420 Alleghany","Corfu","NY","14036","I-90, Exit 48A","(585) 599-4577",43.0048,-78.4073,"prim",132,1,6,6,"B,T,R","",1,1,"CVENTA194"],
+["NC1","TA","TA Candler","153 Wiggins Road","Candler","NC","28715","I-40, Exit 37","(828) 665-1156",35.5434,-82.7539,"prim",106,1,8,4,"W,T,R","",1,1,"CVENTA221"],
 ["NC2","TA","TA Greensboro","1101 NC Highway 61","Whitsett","NC","27377","I-85/I-40, Exit 138","(336) 449-6060",36.0636,-79.5636,"prim",173,1,13,6,"F,W,T","",1,1,"CVENTA002"],
-["NC3","Petro","Petro Kenly","923 Johnston Parkway","Kenly","NC","27542","I-95, Exit 106","(919) 284-5121",35.5817,-78.1467,"excl",350,1,11,6,"F,W","",1,1,"CVENPE395"],
+["NC3","Petro","Petro Kenly","923 Johnston Parkway","Kenly","NC","27542","I-95, Exit 106","(919) 284-5121",35.5817,-78.1467,"excl",350,1,11,6,"F,W,R","",1,1,"CVENPE395"],
 ["NC4","TA","TA Mocksville","1670 U.S. Highway 601 North","Mocksville","NC","27028","I-40, Exit 170","(336) 751-3815",35.9251,-80.5918,"prim",130,1,7,3,"F,W,T","",1,1,"CVENTA251"],
-["OH1","TA","TA Lodi","8834 Lake Road","Seville","OH","44273","I-71/I-76, Exit 209","(330) 769-2053",41.0321,-81.9072,"prim",237,1,10,6,"W,H,T","",1,1,"CVENTA015"],
+["OH1","TA","TA Lodi","8834 Lake Road","Seville","OH","44273","I-71/I-76, Exit 209","(330) 769-2053",41.0321,-81.9072,"prim",237,1,10,6,"W,H,T,R","",1,1,"CVENTA015"],
 ["OH2","TA","TA London","940 US RT 42 NE","London","OH","43140","I-70/US 42, Exit 79","(740) 852-3810",39.9532,-83.3796,"prim",138,1,10,6,"H,B,T","",1,1,"CVENTA024"],
 ["OH3","TA","TA North Canton","4450 Portage Street NW","North Canton","OH","44720","I-77, Exit 111","(330) 494-7507",40.8794,-81.4296,"prim",85,1,4,2,"W,T","",1,1,"CVENTA095"],
-["OH4","TA","TA Jeffersonville","12403 US Route 35 NW","Jeffersonville","OH","43128","I-71, Exit 65","(740) 948-2365",39.6169,-83.6036,"prim",144,1,7,5,"W,H,T","",1,1,"CVENTA139"],
+["OH4","TA","TA Jeffersonville","12403 US Route 35 NW","Jeffersonville","OH","43128","I-71, Exit 65","(740) 948-2365",39.6169,-83.6036,"prim",144,1,7,5,"W,H,T,R","",1,1,"CVENTA139"],
 ["OH5","TA","TA Youngstown","5400 Seventy Six Drive","Youngstown","OH","44515","I-80, Exit 223A","(330) 793-4426",41.1225,-80.7662,"prim",145,1,9,5,"W,B,T","",1,1,"CVENTA058"],
-["OH6","Petro","Petro North Baltimore","12906 Deshler Road","North Baltimore","OH","45872","I-75, Exit 167","(419) 257-3744",41.1730,-83.6466,"prim",250,1,10,5,"F,W,H,B,T","",1,1,"CVENPE325"],
-["OK1","TA","TA Oklahoma City East","801 South Council Road","Oklahoma City","OK","73128","I-40, Exit 142","(405) 787-7411",35.4575,-97.6547,"excl",175,1,12,6,"F,W,T","",1,1,"CVENTA036"],
-["OK2","Petro","Petro Oklahoma City","20 Martin Luther King Blvd.","Oklahoma City","OK","73117","I-40E/I-35, Exit 127 / I-40W, Exit 154","(405) 228-7040",35.4664,-97.4762,"excl",280,1,14,5,"W,T","",1,1,"CVENPE316"],
+["OH6","Petro","Petro North Baltimore","12906 Deshler Road","North Baltimore","OH","45872","I-75, Exit 167","(419) 257-3744",41.1730,-83.6466,"prim",250,1,10,5,"F,W,H,B,T,R","",1,1,"CVENPE325"],
+["OK1","TA","TA Oklahoma City East","801 South Council Road","Oklahoma City","OK","73128","I-40, Exit 142","(405) 787-7411",35.4575,-97.6547,"excl",175,1,12,6,"F,W,T,R","",1,1,"CVENTA036"],
+["OK2","Petro","Petro Oklahoma City","20 Martin Luther King Blvd.","Oklahoma City","OK","73117","I-40E/I-35, Exit 127 / I-40W, Exit 154","(405) 228-7040",35.4664,-97.4762,"excl",280,1,14,5,"W,T,R","",1,1,"CVENPE316"],
 ["OK3","TA","TA Oklahoma City West","501 South Morgan Road","Oklahoma City","OK","73128","I-40, Exit 140","(405) 324-5376",35.4616,-97.6902,"excl",101,1,8,3,"","",1,1,"CVENTA059"],
 ["OR1","TA","TA Aurora","21856 Bents Road NE","Aurora","OR","97002","I-5, Exit 278","(503) 678-2111",45.2358,-122.8076,"excl",275,1,9,2,"F,W,T","",1,1,"CVENTA056"],
-["OR2","TA","TA Troutdale","790 N W Frontage Road","Troutdale","OR","97060","I-84, Exit 17","(503) 666-1588",45.5442,-122.3956,"excl",240,1,12,4,"W","",1,1,"CVENTA183"],
-["PA1","TA","TA Bloomsburg","6 Buckhorn Road","Bloomsburg","PA","17815","I-80, Exit 232","(570) 784-9400",41.0143,-76.4927,"prim",190,1,13,4,"F,W,H,T","T",1,1,"CVENTA212"],
+["OR2","TA","TA Troutdale","790 N W Frontage Road","Troutdale","OR","97060","I-84, Exit 17","(503) 666-1588",45.5442,-122.3956,"excl",240,1,12,4,"W,R","",1,1,"CVENTA183"],
+["PA1","TA","TA Bloomsburg","6 Buckhorn Road","Bloomsburg","PA","17815","I-80, Exit 232","(570) 784-9400",41.0143,-76.4927,"prim",190,1,13,4,"F,W,H,T,R","T",1,1,"CVENTA212"],
 ["PA2","TA","TA Brookville","245 Allegheny Boulevard","Brookville","PA","15825","I-80, Exit 78","(814) 849-3051",41.1733,-79.0988,"prim",221,1,8,6,"B,T","",1,1,"CVENTA003"],
-["PA3","Petro","Petro Carlisle","1201 Harrisburg Ave, Route 11","Carlisle","PA","17013","I-81, Exit 52 / I-76, Exit 226","(717) 249-1919",40.2016,-77.2124,"prim",380,1,20,6,"W,H,T","",1,1,"CVENPE336"],
-["PA4","TA","TA Greencastle","10835 John Wayne Drive","Greencastle","PA","17225","I-81, Exit 5","(717) 597-7762",39.7861,-77.7121,"prim",190,1,14,4,"F,W,H,T","",1,1,"CVENTA213"],
-["PA5","TA","TA Harborcreek","4050 Depot Road","Erie","PA","16510","I-90, Exit 35","(814) 899-1919",42.1410,-79.9240,"prim",266,1,11,6,"W,B,T","",1,1,"CVENTA215"],
-["PA6","TA","TA Harrisburg","7848 Linglestown Road","Harrisburg","PA","17112","I-81, Exit 77","(717) 652-4556",40.3532,-76.7236,"prim",178,1,13,6,"W,H,T","",1,1,"CVENTA012"],
+["PA3","Petro","Petro Carlisle","1201 Harrisburg Ave, Route 11","Carlisle","PA","17013","I-81, Exit 52 / I-76, Exit 226","(717) 249-1919",40.2016,-77.2124,"prim",380,1,20,6,"W,H,T,R","",1,1,"CVENPE336"],
+["PA4","TA","TA Greencastle","10835 John Wayne Drive","Greencastle","PA","17225","I-81, Exit 5","(717) 597-7762",39.7861,-77.7121,"prim",190,1,14,4,"F,W,H,T,R","",1,1,"CVENTA213"],
+["PA5","TA","TA Harborcreek","4050 Depot Road","Erie","PA","16510","I-90, Exit 35","(814) 899-1919",42.1410,-79.9240,"prim",266,1,11,6,"W,B,T,R","",1,1,"CVENTA215"],
+["PA6","TA","TA Harrisburg","7848 Linglestown Road","Harrisburg","PA","17112","I-81, Exit 77","(717) 652-4556",40.3532,-76.7236,"prim",178,1,13,6,"W,H,T,R","",1,1,"CVENTA012"],
 ["SC1","TA","TA Florence","2301 West Lucas Street","Florence","SC","29501","I-95, Exit 164","(843) 292-0386",34.2362,-79.8056,"prim",77,1,5,0,"","",1,1,"CVENTA195"],
-["SC2","TA","TA Spartanburg","1402 East Main Street","Duncan","SC","29334","I-85, Exit 63","(864) 433-0711",34.9139,-82.1100,"prim",187,1,11,8,"W","",1,1,"CVENTA025"],
+["SC2","TA","TA Spartanburg","1402 East Main Street","Duncan","SC","29334","I-85, Exit 63","(864) 433-0711",34.9139,-82.1100,"prim",187,1,11,8,"W,R","",1,1,"CVENTA025"],
 ["SC3","TA","TA Columbia North","99 Plumbers Road","Columbia","SC","29203","I-20, Exit 71","(839) 228-0693",34.0746,-80.9974,"prim",78,1,9,2,"F,W","",1,1,"CVENTA507"],
 ["SC4","TA","TA Manning","3014 Paxville Highway","Manning","SC","29102","I-95, SR 261, Exit 119","(803) 791-9095",33.7042,-80.2421,"prim",84,1,8,6,"F","",1,1,"CVENTA179"],
-["SC5","Petro","Petro Columbia","2154 S. Beltline Blvd.","Columbia","SC","29201","I-77, Exit 5","(803) 908-4889",33.9536,-80.9902,"prim",134,1,10,6,"F,H,B,T","",1,1,"CVENPE238"],
-["SC6","Petro","Petro Florence","3001 TV Rd.","Florence","SC","29501","I-95, Exit 169","(843) 669-5736",34.2671,-79.7334,"prim",210,1,14,4,"","",1,1,"CVENPE393"],
+["SC5","Petro","Petro Columbia","2154 S. Beltline Blvd.","Columbia","SC","29201","I-77, Exit 5","(803) 908-4889",33.9536,-80.9902,"prim",134,1,10,6,"F,H,B,T,R","",1,1,"CVENPE238"],
+["SC6","Petro","Petro Florence","3001 TV Rd.","Florence","SC","29501","I-95, Exit 169","(843) 669-5736",34.2671,-79.7334,"prim",210,1,14,4,"R","",1,1,"CVENPE393"],
 ["TN1","TA","TA Antioch","13011 Old Hickory Boulevard","Antioch","TN","37013","I-24, Exit 62","(615) 641-6731",36.0147,-86.6185,"prim",122,1,10,5,"W,B","C,P",1,1,"CVENTA117"],
 ["TN2","TA","TA Franklin","4400 Peytonsville Road","Franklin","TN","37064","I-65, Exit 61","(615) 794-8406",35.8603,-86.8299,"prim",74,1,6,2,"W,H,T","",1,1,"CVENTA157"],
 ["TN3","TA","TA Caryville","305 Howard Baker Highway","Pioneer","TN","37847","I-75, Exit 141","(423) 562-3490",36.3767,-84.2473,"prim",80,1,8,5,"F,T","",1,1,"CVENTA255"],
 ["TN4","TA","TA Knoxville West","615 Watt Road","Knoxville","TN","37922","I-40 & I-75, Exit 369","(865) 531-7676",35.8733,-84.2375,"excl",176,1,12,5,"","",1,1,"CVENTA269"],
-["TN5","Petro","Petro Knoxville","722 N. Watt Rd.","Knoxville","TN","37934","I-40/I-75, Exit 369","(865) 693-6542",35.8748,-84.2366,"excl",250,1,13,5,"W,H,T","",1,1,"CVENPE312"],
+["TN5","Petro","Petro Knoxville","722 N. Watt Rd.","Knoxville","TN","37934","I-40/I-75, Exit 369","(865) 693-6542",35.8748,-84.2366,"excl",250,1,13,5,"W,H,T,R","",1,1,"CVENPE312"],
 ["TN6","Covenant","Covenant Logistics HQ","400 Birmingham Hwy","Chattanooga","TN","37419","","(800) 721-5202",35.0083,-85.3906,"term",150,0,30,0,"F","",0,1,""],
 ["TN7","Covenant","Covenant Greenville Terminal","1 Landiar Way","Greenville","TN","37743","","",36.1558,-82.8510,"term",100,0,8,0,"","",0,0,""],
-["TX1","TA","TA Amarillo","7000 E. Interstate 40","Amarillo","TX","79118","I-40, Exit 74","(806) 342-3080",35.1916,-101.7589,"prim",185,1,10,6,"W,T","",1,1,"CVENTA055"],
-["TX2","Petro","Petro Amarillo","8500 E I-40 @ Lakeside Drive","Amarillo","TX","79118","I-40, Exit 75","(806) 372-4899",35.1332,-101.7425,"prim",280,1,22,5,"","",1,1,"CVENPE307"],
-["TX3","TA","TA Baytown","6800 Thompson Road","Baytown","TX","77521","I-10, Exit 789","(281) 424-7772",29.7966,-95.0315,"excl",173,1,10,6,"H,T","C,T,P",1,1,"CVENTA017"],
+["TX1","TA","TA Amarillo","7000 E. Interstate 40","Amarillo","TX","79118","I-40, Exit 74","(806) 342-3080",35.1916,-101.7589,"prim",185,1,10,6,"W,T,R","",1,1,"CVENTA055"],
+["TX2","Petro","Petro Amarillo","8500 E I-40 @ Lakeside Drive","Amarillo","TX","79118","I-40, Exit 75","(806) 372-4899",35.1332,-101.7425,"prim",280,1,22,5,"R","",1,1,"CVENPE307"],
+["TX3","TA","TA Baytown","6800 Thompson Road","Baytown","TX","77521","I-10, Exit 789","(281) 424-7772",29.7966,-95.0315,"excl",173,1,10,6,"H,T,R","C,T,P",1,1,"CVENTA017"],
 ["TX4","TA","TA Dallas South","7751 Bonnie View Road","Dallas","TX","75241","I-20, Exit 472","(469) 941-3150",32.6536,-96.7516,"excl",136,1,9,5,"","",1,1,"CVENTA150"],
-["TX5","Petro","Petro El Paso","1295 Horizon Boulevard","El Paso","TX","79927","I-10, Exit 37","(915) 790-4529",31.6608,-106.2423,"prim",290,1,15,6,"F,B","",1,1,"CVENPE301"],
+["TX5","Petro","Petro El Paso","1295 Horizon Boulevard","El Paso","TX","79927","I-10, Exit 37","(915) 790-4529",31.6608,-106.2423,"prim",290,1,15,6,"F,B,R","",1,1,"CVENPE301"],
 ["TX6","TA","TA Ganado","802 E. York, Highway 59","Ganado","TX","77962","Hwy 59, Exit 522E","(361) 541-5575",29.0459,-96.5089,"prim",104,1,9,5,"W,H","",1,1,"CVENTA231"],
 ["TX7","Petro","Petro Carl's Corner","101 Cornelius Road North","Hillsboro","TX","76645","I-35E, Exit 374","(254) 714-3000",32.0769,-97.0545,"prim",109,1,7,4,"W,H,T","",1,1,"CVENPE340"],
-["TX8","TA","TA New Braunfels","4817 I-35 North","New Braunfels","TX","78130","I-35, Exit 193","(830) 608-9395",29.7484,-98.0581,"excl",220,1,13,6,"W,T","",1,1,"CVENTA232"],
+["TX8","TA","TA New Braunfels","4817 I-35 North","New Braunfels","TX","78130","I-35, Exit 193","(830) 608-9395",29.7484,-98.0581,"excl",220,1,13,6,"W,T,R","",1,1,"CVENTA232"],
 ["TX9","TA","TA San Antonio","6170 I.H.-10 East","San Antonio","TX","78219","I-10, Exit 583","(210) 310-0145",29.4436,-98.3613,"excl",238,1,10,7,"H,B,T","",1,1,"CVENTA147"],
 ["TX10","TA","TA Terrell","1700 Wilson Road","Terrell","TX","75161","I-20, Exit 503","(972) 563-6939",32.6904,-96.2437,"excl",300,1,12,5,"W","",1,1,"CVENTA233"],
-["TX11","Petro","Petro Weatherford","2001 Santa Fe Dr.","Weatherford","TX","76086","I-20, Exit 409","(817) 599-9411",32.7391,-97.7654,"prim",275,1,16,5,"T","C,P",1,1,"CVENPE302"],
-["TX12","TA","TA Hillsboro","160 State Hwy 77","Hillsboro","TX","76645","I-30/I-35, Exit 370","(254) 283-6556",32.0457,-97.0911,"prim",201,1,10,5,"F,W","",1,1,"CVENTA333"],
+["TX11","Petro","Petro Weatherford","2001 Santa Fe Dr.","Weatherford","TX","76086","I-20, Exit 409","(817) 599-9411",32.7391,-97.7654,"prim",275,1,16,5,"T,R","C,P",1,1,"CVENPE302"],
+["TX12","TA","TA Hillsboro","160 State Hwy 77","Hillsboro","TX","76645","I-30/I-35, Exit 370","(254) 283-6556",32.0457,-97.0911,"prim",201,1,10,5,"F,W,R","",1,1,"CVENTA333"],
 ["TX13","TA","TA Rockwall","2105 South Goliad St.","Rockwall","TX","75032","I-30, Exit 68","(972) 722-7450",32.9078,-96.4500,"prim",100,1,7,3,"W,H,T","",1,1,"CVENTA049"],
 ["TX14","TA","TA Edinburg","8301 N.HWY 281","Edinburg","TX","78541","Hwy. 281, Exit FM 2812","(956) 383-0788",26.3844,-98.1432,"prim",105,1,5,2,"O,W,B","",1,1,"CVENTA235"],
 ["TX15","TA","TA Denton","6420 North I-35","Denton","TX","76207","I-35 & US 77, Exit 471","(940) 383-1458",33.2622,-97.1767,"prim",138,1,7,6,"W","",1,1,"CVENTA266"],
-["TX16","Petro","Petro San Antonio","1112 Ackerman Road","San Antonio","TX","78219","I-10, Exit 581","(210) 661-9416",29.4379,-98.3804,"excl",250,1,13,7,"","",1,1,"CVENPE305"],
+["TX16","Petro","Petro San Antonio","1112 Ackerman Road","San Antonio","TX","78219","I-10, Exit 581","(210) 661-9416",29.4379,-98.3804,"excl",250,1,13,7,"R","",1,1,"CVENPE305"],
 ["UT1","TA","TA Parowan","1130 North 100","Parowan","UT","84761","I-15, Exit 78","(435) 477-3311",37.8607,-112.8291,"prim",90,1,6,6,"W,H,T","",1,1,"CVENTA186"],
 ["UT2","TA","TA Tooele","8836 Clinton Landing Road","Tooele","UT","84074","I-80, Exit 99","(801) 250-8585",40.6898,-112.2634,"excl",191,1,11,3,"F,W,H,B,T","",1,1,"CVENTA060"],
-["VA1","TA","TA Ashland","100 North Carter Road","Ashland","VA","23005","I-95, Exit 92","(804) 798-6011",37.7593,-77.4632,"prim",183,1,11,4,"W,H,T","",1,1,"CVENTA001"],
+["VA1","TA","TA Ashland","100 North Carter Road","Ashland","VA","23005","I-95, Exit 92","(804) 798-6011",37.7593,-77.4632,"prim",183,1,11,4,"W,H,T,R","",1,1,"CVENTA001"],
 ["VA2","TA","TA Richmond","10134 Lewistown Road","Ashland","VA","23005","I-95, Exit 89","(804) 798-6021",37.7234,-77.4460,"prim",317,1,10,6,"W,T","",1,1,"CVENTA142"],
-["VA3","TA","TA Wytheville","1025 Peppers Ferry Road","Wytheville","VA","24382","I-77, Exit 41 / I-81, Exit 72","(276) 228-8676",36.9654,-81.0680,"prim",114,1,12,6,"W","",1,1,"CVENTA143"],
-["VA4","Petro","Petro Raphine","2440 Raphine Road","Raphine","VA","24472","I-81 & I-64, Exit 205","(540) 377-2111",37.9290,-79.2292,"prim",725,1,19,8,"","",1,1,"CVENPE427"],
+["VA3","TA","TA Wytheville","1025 Peppers Ferry Road","Wytheville","VA","24382","I-77, Exit 41 / I-81, Exit 72","(276) 228-8676",36.9654,-81.0680,"prim",114,1,12,6,"W,R","",1,1,"CVENTA143"],
+["VA4","Petro","Petro Raphine","2440 Raphine Road","Raphine","VA","24472","I-81 & I-64, Exit 205","(540) 377-2111",37.9290,-79.2292,"prim",725,1,19,8,"F,R","",1,1,"CVENPE427"],
 ["WA1","TA","TA Seattle East","46630 North Bend Way","North Bend","WA","98045","I-90, Exit 34","(425) 888-1119",47.4674,-121.7176,"excl",140,1,8,3,"B","",1,1,"CVENTA176"],
-["WA2","Petro","Petro Spokane","10506 West Aero Road","Spokane","WA","99224","I-90, Exit 272","(509) 842-1100",47.5907,-117.5614,"prim",200,1,11,5,"W,H","",1,1,"CVENPE339"],
+["WA2","Petro","Petro Spokane","10506 West Aero Road","Spokane","WA","99224","I-90, Exit 272","(509) 842-1100",47.5907,-117.5614,"prim",200,1,11,5,"W,H,R","",1,1,"CVENPE339"],
 ["WV1","TA","TA Hurricane","4195 State Route 34","Hurricane","WV","25526","I-64, Exit 39","(304) 757-7600",38.4486,-81.9433,"prim",76,1,7,5,"W,H,B,T","",1,1,"CVENTA149"],
-["WV2","TA","TA Wheeling","196 W. Alexander Road","Valley Grove","WV","26060","I-70, Exit 11","(304) 547-1521",40.0694,-80.5678,"prim",168,1,12,4,"F,W,H,B,T","",1,1,"CVENTA032"],
+["WV2","TA","TA Wheeling","196 W. Alexander Road","Valley Grove","WV","26060","I-70, Exit 11","(304) 547-1521",40.0694,-80.5678,"prim",168,1,12,4,"F,W,H,B,T,R","",1,1,"CVENTA032"],
 ["WI1","TA","TA Hudson","713 Highway 12","Hudson","WI","54016","I-94, Exit 4","(715) 386-5835",44.9887,-92.6576,"prim",86,1,8,2,"","",1,1,"CVENTA192"],
 ["WI2","TA","TA Madison","5901 Highway 51","DeForest","WI","53532","I-90/I-94/I-39, Exit 132","(608) 249-9000",43.1746,-89.3252,"prim",118,1,9,4,"W","",1,1,"CVENTA050"],
-["WY1","TA","TA Cheyenne","4000 I-80 Service Road","Burns","WY","82053","I-80, Exit 377","(307) 365-6670",41.1602,-104.5205,"prim",140,1,12,3,"F,W","",1,1,"CVENTA187"]
+["WY1","TA","TA Cheyenne","4000 I-80 Service Road","Burns","WY","82053","I-80, Exit 377","(307) 365-6670",41.1602,-104.5205,"prim",140,1,12,3,"F,W,R","",1,1,"CVENTA187"],
 ];
 
 // Two different questions, deliberately two different constants.
@@ -1132,10 +1132,24 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.22.2';
+const APP_VERSION = '1.23.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
-const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss"};
+// Every code that appears in DATA's amenity column must have an entry here.
+// amenChips falls back to printing the raw code when a label is missing, so a
+// forgotten entry is a bare "R" chip in the station sheet rather than an
+// error — datastops pins that every code in use is labelled.
+//
+// R is a FOOD amenity in a column of recreation amenities, and that mixing is
+// deliberate, not an oversight: a separate DATA column for one boolean would
+// mean touching FIELD_COUNT, tools/geocode.js and the row-shape tests. R sits
+// last in every string so the existing F,O,W,H,B,T prefix and ordering are
+// untouched. Source: TA's location master, 08-2026.
+//
+// R records only THAT a sit-down exists, never which brand. Country Pride,
+// Iron Skillet, IHOP, Black Bear Diner and the rest are known per stop, but
+// storing them needs a column — also a deliberate trade, not missing data.
+const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss",R:"Sit-down restaurant"};
 const CLIN_LABEL = {M:"Medical clinic",D:"Dental clinic",C:"Chiropractic",T:"Drug testing",P:"DOT physicals"};
 const TYPE_LABEL = {excl:"Exclusive — most cost-effective",prim:"Primary network stop",term:"Covenant terminal"};
 
