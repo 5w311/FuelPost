@@ -332,5 +332,61 @@ ok('>>> NO mapsjs-harp.js reference anywhere outside comments',
 ok('the engineType comment records the 3.1 history rather than deleting it',
    /HISTORY, so nobody re-derives it/.test(html) && /Wrong style format for layer H-18/.test(html));
 
+console.log('\n=== the Satellite view shows GROUND, not baked paint (v1.26.0) ===');
+// Comments stripped first, and that is not a formality here: the layer setup
+// explains at length what it deliberately stopped using, so scanning prose for
+// the name of the removed layer fails on the explanation of why it was
+// removed. That failure mode pushes the next person into deleting the
+// reasoning to get a green run, which is exactly backwards.
+const jsOnly = codeOnly.replace(/\/\*[\s\S]*?\*\//g, '');
+// raster.satellite.map is the `base` resource on style explore.satellite.day:
+// HERE bakes road casings and place labels into the JPEG, covering 35-46% of
+// the ground. A driver opens Satellite to judge lot room. It must not come
+// back by reflex.
+ok('>>> the baked-label satellite raster is not used anywhere in code',
+   !/raster\.satellite\.map/.test(jsOnly));
+ok('>>> Satellite is the hybrid stack, day and night',
+   /defaultLayers\.hybrid\.day\.raster/.test(jsOnly) &&
+   /defaultLayers\.hybrid\.night\.raster/.test(jsOnly));
+ok('and both vector overlays are wired to their rasters',
+   /defaultLayers\.hybrid\.day\.vector/.test(jsOnly) &&
+   /defaultLayers\.hybrid\.night\.vector/.test(jsOnly));
+// INDEX 1, never appended. 146 station pins, the route polyline, the numbered
+// route markers and the faded available-stop pins are all on the map before
+// anyone taps Satellite; an appended overlay draws over every one of them.
+// This is the single number that keeps the network visible on satellite.
+ok('>>> the vector overlay is inserted at index 1, above the base and below the pins',
+   /map\.addLayer\([^)]*,\s*1\)/.test(jsOnly));
+ok('exactly one addLayer call site — the overlay sync owns it',
+   (jsOnly.match(/map\.addLayer\(/g) || []).length === 1,
+   String((jsOnly.match(/map\.addLayer\(/g) || []).length));
+// One listener, because baselayerchange is the only place that sees every
+// route to the base layer: the theme toggle, the backstop, and the driver's
+// own tap on HERE's switcher alike.
+ok('>>> syncHybridOverlay is wired to the baselayerchange listener',
+   /addEventListener\('baselayerchange',[\s\S]{0,200}?syncHybridOverlay\(\);/.test(jsOnly));
+ok('exactly one baselayerchange handler owns it',
+   (jsOnly.match(/addEventListener\('baselayerchange'/g) || []).length === 1);
+// The overlay lookup must stay OUT of the pair objects: nextBaseLayer compares
+// base layers by identity, and handing it a vector overlay as though it were
+// one would put a layer the driver can't be on into the allow-list.
+ok('the pairs hold rasters only; the vector half is a separate lookup',
+   /const HYBRID_LAYERS = \{\s*light:\s*defaultLayers\.hybrid\.day\.raster,\s*dark:\s*defaultLayers\.hybrid\.night\.raster\s*\};/.test(jsOnly));
+ok('both pairs are handed to nextBaseLayer as THEMED_LAYERS',
+   /const THEMED_LAYERS = \{ pairs: \[ROAD_LAYERS, HYBRID_LAYERS\] \};/.test(jsOnly) &&
+   (jsOnly.match(/nextBaseLayer\(map\.getBaseLayer\(\), [^,]+, THEMED_LAYERS\)/g) || []).length === 2,
+   'both call sites must pass the pairs');
+// TDZ: the pairs are read at parse time by the H.Map construction below them.
+// Declaring them beside their first use instead has blanked this app before.
+ok('the layer sets are declared ABOVE the H.Map construction that reads them',
+   jsOnly.indexOf('const ROAD_LAYERS') < jsOnly.indexOf('new H.Map(') &&
+   jsOnly.indexOf('const HYBRID_LAYERS') < jsOnly.indexOf('new H.Map(') &&
+   jsOnly.indexOf('const THEMED_LAYERS') < jsOnly.indexOf('new H.Map('));
+// The setter carries hybrid rasters now, so the old name would misdescribe it.
+ok('the deferred base-layer setter is not still called setNormalBaseLayer',
+   !/setNormalBaseLayer/.test(jsOnly) && /function setThemedBaseLayer\(/.test(jsOnly));
+ok('and every base-layer application still goes through that one choke point',
+   (jsOnly.match(/\.setBaseLayer\(/g) || []).length === 1);
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;

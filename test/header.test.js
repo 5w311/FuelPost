@@ -74,9 +74,24 @@ ok('fuelBookRev text is built from FUEL_BOOK_REV',
 // deliberate ?v= cache-bust stamps on the lib URLs, which are copies BY
 // DESIGN and are held in sync with APP_VERSION by cachebust.test.js. Strip
 // those first so this guard still catches any OTHER stray hardcoded copy.
-const htmlSansStamps = html.split(`?v=${APP_VERSION}`).join('?v=');
-ok(`version string "${APP_VERSION}" appears once outside the ?v= stamps`,
-   (htmlSansStamps.match(new RegExp(APP_VERSION.replace(/\./g, '\\.'), 'g')) || []).length === 1);
+//
+// Comments are stripped too, and that is not a loophole: what this guard is
+// for is a second hardcoded version literal in CODE, drifting silently out of
+// sync with the declaration. A comment naming the release that changed the
+// code beneath it cannot drift — it is a dated note about the past, and this
+// file is full of them by design ("v1.9.0 made #appVer tappable", eight lines
+// up). Before v1.26.0 that never collided, because a comment only ever named
+// an OLDER version; the first change whose comments explain themselves as
+// "this is what v1.26.0 did" tripped a guard aimed at something else. Left
+// unstripped, the only way to a green run is deleting the reasoning, which is
+// the opposite of what this repo wants.
+const htmlSansStamps = html.split(`?v=${APP_VERSION}`).join('?v=')
+  .replace(/<!--[\s\S]*?-->/g, '')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .split('\n').map(l => l.replace(/^\s*\/\/.*$/, '')).join('\n');
+ok(`version string "${APP_VERSION}" appears once in code, outside the ?v= stamps`,
+   (htmlSansStamps.match(new RegExp(APP_VERSION.replace(/\./g, '\\.'), 'g')) || []).length === 1,
+   String((htmlSansStamps.match(new RegExp(APP_VERSION.replace(/\./g, '\\.'), 'g')) || []).length));
 ok(`revision string "${FUEL_BOOK_REV}" appears once in index.html`,
    (html.match(new RegExp(FUEL_BOOK_REV, 'g')) || []).length === 1);
 

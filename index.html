@@ -995,29 +995,29 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.25.1"></script>
+<script src="lib/fuelplan.js?v=1.26.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.25.1"></script>
+<script src="lib/triptext.js?v=1.26.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.25.1"></script>
+<script src="lib/location.js?v=1.26.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.25.1"></script>
+<script src="lib/gauge.js?v=1.26.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.25.1"></script>
+<script src="lib/extract-version.js?v=1.26.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.25.1"></script>
+<script src="lib/autosuggest.js?v=1.26.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.25.1"></script>
+<script src="lib/baselayer.js?v=1.26.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.25.1"></script>
+<script src="lib/memocache.js?v=1.26.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.25.1"></script>
+<script src="lib/routerank.js?v=1.26.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.25.1"></script>
+<script src="lib/vehicleprofile.js?v=1.26.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.25.1"></script>
+<script src="lib/escape.js?v=1.26.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.25.1"></script>
+<script src="lib/navlinks.js?v=1.26.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1033,7 +1033,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.25.1')
+fetch('lib/fuelplan-adaptive.js?v=1.26.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1050,7 +1050,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.25.1')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.25.1')
+fetch('lib/shorttrip.js?v=1.26.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1061,7 +1061,7 @@ fetch('lib/shorttrip.js?v=1.25.1')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.25.1"></script>
+<script src="lib/flexible-polyline.js?v=1.26.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1221,7 +1221,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.25.1';
+const APP_VERSION = '1.26.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -1378,6 +1378,70 @@ const HERE_ENGINE = H.Map.EngineType.HARP;
 const platform = new H.service.Platform({ apikey: HERE_API_KEY });
 const defaultLayers = platform.createDefaultLayers({ engineType: HERE_ENGINE });
 
+// The two themed layer pairs, declared HERE — above the H.Map construction,
+// the layer switcher, switchTheme and the backstop — because every one of
+// those reads them. Declaring them next to their first use instead would put
+// a const below a parse-time read, which is the temporal-dead-zone crash
+// that has blanked this app more than once.
+
+// Road map: the pair this app has always had.
+const ROAD_LAYERS = {
+  light: defaultLayers.vector.normal.map,
+  dark:  defaultLayers.vector.normal.mapnight
+};
+
+// Satellite, and why it is two layers rather than one.
+//
+// Through v1.25.x this was defaultLayers.raster.satellite.map, which reads
+// as the obvious choice and is the wrong one. That layer is the `base`
+// resource on style explore.satellite.day: HERE renders road casings, POI
+// icons AND place labels INTO the JPEG before sending it. A driver opens
+// Satellite to judge lot room and layout — where the pumps sit, how the
+// truck side is laid out, whether there is room to turn a 53-footer around
+// at 3am — and that is the ground being painted on.
+//
+// Measured here, baked tile against raw tile for the same z/x/y at TA
+// Ontario, TA Amarillo and TA Madison (see README for the table): the baked
+// layer dims the ENTIRE tile by 12-15/255 of luma and drops its contrast
+// about 10%, a scrim that exists to keep white label text legible, and then
+// paints opaquely over roughly 5-8% of it. At z19 over TA Madison the casing
+// bands and a "Ta Travel Center" pin sit across the lot and wash out the
+// individual parking-stall stripes that are legible in the raw imagery.
+// The labels are also why satellite text has rendered oversized and soft on
+// a phone: they are pixels in a JPEG, not text.
+//
+// hybrid.day/.night is the same imagery with nothing baked in — the
+// `background` resource on style satellite.day, confirmed by the tile URLs
+// it requests — plus a VECTOR road-and-label layer drawn on top. The ground
+// stays visible, and because the overlay is geometry rather than a JPEG its
+// labels render at device pixel ratio, the same size and sharpness as Map
+// view.
+//
+// Do not go looking for more imagery resolution while in here; WafflePost
+// closed that question with measurements. Tiles are already requested at
+// size=512, the raster provider already caps at z20 (verified on this
+// build), pixelRatio already tracks the device, and HERE's imagery has no
+// native detail past z17 rural / z18 metro — above that it is magnification.
+// USGS measured worse. What can be fixed is spending a fixed resolution on
+// ground instead of on paint, which is what this does.
+const HYBRID_LAYERS = {
+  light: defaultLayers.hybrid.day.raster,
+  dark:  defaultLayers.hybrid.night.raster
+};
+
+// The vector half, keyed to its raster by identity. Kept OUT of the pair
+// above on purpose: nextBaseLayer compares base layers by identity and must
+// never be handed something that is not one.
+function hybridOverlayFor(baseLayer){
+  if(baseLayer === HYBRID_LAYERS.light) return defaultLayers.hybrid.day.vector;
+  if(baseLayer === HYBRID_LAYERS.dark)  return defaultLayers.hybrid.night.vector;
+  return null;
+}
+
+// Both pairs, so a theme change moves whichever one the driver is actually
+// looking at — and still leaves anything else alone.
+const THEMED_LAYERS = { pairs: [ROAD_LAYERS, HYBRID_LAYERS] };
+
 // Theme: first persisted preference in this app, hence the versioned key
 // (fuelpost.theme.v1, not a bare fuelpost.theme) — if a future brief changes
 // what the default logic does, bump to v2 and treat v1 values as absent
@@ -1402,7 +1466,7 @@ const initialTheme = document.documentElement.getAttribute('data-theme') === 'da
 
 const map = new H.Map(
   document.getElementById('map'),
-  initialTheme === 'dark' ? defaultLayers.vector.normal.mapnight : defaultLayers.vector.normal.map,
+  initialTheme === 'dark' ? ROAD_LAYERS.dark : ROAD_LAYERS.light,
   {
     engineType: HERE_ENGINE,
     // Pre-fit fallback only: the marker build below fits the view to the
@@ -1636,13 +1700,27 @@ ui.setUnitSystem(H.ui.UnitSystem.IMPERIAL);
 // "Map view" lands on mapnight; and rebuilding the control while the map
 // sits on Satellite neither moves the base layer nor mis-highlights the
 // entry (the fresh control reads the map's actual layer).
+//
+// Re-confirmed at v1.26.0, when the Satellite entry became themed as well:
+// both entries now change identity with the theme, and a rebuild while the
+// map sits on hybrid still leaves the base layer alone and still ends up
+// highlighting Satellite. One consequence is real but transient — switchTheme
+// rebuilds this control BEFORE the 60ms-deferred layer swap lands, so for
+// that beat the fresh control's Satellite entry names the NEW theme's hybrid
+// while the map still shows the old one, and the control matches its entries
+// against the map's layer by identity. Measured across that window (samples
+// at 10/25/45/70ms): the control shows NO entry highlighted for roughly the
+// first 45ms, then settles on Satellite once the swap lands. It never
+// mis-highlights "Map view" — the wrong-entry failure this app has a history
+// of — and the driver has just tapped the theme control, with the layer
+// switcher's own panel closed, so nobody is looking at it. Left alone
+// deliberately: restructuring the deferral to chase 45ms of no-highlight
+// would trade a real race fix for a cosmetic one.
 function buildMapSettings(theme){
   return new H.ui.MapSettingsControl({
     baseLayers: [
-      { label: 'Map view', layer: theme === 'dark'
-          ? defaultLayers.vector.normal.mapnight
-          : defaultLayers.vector.normal.map },
-      { label: 'Satellite', layer: defaultLayers.raster.satellite.map }
+      { label: 'Map view',  layer: theme === 'dark' ? ROAD_LAYERS.dark   : ROAD_LAYERS.light },
+      { label: 'Satellite', layer: theme === 'dark' ? HYBRID_LAYERS.dark : HYBRID_LAYERS.light }
     ],
     alignment: H.ui.LayoutAlignment.BOTTOM_RIGHT
   });
@@ -1679,28 +1757,39 @@ function updateThemeToggleUI(){
 }
 updateThemeToggleUI(); // map was already constructed on the right layer above — nothing to switch yet
 
-// Applying a light/dark "normal" base layer always goes through here —
-// this app's own theme toggle and the Satellite-exit correction below
-// alike — deferred and idempotent rather than an immediate setBaseLayer().
+// Applying a themed base layer always goes through here — this app's own
+// theme toggle and the backstop's correction alike — deferred and idempotent
+// rather than an immediate setBaseLayer().
+//
+// It was setNormalBaseLayer through v1.25.x, when the only layers it ever
+// applied were the two "normal" road ones. Since v1.26.0 the satellite view
+// is themed too, so this carries hybrid rasters as well and the old name
+// would be a lie about what it does.
+//
 // HERE's engine has shown it doesn't reliably settle from one setBaseLayer()
-// call, especially one coming straight off Satellite (a raster layer,
-// structurally heavier to swap out than another vector one), before the
-// very next setBaseLayer() lands: two confirmed cases so far — a driver's
-// own light-mode tap landing right after this app's own Satellite-exit
-// correction left the map visually stuck (fixed by deferring the
-// correction), and switching theme directly from Satellite (skipping
-// HERE's own "Map" entry, going straight from Satellite to this app's Light
-// or Dark toggle) has been reported to land on the dark layer regardless of
-// which was tapped — same root category, this time on switchTheme()'s own
-// call. Routing every "normal" layer change through one deferred,
-// idempotent function closes that race everywhere it can occur rather than
-// patching each occurrence as it's found. Cleared and rescheduled on every
-// call so only the latest target still applies; a check once the deferred
-// beat is up skips redundant work if something else already got there
-// first. Center/zoom don't carry over across setBaseLayer on their own
-// (HERE's own guidance) — preserved here too.
+// call, especially one swapping between a raster base and a vector one
+// (structurally heavier than vector-to-vector, and every Satellite entry and
+// exit is now exactly that), before the very next setBaseLayer() lands: two
+// confirmed cases so far — a driver's own light-mode tap landing right after
+// this app's own Satellite-exit correction left the map visually stuck
+// (fixed by deferring the correction), and switching theme directly from
+// Satellite (skipping HERE's own "Map" entry, going straight from Satellite
+// to this app's Light or Dark toggle) has been reported to land on the dark
+// layer regardless of which was tapped — same root category, this time on
+// switchTheme()'s own call. Routing every themed layer change through one
+// deferred, idempotent function closes that race everywhere it can occur
+// rather than patching each occurrence as it's found. Cleared and
+// rescheduled on every call so only the latest target still applies; a check
+// once the deferred beat is up skips redundant work if something else
+// already got there first. Center/zoom don't carry over across setBaseLayer
+// on their own (HERE's own guidance) — preserved here too, which is what
+// holds the view still across a theme flip on Satellite.
+//
+// The hybrid overlay is NOT this function's business: the setBaseLayer below
+// fires baselayerchange, and syncHybridOverlay rides that one event for
+// every route to the base layer at once.
 let baseLayerCorrectionTimer = null;
-function setNormalBaseLayer(layer){
+function setThemedBaseLayer(layer){
   clearTimeout(baseLayerCorrectionTimer);
   baseLayerCorrectionTimer = setTimeout(() => {
     if(map.getBaseLayer() === layer) return;
@@ -1714,51 +1803,82 @@ function setNormalBaseLayer(layer){
 // Swaps the map's base layer for the resolved theme — used any time the
 // theme changes *after* initial load (toggle tap, live system-preference
 // change). data-theme (and everything CSS-driven off it) updates
-// immediately; the map layer itself follows via setNormalBaseLayer() above,
+// immediately; the map layer itself follows via setThemedBaseLayer() above,
 // which is deferred by design — see its own comment.
 //
 // The base-layer change is conditional, and that condition is the whole
-// point: HERE's own layer switcher also offers Satellite (and Terrain), and
-// a theme change must not yank the driver off one of those and back onto a
-// road map — only the app's chrome changes there, not the imagery.
-// BaseLayer.nextBaseLayer() returns null both for "not on a themed road
-// layer at all, leave it alone" and "already correct for this theme".
-// Without that check this called setNormalBaseLayer() unconditionally, on
-// the assumption the map is always showing one of the two road layers.
+// point — though what it protects changed at v1.26.0. It used to mean "a
+// theme change must never touch Satellite", because Satellite was a single
+// untimed raster and the only sane thing to do with it was nothing. The
+// satellite view is HERE's hybrid stack now, with day and night variants of
+// its own, so a theme flip on Satellite MOVES the imagery: light hybrid to
+// dark hybrid and back. The driver still stays where they are — on the
+// satellite view, correctly themed — which was always the actual promise.
+// Whatever belongs to no pair at all (Terrain, anything a later SDK adds) is
+// still left strictly alone, and that is BaseLayer.nextBaseLayer()'s
+// allow-list doing its job; it also returns null when the current layer is
+// already right for the theme. Without that check this called the base-layer
+// setter unconditionally, on the assumption the map is always showing one of
+// the two road layers.
 function switchTheme(theme){
   document.documentElement.setAttribute('data-theme', theme);
-  // Runs regardless of which layer is showing: the "Map view" entry should
-  // point at the right themed layer for whenever it IS tapped, even if the
-  // map is on Satellite right now and we're not touching it. Rebuilding the
-  // control is how that entry is re-pointed — no internal-property write.
-  // Confirmed safe on the real build: a rebuild while the map is on
-  // Satellite leaves the base layer alone and the fresh control highlights
-  // Satellite correctly.
+  // Runs regardless of which layer is showing: both entries carry a themed
+  // layer now, so both need re-pointing for whenever they ARE tapped.
+  // Rebuilding the control is how that happens — no internal-property write.
+  // See buildMapSettings for the measured behaviour of a rebuild landing a
+  // beat before the deferred swap.
   installMapSettings(theme);
-  const next = BaseLayer.nextBaseLayer(map.getBaseLayer(), theme, {
-    light: defaultLayers.vector.normal.map,
-    dark:  defaultLayers.vector.normal.mapnight
-  });
-  if(next) setNormalBaseLayer(next);
+  const next = BaseLayer.nextBaseLayer(map.getBaseLayer(), theme, THEMED_LAYERS);
+  if(next) setThemedBaseLayer(next);
   updateThemeToggleUI();
 }
 
-// Backstop only. With the control above owning its own entries and pointing
-// "Map view" at the themed layer directly, nothing should ever land the map
-// on the wrong road layer for the theme — so this is expected never to fire
-// a correction. It's kept because it's nearly free and because this exact
-// class of bug has recurred: if it ever DOES fire, the custom control isn't
-// doing its job and that's worth knowing rather than silently papering over.
-// nextBaseLayer() returns null both for "already correct" and for "not a
-// themed road layer at all" (Satellite/Terrain — never yank the driver off
-// those), so the self-inflicted event from setNormalBaseLayer's own
+// The hybrid satellite view's vector half follows its raster half from the
+// listener below, and ONLY from there, because baselayerchange is the one
+// place that sees every route to the base layer: this app's theme toggle,
+// the backstop's own correction, and the driver's tap on HERE's layer
+// switcher alike. Anything that swapped the base and forgot the overlay
+// would strand street labels over the road map.
+//
+// INDEX 1 is load-bearing, and more so here than in the app this came from.
+// addLayer appends by default, and by the time anyone first taps Satellite
+// this map already carries the 146 station pins — plus, mid-trip, the route
+// polyline, the numbered route markers and the faded available-stop pins.
+// An appended overlay would draw on top of all of it: the network would
+// vanish behind HERE's own street labels. Index 1 puts the overlay directly
+// above the base imagery and below everything this app draws, which is where
+// an overlay belongs.
+//
+// Returning to Map view leaves nothing behind: hybridOverlayFor returns null
+// for the road layers, so the same three lines that mount the overlay
+// unmount it.
+let hybridOverlay = null;
+function syncHybridOverlay(){
+  const want = hybridOverlayFor(map.getBaseLayer());
+  if(want === hybridOverlay) return;
+  if(hybridOverlay) map.removeLayer(hybridOverlay);
+  hybridOverlay = want;
+  if(hybridOverlay) map.addLayer(hybridOverlay, 1);
+}
+
+// Backstop. With the control above owning its own entries and pointing both
+// at correctly themed layers, nothing should ever land the map on the wrong
+// layer for the theme — so the correction here is expected never to fire.
+// It's kept because it's nearly free and because this exact class of bug has
+// recurred: if it ever DOES fire, the custom control isn't doing its job and
+// that's worth knowing rather than silently papering over. nextBaseLayer()
+// returns null both for "already correct" and for "in none of the themed
+// pairs" (Terrain, anything a later SDK adds — never yank the driver off
+// those), so the self-inflicted event from setThemedBaseLayer's own
 // setBaseLayer terminates here on the very next pass.
+//
+// The overlay sync goes first and unconditionally: it has to run on every
+// base-layer change including the ones that need no correction at all, which
+// is most of them.
 map.addEventListener('baselayerchange', () => {
-  const next = BaseLayer.nextBaseLayer(map.getBaseLayer(), resolvedTheme(), {
-    light: defaultLayers.vector.normal.map,
-    dark:  defaultLayers.vector.normal.mapnight
-  });
-  if(next) setNormalBaseLayer(next);
+  syncHybridOverlay();
+  const next = BaseLayer.nextBaseLayer(map.getBaseLayer(), resolvedTheme(), THEMED_LAYERS);
+  if(next) setThemedBaseLayer(next);
 });
 
 // Only follow live system changes when the driver hasn't made an explicit
