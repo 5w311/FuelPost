@@ -271,7 +271,122 @@ follow, not just this one:
   changed meaning; an old stored choice under new default semantics can
   silently produce a result the driver never chose.
 
+## What the Satellite view shows, and why it is two layers
+
+Through v1.25.x *Satellite* was `defaultLayers.raster.satellite.map`. That
+reads as the obvious choice and is the wrong one: it is the `base` resource on
+style `explore.satellite.day`, which means HERE renders road casings, POI icons
+**and** place labels *into the JPEG* before sending it. A driver opens
+Satellite to judge lot room and layout — where the pumps sit, how the truck
+side is laid out, whether there is room to swing a 53-footer at 3am — and that
+is precisely the ground being painted on.
+
+Since v1.26.0 Satellite is HERE's `hybrid.day` / `hybrid.night` stack: the same
+imagery with nothing baked in (the `background` resource on style
+`satellite.day`, confirmed from the tile URLs the app requests) plus a
+**vector** road-and-label layer drawn on top. The ground stays visible, and
+because the overlay is geometry rather than a JPEG its labels render at device
+pixel ratio — the same size and sharpness as Map view, instead of the oversized,
+soft text baked satellite labels gave on a phone.
+
+**What that is worth, measured on this app's own stops.** Same z/x/y tile
+fetched twice, once from each endpoint, differenced per pixel:
+
+| | TA Ontario, CA | TA Amarillo, TX | TA Madison, GA |
+|---|---|---|---|
+| imagery dimmed by (luma, /255) | 12.0 | 14.2 | 12.2 (z17) · 14.7 (z19) |
+| contrast lost (stdev) | 11% | 11% | 11% (z17) · 11% (z19) |
+| painted opaquely (Δ > 24/255) | 8.5% | 7.8% | 6.1% (z17) · 5.4% (z19) |
+
+Two distinct costs, and it is worth keeping them apart. The first is a **scrim**:
+the baked tile is uniformly dimmer and flatter across every square foot of lot
+— saturation is unchanged, so this is deliberate darkening to keep white label
+text readable, not a codec artifact. The second is **opaque paint** over ~5–8%
+of the tile, and *where* it lands is the point rather than how much of it there
+is: at z19 over TA Madison the casing bands and a "Ta Travel Center" pin sit
+directly across the lot and wash out the individual parking-stall stripes that
+are legible in the raw imagery.
+
+A caution for anyone re-running this: differencing the two tiles at a naive
+threshold reports 57–64% of the tile "changed", which is real but is mostly the
+scrim being counted pixel by pixel. The threshold sweep is what separates the
+two effects — ~90% of the tile moves by more than 6/255, only ~1% by more than
+48/255.
+
+The origin of this change, and of the resolution measurements below, is
+WafflePost commit `ce5f661`, which made the same switch for the same reason
+against its own subject matter and measured 35% of the ground repainted at z17
+and 46% at z19 there. FuelPost's tiles separate differently — interstate
+interchanges carry more casing paint and HERE's scrim dominates a naive
+difference — so the numbers above are this app's, measured here, not that
+commit's carried over.
+
+**Do not go looking for more imagery resolution.** WafflePost closed that
+question: tiles are already requested at `size=512`, the raster provider caps at
+z20 (confirmed on this build — `hybrid.*.raster` reports `max: 20`), `pixelRatio`
+already tracks the device, and HERE's imagery has no native detail past z17 at
+rural exits (z18 in a metro); above that it is magnification at 43–46 dB PSNR.
+USGS `USGSImageryOnly` is not a way around it either — its tile cache 404s above
+z16 and it measured softer throughout. What *can* be fixed is spending a fixed
+resolution on ground instead of on paint, which is what this release does.
+
+**The theme contract changed with it.** `lib/baselayer.js`'s `nextBaseLayer()`
+used to promise that a theme change would never touch Satellite, because
+Satellite was a single unthemed raster. `hybrid` ships day *and* night variants,
+so a theme flip on Satellite now moves the imagery with it. The promise
+underneath is the one that actually mattered and is intact: **the driver stays
+on the view they chose**, correctly themed, rather than being yanked back to a
+road map. The mechanism is unchanged too — an allow-list **by identity**, never
+a deny-list naming satellite, because "is this the satellite layer?" needs
+updating every time HERE adds a layer and is wrong until someone notices.
+`nextBaseLayer()` now takes a list of themed pairs instead of one; a layer in no
+pair is still left strictly alone (Terrain, anything a later SDK adds), and a
+layer in *a* pair moves with the theme, whichever pair it is in.
+
+Being two layers costs one piece of bookkeeping. The vector half follows the
+raster half from the `baselayerchange` handler and **only** from there, because
+that is the one place that sees every route to the base layer — this app's theme
+toggle, the backstop's own correction, and the driver's tap on HERE's layer
+switcher alike. It is inserted at **index 1**, never appended: the 146 station
+pins are on the map before anyone first taps Satellite, along with the route
+polyline, the numbered route markers and the faded available-stop pins when a
+trip is planned, and an appended overlay would draw on top of all of them. Index
+1 puts it directly above the base imagery and below everything this app draws.
+Returning to Map view leaves nothing behind, because `hybridOverlayFor()`
+returns `null` for the road layers and the same three lines that mount the
+overlay unmount it.
+
 ## Version history
+
+### v1.26.0
+
+**Satellite stops painting over the lot.** *Satellite* moves from
+`raster.satellite.map` — imagery with HERE's casings, POI icons and labels baked
+into the JPEG — to the `hybrid` stack: raw `satellite.day` imagery with a vector
+road-and-label layer on top. Measured on this app's own stops, the baked layer
+dimmed every tile by 12–15/255 of luma at ~11% contrast loss and painted
+opaquely over 5–8% of it, washing out parking-stall stripes at the zooms a
+driver uses to judge a lot. The overlay is inserted at index 1 so it sits above
+the imagery and below the 146 pins and any planned route, and it follows the
+base layer from the single `baselayerchange` handler — the one place that sees
+the theme toggle, the backstop and HERE's own layer switcher alike.
+
+`hybrid` has day and night variants, so **the satellite view is themed now**,
+and the v1.11.9 contract that a theme change must never touch Satellite is
+deliberately retired. `nextBaseLayer()` takes a list of themed pairs instead of
+one pair, which keeps the property that actually fixed that bug: an allow-list
+by identity, so a layer in no pair is still left alone. `baselayer.test.js` is
+rewritten around the new contract and records why the old headline assertions
+are gone. `setNormalBaseLayer()` is renamed `setThemedBaseLayer()` — it carries
+hybrid rasters now and the old name would misdescribe it; its 60ms deferral and
+the race it closes are unchanged.
+
+Verified against the real 3.2.9.0 SDK before any code was written: `hybrid.day`
+/ `hybrid.night` each expose `.raster` and `.vector`, all four are distinct
+layer objects, and the raster requests `v3/background/…&style=satellite.day`
+rather than the baked `v3/base/…&style=explore.satellite.day`. See *What the
+Satellite view shows* above for the measurements and the resolution ceiling.
+Ported from WafflePost `ce5f661`.
 
 ### v1.25.1
 
