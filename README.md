@@ -289,10 +289,93 @@ them as unexplained drift:
 Note that `TN6`, the Covenant HQ terminal, also carries `F`. Fitness counts over
 *stops* therefore run one lower than counts over all 146 `DATA` rows.
 
+## Corridor filter
+
+A driver plans by corridor: *show me the network on I-40* is the natural
+question. Text search covers the exit field, so typing `I-40` does something —
+but it is **substring** matching, so `I-5` also returns I-55, I-57 and I-59, and
+`I-4` returns I-40 and I-44. That fails in the direction that matters: it
+silently shows stops on roads the driver is not on. The corridor select answers
+the question exactly.
+
+**Corridors are derived, not stored.** `lib/corridors.js` parses them out of the
+exit field at startup. A corridor column in DATA would mean touching
+`FIELD_COUNT`, `tools/geocode.js` and every row-shape test, and would be a second
+copy of something the exit field already says.
+
+**Only interstates are parsed**, because `I-` followed by digits is the one
+unambiguous pattern in a human-entered field that uses at least four separator
+conventions:
+
+| Convention | Example |
+|---|---|
+| slash | `I-20/I-59, Exit 77` |
+| comma | `I-95, SR 261, Exit 119` |
+| ampersand | `I-35 & US 77, Exit 471` |
+| full repeat | `I-40, Exit 280 / I-55, Exit 4` |
+
+A comma-splitting parser reads `Exit 119` as a corridor. And the route-type
+prefixes cannot be trusted: GA4 reads `Hwy 36`, which is Georgia **SR** 36, not
+US 36 — normalising it invents a road that does not exist.
+
+An `E`/`W` suffix folds into the parent route, so a driver filtering I-35 finds
+TX7 (`I-35E, Exit 374`) and one filtering I-40 finds OK2 (`I-40E/I-35, Exit 127
+/ I-40W, Exit 154`, which collapses to I-40 + I-35 rather than three corridors).
+The station sheet still shows the literal exit text, so the distinction that
+matters at the ramp is never lost.
+
+**Three stops are hand-mapped**, being the only ones whose sole corridor is not
+an interstate. The map lives next to the parser, in the same spirit as
+`CLOSED_STOP_IDS`, and tests assert every id in it still exists in DATA:
+
+| Stop | Exit field | Mapped to |
+|---|---|---|
+| CA1 TA Livingston | `SR 99, Exit 203` | SR 99 |
+| TX6 TA Ganado | `Hwy 59, Exit 522E` | US 59 |
+| TX14 TA Edinburg | `Hwy. 281, Exit FM 2812` | US 281 |
+
+**Secondary non-interstates are deliberately excluded.** Seven stops carry one —
+GA1/GA3 US441, GA4 Hwy 36, IN3 SR 50, OH2 US 42, SC4 SR 261, TX15 US 77 — and
+every one is already reachable through its interstate. Each would add a
+single-stop row to a control whose whole job is to be scannable. Text search
+still matches the exit field verbatim, so a driver looking for SR 261 finds SC4.
+
+The result is **36 interstates plus 3**, ordered **numerically** (I-4, I-5, I-10,
+I-12 …, never I-10 before I-4 — a driver scans for a route number) with the
+three non-interstates last. Each entry carries its stop count, `I-40 (13)`,
+because the distribution is long-tailed — I-40 and I-10 have 13 each, and
+twenty-plus corridors have three stops or fewer — and without the number a main
+lane looks the same as a one-stop spur. That count is the **network** total for
+the corridor, deliberately not recomputed against other active filters: a number
+that changed as you toggled states would be answering a different question than
+the one being asked when the list is opened.
+
+Membership, not equality: **25 stops sit on two or more corridors**, so TA
+Tuscaloosa is found under both I-20 and I-59. Each row's list is derived once at
+startup into a `Map` keyed by row reference (the same way `STOP_MARKERS` is
+keyed) — `passes()` runs over all 146 rows on every keystroke, and a regex per
+row per keystroke would be waste.
+
+### The LA7 exit correction (v1.28.0)
+
+**LA7 TA Express Laplace had an empty exit field**, which made it the one fuel
+stop on no corridor at all. It is not corridorless — it sits at the I-10 / I-55
+junction in LaPlace — so its exit is now `I-10, Exit 209 / I-55, Exit 1`,
+matching the two-corridor format AR2 Petro W. Memphis already used, which means
+it parses automatically and needs no override.
+
+Sourced from TruckMaster Fuel Finder, which lists TA Express Laplace #0479 (the
+number matching this row's `CVENTA479` nav code) at I-10 Exit 209 (US 51) or
+I-55 Exit 1 — and independently confirmed against HERE's own road network, which
+places *Exit 209/US-51* 479–819 m from this row's stored coordinates and
+*Exit 1* (I-55) 1,226 m, with TA's own location page confirming the address
+`4301 Main St., Laplace, LA 70068` exactly as stored. The correction moves real
+counts: I-10 goes from 12 stops to 13, and I-55 from 3 to 4.
+
 ## Amenity filters
 
-Three, under *What do you need tonight?*, AND-combined with brand, type, state
-and search:
+Three, under *What do you need tonight?*, AND-combined with brand, type, state,
+corridor and search:
 
 | Filter | Matches | Keeps |
 |---|---|---|
@@ -448,6 +531,36 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.28.0
+
+**Filter the network by corridor.** A select beside the state one, *All
+corridors* by default, listing 36 interstates plus three hand-mapped
+non-interstates with a stop count on each — `I-40 (13)`. It replaces the only
+tool a driver had for this, text search, which matches the exit field as a
+substring: `I-5` returned I-55, I-57 and I-59, silently showing stops on roads
+the driver was not on.
+
+Corridors are **derived** from the exit field by `lib/corridors.js`, not stored
+in DATA, and only `I-` plus digits is parsed — the field uses four separator
+conventions and its route-type prefixes are not trustworthy (GA4's `Hwy 36` is
+Georgia SR 36, not US 36). E/W suffixes fold into the parent route. Three stops
+whose only corridor is not an interstate are hand-mapped in a small explicit
+table beside the parser, with tests asserting every id in it still exists in
+DATA. Seven secondary non-interstates are deliberately left out of the dropdown;
+each would be a single-stop row and all are reachable via their interstate.
+
+Membership rather than equality — 25 stops sit on two or more corridors —
+AND-combined with every other filter, derived once at startup into a `Map` keyed
+by row reference so `passes()` never re-parses per keystroke. The select is
+included in both `clearFilters` and the filter badge.
+
+**One data correction.** LA7 TA Express Laplace had an empty exit field, leaving
+it on no corridor at all; it is now `I-10, Exit 209 / I-55, Exit 1`. Sourced from
+TruckMaster Fuel Finder (#0479, matching the row's `CVENTA479` nav code) and
+independently confirmed against HERE's road network, which puts *Exit 209/US-51*
+479–819 m from the stored coordinates and I-55 *Exit 1* 1,226 m away. It moves
+real counts: I-10 12 → 13, I-55 3 → 4. See *The LA7 exit correction* above.
 
 ### v1.27.0
 
