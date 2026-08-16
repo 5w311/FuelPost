@@ -388,5 +388,73 @@ ok('the deferred base-layer setter is not still called setNormalBaseLayer',
 ok('and every base-layer application still goes through that one choke point',
    (jsOnly.match(/\.setBaseLayer\(/g) || []).length === 1);
 
+console.log('\n=== range tiers and arrival reserve (v1.27.0) ===');
+// The tier row: four buttons, and Long preselected. The default moving from
+// Max to Long is the single biggest behaviour change in this release — every
+// driver who never touched the old field was silently on fewest-stops — so it
+// is pinned in the markup, in the constants, and against the gauge scale.
+const tierSeg = html.slice(html.indexOf('id="rangeSeg"'), html.indexOf('id="rangeCustomWrap"'));
+ok('exactly four tier buttons', (tierSeg.match(/data-tier="/g) || []).length === 4,
+   String((tierSeg.match(/data-tier="/g) || []).length));
+ok('they are regular / long / max / custom',
+   ['regular','long','max','custom'].every(t => tierSeg.includes(`data-tier="${t}"`)));
+ok('>>> Long is the one marked active in the initial markup',
+   /data-tier="long"[^>]*class="active"/.test(tierSeg), tierSeg.slice(0, 400));
+ok('  and no other tier is', (tierSeg.match(/class="active"/g) || []).length === 1);
+ok('each button shows its mile figure, not just a name',
+   /400 mi/.test(tierSeg) && /625 mi/.test(tierSeg) && /875 mi/.test(tierSeg));
+ok('and the stop-frequency tradeoff alongside it',
+   /Most stops/.test(tierSeg) && /Fewer stops/.test(tierSeg) && /Fewest stops/.test(tierSeg));
+// The constants behind them.
+ok('DEFAULT_RANGE_TIER is long', /const DEFAULT_RANGE_TIER = 'long';/.test(codeOnly));
+ok('>>> ROUTE_DEFAULT_RANGE is derived from the tier table, never hardcoded',
+   /const ROUTE_DEFAULT_RANGE = RANGE_TIERS\[DEFAULT_RANGE_TIER\]\.miles;/.test(codeOnly));
+ok('  so it can no longer be the old 875 by accident',
+   !/const ROUTE_DEFAULT_RANGE = 875/.test(codeOnly));
+ok('the three tier mile values are 400 / 625 / 875',
+   /regular:\s*\{ miles: 400/.test(codeOnly) && /long:\s*\{ miles: 625/.test(codeOnly)
+   && /max:\s*\{ miles: 875/.test(codeOnly));
+
+// Custom must keep the original input, clamping and all — a driver who knows
+// their number must not lose it.
+ok('the number input still exists, behind Custom',
+   /id="rangeInput"/.test(html) && /id="rangeCustomWrap"[^>]*hidden/.test(html));
+ok('>>> it keeps its min and max', /id="rangeInput"[^>]*min="300"[^>]*max="1200"/.test(html));
+ok('  and RANGE_MIN/RANGE_MAX still clamp it in code',
+   /Math\.min\(RANGE_MAX, Math\.max\(RANGE_MIN, n\)\)/.test(codeOnly));
+ok('  Custom is what reveals it', /\$\('rangeCustomWrap'\)\.hidden = rangeTier !== 'custom';/.test(codeOnly));
+
+// The reserve control, behind its own disclosure, defaulting to today's floor.
+ok('the reserve sits behind a disclosure, closed by default',
+   /id="arrivalToggle"[^>]*aria-expanded="false"/.test(html) && /id="arrivalField"[^>]*hidden/.test(html));
+ok('  its label asks the question rather than naming a feature',
+   /Want fuel left when you get there\?/.test(html));
+ok('>>> it defaults to RESERVE_TICKS — exactly the pre-v1.27.0 floor',
+   /let arrivalTick = 1;/.test(codeOnly) &&
+   /setArrivalTick\(FuelGauge\.RESERVE_TICKS\)/.test(codeOnly));
+ok('  the choices come from the gauge, not a local list',
+   /FuelGauge\.ARRIVAL_TICK_CHOICES\.map/.test(codeOnly));
+ok('  and the fraction labels come from tickLabel, never a second array',
+   /FuelGauge\.tickLabel\(t\)/.test(codeOnly) && !/\['1\/8', ?'1\/4'/.test(codeOnly));
+ok('closing the disclosure resets it, so nothing steers plans from behind a closed panel',
+   /if\(!open\) setArrivalTick\(FuelGauge\.RESERVE_TICKS\);/.test(codeOnly));
+
+// The reserve has to reach the planner, and the shortfall has to stay distinct
+// from a dry gap all the way out to the shared trip text.
+ok('>>> the reserve is passed into planAdaptive',
+   /planAdaptive\([\s\S]{0,200}ranges\.arrivalReserve\)/.test(codeOnly));
+ok('  readRanges returns it alongside the rest',
+   /return \{ maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve \};/.test(codeOnly));
+ok('>>> a reserve shortfall is never recorded as a gap in the shared trip',
+   /gap: \(result\.ok \|\| shortfall\) \? null : result\.gap,/.test(codeOnly));
+ok('  and never headlined as one',
+   /shortfall[\s\S]{0,120}short of your reserve/.test(codeOnly));
+// TDZ: the collapsed route-bar summary reads the tier during startup.
+ok('the tier state is declared ABOVE the summary that reads it',
+   codeOnly.indexOf('let rangeTier') < codeOnly.indexOf('function updateRoutebarSummary'));
+ok('  and the summary uses the effective range, not the empty input',
+   /tierRangeMiles\(\)\} mi`/.test(codeOnly) &&
+   !/\$\('rangeInput'\)\.value\} mi`/.test(codeOnly));
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;

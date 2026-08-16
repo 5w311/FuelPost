@@ -47,13 +47,104 @@ stop still in range. That is provably minimal for stop count. Station tier
 (Exclusive vs Primary) is informational only and does not influence selection —
 it shows as a badge on each result.
 
-Two inputs shape the plan:
+Three inputs shape the plan:
 
-- **Fuel before you hit** — the distance at which the driver must have fueled.
+- **Range between stops** — the distance at which the driver must have fueled.
   Because the rule is fewest-stops, only this maximum matters; a
-  "don't stop before X" value would have no effect.
+  "don't stop before X" value would have no effect. Chosen as a **tier** since
+  v1.27.0 — see below.
 - **Range leaving shipper** — how far the truck can go when it rolls out of the
   pickup. Maps to `startBurned = max(0, maxRange - rangeAtPickup)`.
+- **Fuel left at delivery** — the *arrival reserve*, new in v1.27.0. Everything
+  above shapes where the driver stops; this one decides whether they stop at
+  all near the end of the run.
+
+### Range tiers, and the default that moved (v1.27.0)
+
+> **The default range changed from 875 mi to 625 mi.** A familiar route will
+> plan **more stops** than it did on v1.26.x and earlier. That is the intended
+> improvement, not a bug — but if a plan looks busier than you remember, this is
+> why.
+
+The old control was a number box asking "how far do you run between fuel
+stops?", and its own help text conceded the problem: *set this once, most
+drivers leave it alone*. It asked for a figure nobody reliably knows, handed it
+a default, and hoped. Because that default was 875 — the **most** a truck can
+be planned on — every driver who never touched the field was silently on the
+fewest-stops setting.
+
+| Tier | Miles | On the tank scale | Stop frequency |
+|---|---|---|---|
+| Regular | 400 | 3.2 ticks — *not* a whole tick | Most stops |
+| **Long** (default) | **625** | exactly 5 ticks | Fewer stops |
+| Max | 875 | exactly 7 ticks — a full tank minus the held-back 1/8 | Fewest stops |
+| Custom | 300–1200 | whatever you type | — |
+
+Two of the three sit exactly on the fuel gauge's own scale, and that is the
+point: with `FULL_TANK_MILES` 1000 over `TICKS` 8, a tick is 125 mi. Regular's
+400 is deliberately *not* a whole tick — it is a road-practice number, roughly
+seven hours of driving, and `gauge.test.js` asserts that it isn't one so nobody
+"corrects" it later.
+
+The tier names the tradeoff the driver is actually making — how often they stop
+— while each button still shows its mile figure, because that number is what
+feeds the planner and a driver checking the app's arithmetic is entitled to see
+it. **Custom** keeps the original number input, clamping and all, for drivers
+who know their number; a typed value is never replaced by the new default.
+
+Neither the tier nor the reserve is remembered across sessions. A driver's
+range is a property of the truck they are in today.
+
+### The arrival reserve
+
+Before v1.27.0 the planner had no notion of arriving with fuel left. `planFuel`
+looped `while (pos + reach < routeMiles)`, so it stopped planning the moment the
+destination was reachable and the final leg was simply whatever remained. On an
+870 mi route at the old 875 default it planned **zero stops** and put the driver
+at the receiver sitting on the bottom reserve. The only way to force a stop
+before delivery was to type a smaller range — to lie to the app about the truck
+until the loop ran again.
+
+The reserve is that missing input, and it is deliberately built as a **raising
+of the floor that already existed** rather than a new parallel concept.
+`RESERVE_TICKS` has always held back the bottom 1/8 (125 mi) as never-plannable
+range; this puts a dial on it:
+
+| Setting | Extra range held for arrival | Effect |
+|---|---|---|
+| **1/8** (default) | 0 mi | exactly the behaviour of every release before v1.27.0 |
+| 1/4 | 125 mi | |
+| 3/8 | 250 mi | |
+| 1/2 | 375 mi | |
+
+Mechanically it is one changed loop condition: the planner now runs until it can
+reach `routeMiles + reserve`, which is exactly the condition
+`maxRange - finalLeg >= reserve`. At 1/8 the reserve is 0 and nothing changes —
+`fuelplan.test.js` runs every pre-existing fixture through both call shapes and
+deep-compares the results, because "existing plans are untouched" is the claim
+most worth proving.
+
+`planFuel` stays pure: it takes the reserve **in miles**, not ticks, so it never
+learns that a tank has eighths. `FuelGauge.arrivalReserveMiles()` does the
+conversion, which keeps the tank scale in one file.
+
+Worth knowing about the behaviour: the reserve is a **threshold, not a dial on
+the arrival amount**. The planner still takes the furthest stop it can reach, so
+crossing from 1/8 to 1/4 may add a stop and jump the arrival from 5 mi to 865 mi
+of unused range, while 3/8 and 1/2 then change nothing further. It decides
+*whether* a late stop is needed, not how gently the tank drains.
+
+**When the reserve can't be met.** A driver can ask for more than a route can
+give — Regular's 400 mi range with a 1/2 reserve needs a stop within 25 mi of
+the delivery. That is a real state and it reads as one: the app shows the plan
+it *can* make, says what the arrival actually works out to, and points at the
+settings that move it. It is explicitly **not** shown as a fuel gap. Every leg
+of a shortfall plan is drivable and the delivery is reached; only the cushion
+falls short, so the "won't make it / you run dry / call the Fuel Dept" wording
+would be false. `planFuel` tells the two apart by where the dead mile lands — at
+or past the destination means nothing is stranded — and flags only that case,
+which is also why a plain no-reserve gap keeps exactly the object shape it
+always had.
 
 Selection uses `lib/fuelplan-adaptive.js`'s `planAdaptive`, which tries stops
 within 8 miles of the route first and only widens to 15, then 30, if the tight
@@ -357,6 +448,49 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.27.0
+
+**Range tiers, and a planner that can arrive with fuel left.** Two related
+problems, one release.
+
+The range field asked a driver to type a mile number, and its own help text
+admitted most of them never did. It is now four choices — Regular 400, **Long
+625, the new default**, Max 875, and Custom, which reveals the original number
+input with its clamping intact. Each button carries its mile figure and the
+stop-frequency tradeoff, so the driver picks on the consequence instead of doing
+arithmetic. **The default moved from 875 to 625**: every driver who never
+touched the old field was silently on the fewest-stops setting, and the same
+familiar route will now plan more stops than it did yesterday. See *Range tiers*
+above for the full table and the tank-scale reasoning.
+
+Separately, the planner had no notion of arriving with fuel left — it stopped
+planning the moment the destination came within reach, so an 870 mi route on the
+old default planned zero stops and put the driver at the receiver on the bottom
+reserve. The only fix available was typing a smaller range, i.e. lying to the app
+about the truck. The **arrival reserve** (1/8, 1/4, 3/8, 1/2 — behind its own
+disclosure, defaulting to 1/8) is the honest way to say it, built as a dial on
+the `RESERVE_TICKS` floor that always existed rather than a new concept beside
+it. At 1/8 the reserve is 0 miles and plans are byte-identical to before; the
+regression guard runs every pre-existing fixture through both call shapes and
+deep-compares.
+
+`planFuel` stays pure, taking the reserve in miles rather than ticks.
+`FuelGauge.arrivalReserveMiles()` converts, and delegates to
+`plannableMilesForTick` rather than repeating its arithmetic — the two are one
+question asked from opposite ends of the trip.
+
+A reserve the route cannot meet is reported as a **shortfall, not a gap**: every
+leg is drivable and the delivery is reached, so the panel shows the plan, states
+the arrival the driver actually gets, and names the settings that move it —
+without the "won't make it" warning or the Fuel Dept number, neither of which
+would be true. The distinction is made in `planFuel` (the dead mile landing at or
+past the destination means nothing is stranded) and carried out to the shared
+trip text, which would otherwise describe a well-fuelled stretch of road as
+empty.
+
+Also: the collapsed route-bar summary now shows the effective range rather than
+the raw input, which on a tier is empty and used to render as a bare "· mi".
 
 ### v1.26.0
 

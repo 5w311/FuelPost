@@ -79,5 +79,54 @@ console.log('\n=== the 1/8 floor feeds the real planner into an immediate zero-w
   ok('ok is false', result.ok === false);
 }
 
+console.log('\n=== arrival reserve: ticks -> miles (v1.27.0) ===');
+// The four choices a driver can make, pinned at their exact mile values.
+// These are what planFuel receives, so a silent change here would move every
+// plan without a single test in fuelplan.test.js noticing.
+{
+
+  ok('the four choices are 1/8, 1/4, 3/8, 1/2',
+     JSON.stringify(G.ARRIVAL_TICK_CHOICES) === '[1,2,3,4]', JSON.stringify(G.ARRIVAL_TICK_CHOICES));
+  ok('1/8 -> 0 mi', G.arrivalReserveMiles(1) === 0, String(G.arrivalReserveMiles(1)));
+  ok('1/4 -> 125 mi', G.arrivalReserveMiles(2) === 125, String(G.arrivalReserveMiles(2)));
+  ok('3/8 -> 250 mi', G.arrivalReserveMiles(3) === 250, String(G.arrivalReserveMiles(3)));
+  ok('1/2 -> 375 mi', G.arrivalReserveMiles(4) === 375, String(G.arrivalReserveMiles(4)));
+
+  // THE ONE THAT MATTERS MOST: the default is zero extra. RESERVE_TICKS was
+  // always an arrival reserve of 1/8 that no driver could change, so the
+  // default choice must add nothing on top of it — that is what makes every
+  // pre-v1.27.0 plan reproduce exactly.
+  ok('>>> the default choice (RESERVE_TICKS) adds exactly zero miles',
+     G.arrivalReserveMiles(G.RESERVE_TICKS) === 0);
+  // Every choice is a whole tick above the floor, by construction.
+  ok('each step up is exactly one tick of miles',
+     G.ARRIVAL_TICK_CHOICES.every(t => G.arrivalReserveMiles(t) === (t - G.RESERVE_TICKS) * G.MILES_PER_TICK));
+  // Same arithmetic as the gauge's own plannable-miles reading, deliberately:
+  // one question asked from the two ends of the trip. If they ever diverge,
+  // the tank has two different floors and one of them is wrong.
+  ok('agrees with plannableMilesForTick at every tick',
+     [0,1,2,3,4,5,6,7,8].every(t => G.arrivalReserveMiles(t) === G.plannableMilesForTick(t)));
+  // Labels come from tickLabel, never a second fractions array.
+  ok('the labels are the gauge\'s own fraction strings',
+     G.ARRIVAL_TICK_CHOICES.map(t => G.tickLabel(t)).join('|') === '1/8|1/4|3/8|1/2',
+     G.ARRIVAL_TICK_CHOICES.map(t => G.tickLabel(t)).join('|'));
+  // Defensive, same shape as the rest of this module: clamped, never negative.
+  ok('clamped below', G.arrivalReserveMiles(-3) === 0);
+  ok('clamped above at the full tank minus the floor', G.arrivalReserveMiles(99) === 875);
+}
+
+console.log('\n=== the range tiers land on the tank scale ===');
+// Two of the three tiers are exact tick multiples, and the comments in
+// index.html say so; this is what keeps that claim honest. Regular is
+// deliberately NOT one, and that is asserted too so nobody "corrects" it.
+{
+
+  ok('Max 875 is exactly 7 ticks — a full tank minus the held-back eighth',
+     875 === (G.TICKS - G.RESERVE_TICKS) * G.MILES_PER_TICK);
+  ok('Long 625 is exactly 5 ticks', 625 === 5 * G.MILES_PER_TICK);
+  ok('Regular 400 is NOT a whole tick (3.2) — a road-practice number, as documented',
+     400 % G.MILES_PER_TICK !== 0 && 400 / G.MILES_PER_TICK === 3.2);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) process.exitCode = 1;

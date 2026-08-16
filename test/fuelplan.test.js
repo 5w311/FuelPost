@@ -1,4 +1,9 @@
 const { haversine, projectStops, planFuel, cumulativeMiles } = require('../lib/fuelplan.js');
+// The reserve reaches planFuel as MILES; the tank scale that produces those
+// miles lives in the gauge. Importing the real converter here rather than
+// hardcoding 0/125/250/375 means this file fails if the two ever disagree,
+// which is the whole reason planFuel takes miles instead of ticks.
+const { arrivalReserveMiles: gaugeArrivalMiles } = require('../lib/gauge.js');
 let pass = 0, fail = 0;
 const ok = (name, cond, extra='') => { if (cond) { pass++; console.log('  PASS', name); } else { fail++; console.log('  FAIL', name, extra); } };
 const near = (a,b,tol) => Math.abs(a-b) <= tol;
@@ -92,6 +97,158 @@ r = planFuel(1600, irr, 700);
 ok('irregular: all legs within range', r.ok && r.plan.every(p=>p.legMiles<=700) && r.finalLegMiles<=700,
    JSON.stringify({stops:r.plan.map(p=>p.mile), final:r.finalLegMiles}));
 ok('irregular: minimal stop count (2)', r.plan.length === 2, JSON.stringify(r.plan.map(p=>p.mile)));
+
+// ===================== ARRIVAL RESERVE (v1.27.0) =====================
+// The planner gained a fifth parameter: how many miles of unused range the
+// driver wants LEFT when they get there. It works by planning against a
+// destination that far beyond the real one.
+
+console.log('\n=== arrival reserve: THE REGRESSION GUARD — 0 changes nothing ===');
+// This is the most important block in this file. 1/8 maps to a reserve of 0
+// (the bottom eighth was ALWAYS held back), so every plan a driver has ever
+// got must come back byte for byte. Run every fixture above through both call
+// shapes and deep-compare: not just stop counts, but legMiles, finalLegMiles,
+// gap objects and key order. If this ever fails, existing plans changed and
+// nobody asked for that.
+{
+  const fixtures = [
+    ['grid 2000/800',        [2000, grid, 800]],
+    ['grid exact 800',       [800, grid, 800]],
+    ['grid 801',             [801, grid, 800]],
+    ['startBurned 500',      [1000, grid, 800, 500]],
+    ['gappy desert',         [2000, gappy, 800]],
+    ['no stops at all',      [2000, [], 800]],
+    ['irregular 1600/700',   [1600, irr, 700]],
+    ['short 300/800',        [300, grid, 800]],
+  ];
+  let same = 0;
+  for (const [name, args] of fixtures) {
+    const before = JSON.stringify(planFuel(...args));
+    const after  = JSON.stringify(planFuel(...args, 0));
+    // and the value the app actually passes at the default tick
+    const viaGauge = JSON.stringify(planFuel(...args, gaugeArrivalMiles(1)));
+    if (before === after && before === viaGauge) same++;
+    else ok(`${name}: identical with a zero reserve`, false, `\n   was: ${before}\n   now: ${after}`);
+  }
+  ok(`all ${fixtures.length} existing fixtures plan identically at 1/8`, same === fixtures.length,
+     `${same}/${fixtures.length}`);
+}
+
+console.log('\n=== arrival reserve: THE REPORTED CASE — a route that planned zero stops ===');
+// 870 mi on the old 875 default planned NOTHING and put the driver at the
+// delivery on the bottom reserve. The only fix available was lying to the app
+// about the truck. Now the reserve is the honest way to say it.
+{
+  const dense = [];
+  for (let m = 100; m <= 860; m += 20) dense.push({ id: 'm' + m, mile: m, detour: 1 });
+  const zero = planFuel(870, dense, 875, 0, 0);
+  ok('at 1/8 (0 reserve) it still plans zero stops — the reported behaviour',
+     zero.ok && zero.plan.length === 0, JSON.stringify(zero.plan.map(s => s.mile)));
+  const quarter = planFuel(870, dense, 875, 0, gaugeArrivalMiles(2));
+  ok('>>> at 1/4 a stop appears before delivery', quarter.ok && quarter.plan.length === 1,
+     JSON.stringify({ ok: quarter.ok, miles: quarter.plan.map(s => s.mile) }));
+  const half = planFuel(870, dense, 875, 0, gaugeArrivalMiles(4));
+  ok('>>> at 1/2 as well', half.ok && half.plan.length === 1,
+     JSON.stringify({ ok: half.ok, miles: half.plan.map(s => s.mile) }));
+  // The reserve is a THRESHOLD, not a dial on the arrival amount, and this is
+  // where that becomes visible: the planner still takes the FURTHEST stop it
+  // can reach, so 1/4 and 1/2 both land on mile 860 — the last one there is —
+  // and both arrive with the same 865 mi unused. Raising the setting further
+  // does not push the stop earlier; it only decides WHETHER a stop is needed
+  // at all. Asserting a strictly rising arrival here would be asserting a
+  // fewest-stops planner behaves like a smoothest-fuel-curve one, which it is
+  // not and is not meant to be.
+  const left = r2 => 875 - r2.finalLegMiles;
+  ok('  crossing the threshold is what changes the arrival, and it is a jump',
+     left(zero) === 5 && left(quarter) === 865 && left(half) === 865,
+     JSON.stringify([left(zero), left(quarter), left(half)]));
+  ok('  every setting is met or beaten, which is the actual contract',
+     left(zero) >= gaugeArrivalMiles(1) && left(quarter) >= gaugeArrivalMiles(2)
+     && left(half) >= gaugeArrivalMiles(4),
+     JSON.stringify([left(quarter), gaugeArrivalMiles(2), left(half), gaugeArrivalMiles(4)]));
+}
+
+console.log('\n=== arrival reserve: the extra-mileage arithmetic is exact ===');
+// One stop at mile 500 and nothing else; a 1000 mi route with 600 mi range.
+// The loop must stop planning exactly when maxRange - finalLeg >= reserve.
+{
+  // Reserve in miles for each tick, straight off the tank scale: (t-1)*125.
+  const expect = { 1: 0, 2: 125, 3: 250, 4: 375 };
+  for (const t of [1, 2, 3, 4]) {
+    ok(`tick ${t} -> ${expect[t]} mi of reserve`, gaugeArrivalMiles(t) === expect[t],
+       String(gaugeArrivalMiles(t)));
+  }
+  // A route of exactly 700 with 700 of range needs no stop at 1/8...
+  const s = [{ id: 'mid', mile: 400, detour: 1 }];
+  ok('700mi/700 range at 1/8 -> zero stops', planFuel(700, s, 700, 0, 0).plan.length === 0);
+  // ...but at 1/4 the target becomes 825, so it must plan the mile-400 stop.
+  const q = planFuel(700, s, 700, 0, 125);
+  ok('700mi/700 range at 1/4 -> the mile-400 stop', q.ok && q.plan.length === 1 && q.plan[0].mile === 400,
+     JSON.stringify(q.plan.map(x => x.mile)));
+  ok('  and it arrives with 400 mi unused, comfortably over the 125 asked',
+     q.finalLegMiles === 300 && 700 - q.finalLegMiles === 400, JSON.stringify(q));
+  // Boundary: reserve exactly equal to the slack must NOT force a stop.
+  ok('reserve exactly equal to the leftover range plans nothing (>= not >)',
+     planFuel(600, s, 700, 0, 100).plan.length === 0);
+  ok('one mile more of reserve does force the stop',
+     planFuel(600, s, 700, 0, 101).plan.length === 1);
+}
+
+console.log('\n=== arrival reserve: with a non-zero startBurned ===');
+// Both ends bind at once: less in the tank leaving, more wanted on arrival.
+{
+  const dense = [];
+  for (let m = 100; m <= 900; m += 50) dense.push({ id: 'm' + m, mile: m, detour: 1 });
+  const base = planFuel(1000, dense, 800, 300, 0);
+  const withRes = planFuel(1000, dense, 800, 300, 375);
+  ok('startBurned still caps the FIRST leg regardless of reserve',
+     base.plan[0].mile <= 500 && withRes.plan[0].mile <= 500,
+     JSON.stringify([base.plan[0].mile, withRes.plan[0].mile]));
+  // 300 already burned leaves 500 of reach, so both plans open with the mile
+  // 500 stop. The reserve then adds a SECOND stop the base plan never needed:
+  // proof the two settings act on opposite ends of the route and compose.
+  ok('the reserve adds a stop at the END, leaving the first one alone',
+     withRes.plan.length === base.plan.length + 1
+     && withRes.plan[0].mile === base.plan[0].mile, JSON.stringify(
+       { base: base.plan.map(s => s.mile), withRes: withRes.plan.map(s => s.mile) }));
+  ok('  every leg still respects the range',
+     withRes.ok && withRes.plan.every(s => s.legMiles <= 800) && withRes.finalLegMiles <= 800);
+  ok('  and the 375 mi reserve is met at the far end',
+     800 - withRes.finalLegMiles >= 375, String(800 - withRes.finalLegMiles));
+}
+
+console.log('\n=== arrival reserve: unmeetable is a SHORTFALL, not a dry gap ===');
+// The failure mode that must not be mislabelled. Here the last stop sits at
+// mile 300 of a 900 mi route: the truck reaches the delivery comfortably, so
+// nothing is "dry" — it simply cannot arrive holding 375 mi in reserve.
+{
+  const far = [{ id: 'only', mile: 300, detour: 1 }];
+  const r3 = planFuel(900, far, 800, 0, 375);
+  ok('reports not-ok rather than a silently-worse plan', r3.ok === false);
+  ok('>>> flagged as a reserve shortfall', r3.gap.reserveShortfall === true, JSON.stringify(r3.gap));
+  ok('  the dead mile is at or past the destination — proof nothing is stranded',
+     r3.gap.deadMile >= 900, JSON.stringify(r3.gap));
+  ok('  the partial plan is still a real, drivable plan',
+     r3.plan.length === 1 && r3.plan[0].mile === 300);
+  ok('  and the truck genuinely reaches the delivery from the last stop',
+     800 >= 900 - r3.plan[0].mile, '800 range vs ' + (900 - r3.plan[0].mile) + ' mi remaining');
+  // The contrast case: a REAL dry gap must not wear the shortfall flag.
+  const dry = planFuel(2000, gappy, 800, 0, 375);
+  ok('>>> a genuine dry gap is NOT flagged as a shortfall',
+     dry.ok === false && dry.gap.reserveShortfall === undefined, JSON.stringify(dry.gap));
+  ok('  and its dead mile falls short of the destination, as it always did',
+     dry.gap.deadMile < 2000, JSON.stringify(dry.gap));
+  // And with no reserve asked for, the flag can never appear at all.
+  ok('the flag is absent from every zero-reserve gap',
+     planFuel(2000, gappy, 800).gap.reserveShortfall === undefined &&
+     planFuel(2000, [], 800).gap.reserveShortfall === undefined);
+}
+
+console.log('\n=== arrival reserve: defensive ===');
+ok('a negative reserve is treated as none, never as extra reach',
+   JSON.stringify(planFuel(2000, grid, 800, 0, -500)) === JSON.stringify(planFuel(2000, grid, 800)));
+ok('an omitted reserve is the same as zero',
+   JSON.stringify(planFuel(1600, irr, 700)) === JSON.stringify(planFuel(1600, irr, 700, 0, 0)));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 

@@ -560,6 +560,12 @@
      genuine dead end with no alternative. */
   .rr-caution{background:#FFF6E5;border:1px solid #F0D9A8;border-radius:10px;padding:10px 12px;margin:10px 0;font-size:12.5px;color:#7A5200;line-height:1.45;}
   .rr-caution b{display:block;margin-bottom:4px;font-size:13px;}
+  /* <b> is the block HEADING in these panels — that is what the two rules
+     above are for. Emphasis inside the prose has to be <strong> instead, or
+     each highlighted figure becomes its own line and the sentence arrives in
+     fragments. Measured on the v1.27.0 shortfall panel, which has four of
+     them in one paragraph. */
+  .rr-warn strong,.rr-caution strong{font-weight:800;}
   /* A quiet plain-text line, not a callout — topping off before rolling is an
      option the driver can take or ignore, never a problem to be flagged. */
   .rr-tip{font-size:12px;color:var(--sub);line-height:1.4;margin-top:6px;}
@@ -576,6 +582,27 @@
   .rr-avail-last{color:var(--navy-text);font-weight:700;}
   .rr-near-del{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--line);margin-top:10px;padding:10px 0 0;font:inherit;font-size:12.5px;color:var(--ink);line-height:1.45;}
   .rr-near-del .rr-chev{margin-left:auto;}
+
+  /* Range tiers. Reuses .seg, but each button carries three stacked lines —
+     the tier name, its mile figure, and the stop-frequency tradeoff — so the
+     driver picks on the consequence rather than doing arithmetic. Four-up in a
+     390px panel leaves ~86px a button, which is why the lines are this small
+     and why the name is the only one at full weight. min-width:0 overrides the
+     flex default of min-width:auto, which otherwise holds each button to its
+     widest line and pushes the row past the panel edge. */
+  .range-seg{width:100%;}
+  .range-seg button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 3px;line-height:1.15;}
+  .range-seg button b{font-size:12px;font-weight:700;}
+  .range-seg button span{font-size:10.5px;font-weight:600;opacity:.85;}
+  .range-seg button em{font-size:9px;font-style:normal;font-weight:600;opacity:.7;}
+  /* The active button is navy-filled; its own children must not dim against it. */
+  .range-seg button.active span,.range-seg button.active em{opacity:.9;}
+  #rangeCustomWrap{margin-top:8px;}
+
+  /* Arrival reserve — four tank fractions, one line each, so it reads as the
+     gauge scale it is measured on rather than as another distance control. */
+  .arrival-seg{width:100%;}
+  .arrival-seg button{flex:1;min-width:0;padding:7px 4px;font-size:12.5px;}
 
   /* Vehicle profile controls. The segmented control reuses .seg; these only
      add the wrapping/sizing the three-up row needs inside the narrow panel. */
@@ -769,16 +796,43 @@
       </div>
       <div class="suggest-list" id="deliverySuggest" hidden></div>
     </div>
+    <!-- Range. Four tiers replaced a bare number box in v1.27.0: the old
+         field asked a driver to type a mile figure and its own help text
+         admitted most of them never touched it, which made the default the
+         real setting for almost everyone. A tier names the tradeoff the
+         driver is actually making — how often they stop — while still showing
+         the mile figure, because that number is what feeds the planner and a
+         driver checking the app's work is entitled to see it. Custom keeps
+         the original input, clamping and all, for drivers who know their
+         number. -->
     <div class="rb-field">
-      <label for="rangeInput">How far do you run between fuel stops?</label>
-      <div class="rb-range-wrap">
-        <input id="rangeInput" type="number" placeholder="875" min="300" max="1200" step="10" inputmode="numeric">
+      <label id="rangeLabel">How far do you run between fuel stops?</label>
+      <div class="seg range-seg" id="rangeSeg" role="group" aria-labelledby="rangeLabel">
+        <button type="button" data-tier="regular"><b>Regular</b><span>400 mi</span><em>Most stops</em></button>
+        <button type="button" data-tier="long" class="active"><b>Long</b><span>625 mi</span><em>Fewer stops</em></button>
+        <button type="button" data-tier="max"><b>Max</b><span>875 mi</span><em>Fewest stops</em></button>
+        <button type="button" data-tier="custom"><b>Custom</b><span>Your own</span><em>&nbsp;</em></button>
+      </div>
+      <div class="rb-range-wrap" id="rangeCustomWrap" hidden>
+        <input id="rangeInput" type="number" placeholder="625" min="300" max="1200" step="10" inputmode="numeric">
         <span class="rb-unit">mi</span>
         <button type="button" id="rangeClearBtn" class="rb-clear-field-btn" title="Reset to default" aria-label="Reset to default" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
-      <div class="rb-help">Set this once. Most drivers leave it alone. (Recommend: 875)</div>
+      <div class="rb-help" id="rangeHelp"></div>
+    </div>
+    <!-- Arrival reserve. Behind its own disclosure on purpose: 1/8 is exactly
+         what every release before v1.27.0 did, so a driver who never opens
+         this gets the plans they always got, and the common case stays one tap
+         on a tier. The label states the question rather than naming a feature,
+         because a driver who wants fuel in the tank at delivery needs to
+         recognise it from the outside. -->
+    <button type="button" id="arrivalToggle" class="rb-disclosure" aria-expanded="false" aria-controls="arrivalField">Want fuel left when you get there?</button>
+    <div class="rb-field" id="arrivalField" hidden>
+      <label id="arrivalLabel">Fuel left at delivery</label>
+      <div class="seg arrival-seg" id="arrivalSeg" role="group" aria-labelledby="arrivalLabel"></div>
+      <div class="rb-help" id="arrivalHelp"></div>
     </div>
     <button type="button" id="pickupRangeToggle" class="rb-disclosure" aria-expanded="false" aria-controls="pickupRangeField">Not leaving with a full tank?</button>
     <div class="rb-field" id="pickupRangeField" hidden>
@@ -995,29 +1049,29 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.26.0"></script>
+<script src="lib/fuelplan.js?v=1.27.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.26.0"></script>
+<script src="lib/triptext.js?v=1.27.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.26.0"></script>
+<script src="lib/location.js?v=1.27.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.26.0"></script>
+<script src="lib/gauge.js?v=1.27.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.26.0"></script>
+<script src="lib/extract-version.js?v=1.27.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.26.0"></script>
+<script src="lib/autosuggest.js?v=1.27.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.26.0"></script>
+<script src="lib/baselayer.js?v=1.27.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.26.0"></script>
+<script src="lib/memocache.js?v=1.27.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.26.0"></script>
+<script src="lib/routerank.js?v=1.27.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.26.0"></script>
+<script src="lib/vehicleprofile.js?v=1.27.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.26.0"></script>
+<script src="lib/escape.js?v=1.27.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.26.0"></script>
+<script src="lib/navlinks.js?v=1.27.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1033,7 +1087,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.26.0')
+fetch('lib/fuelplan-adaptive.js?v=1.27.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1050,7 +1104,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.26.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.26.0')
+fetch('lib/shorttrip.js?v=1.27.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1061,7 +1115,7 @@ fetch('lib/shorttrip.js?v=1.26.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.26.0"></script>
+<script src="lib/flexible-polyline.js?v=1.27.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1221,7 +1275,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.26.0';
+const APP_VERSION = '1.27.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2723,6 +2777,44 @@ const DETOUR_TIERS = [8, 15, 30, 50];
 const NEAR_PICKUP_RADIUS_GAP = 50;  // "is anything reachable near the shipper at all"
 const NEAR_PICKUP_RADIUS_TIP = 25;  // "close enough that topping off first is worth mentioning"
 const RANGE_MIN = 300, RANGE_MAX = 1200;
+
+// The range tiers, and where their numbers come from.
+//
+// Two of the three sit exactly on the fuel gauge's own scale, which is the
+// point: they are tank fractions, not round numbers someone liked. With
+// FULL_TANK_MILES 1000 over TICKS 8, a tick is 125 mi, so
+//   Max  875 = 7 ticks — a full tank minus the 1/8 that is always held back
+//   Long 625 = 5 ticks
+// Regular 400 is deliberately NOT a whole tick (it lands at 3.2). It is a
+// road-practice number — stop roughly every seven hours of driving — and
+// pretending otherwise in a comment would be tidier than it is true.
+//
+// `long` is the default from v1.27.0. It was `max` for every release before,
+// which meant every driver who never touched the field was silently on the
+// fewest-stops setting; see the README for what that changes about existing
+// plans.
+const RANGE_TIERS = {
+  regular: { miles: 400, label: 'Regular', freq: 'Most stops' },
+  long:    { miles: 625, label: 'Long',    freq: 'Fewer stops' },
+  max:     { miles: 875, label: 'Max',     freq: 'Fewest stops' }
+};
+const DEFAULT_RANGE_TIER = 'long';
+
+// Which tier is selected, and how much fuel the driver wants left on arrival.
+// Session state only, deliberately: neither is remembered across sessions. A
+// driver's range is a property of the truck they are in today, and the reserve
+// is a property of the load.
+//
+// Declared HERE rather than beside their own functions 900 lines down because
+// the collapsed route-bar summary reads the tier during startup. A `let` read
+// before its declaration is a temporal-dead-zone crash that takes the whole
+// app down at parse time, and this file has learned that the hard way.
+let rangeTier = DEFAULT_RANGE_TIER;
+// FuelGauge.RESERVE_TICKS, spelled as a literal because this is declared above
+// the shim that defines FuelGauge. 1 = 1/8 = exactly what every release before
+// v1.27.0 did; gauge.test.js pins the two against each other.
+let arrivalTick = 1;
+
 const DRIVER_SUPPORT = '423-463-3680';
 // Rendered from JS, same as #appVer elsewhere in the legend card, so this is
 // a tel: link like every other Driver Support mention instead of the one
@@ -2874,7 +2966,9 @@ function updateRoutebarSummary(){
   const label = $('routebarSummary');
   if(routebarOpen){ label.textContent = 'Trip details'; return; }
   label.textContent = (confirmed.pickup && confirmed.delivery)
-    ? `${shortAddr(confirmed.pickup.label)} → ${shortAddr(confirmed.delivery.label)} · ${$('rangeInput').value} mi`
+    // The effective range, not the raw input: on a tier the input is empty and
+    // hidden, which used to render as a bare "· mi".
+    ? `${shortAddr(confirmed.pickup.label)} → ${shortAddr(confirmed.delivery.label)} · ${tierRangeMiles()} mi`
     : 'Enter pickup and delivery';
 }
 
@@ -3284,19 +3378,24 @@ function showCopyFallback(text, anchorEl){
    Resets the planner to a blank first-open state: fields, ranges, geocode
    candidates, the results panel AND the route drawn on the map. A stale
    polyline left behind on a cleared trip is worse than no clear button. */
-const ROUTE_DEFAULT_RANGE = 875;
+// 625 since v1.27.0, when the default tier became Long; it was a hardcoded 875
+// before that. Derived from the tier table so the two can never disagree.
+const ROUTE_DEFAULT_RANGE = RANGE_TIERS[DEFAULT_RANGE_TIER].miles;
 
 function routeHasSomethingToClear(){
   const gaugeChanged = !$('pickupRangeField').hidden && gaugeTick !== GAUGE_MAX_TICK;
-  // A blank range field is the DEFAULT now (greyed 875 placeholder), so it is
+  // A blank range field is the DEFAULT now (greyed placeholder), so it is
   // not "something to clear" — only a typed value that differs from the
   // default counts. Number('') is 0, which is why the old bare check lit the
   // Clear-trip button the moment the field was empty.
   const rangeVal = $('rangeInput').value.trim();
-  const rangeChanged = rangeVal !== '' && Number(rangeVal) !== ROUTE_DEFAULT_RANGE;
+  const rangeChanged = rangeTier !== DEFAULT_RANGE_TIER
+    || (rangeVal !== '' && Number(rangeVal) !== ROUTE_DEFAULT_RANGE);
+  const arrivalChanged = arrivalTick !== FuelGauge.RESERVE_TICKS;
   return !!($('pickupInput').value.trim() || $('deliveryInput').value.trim()
     || $('routeResultsBody').innerHTML
     || rangeChanged
+    || arrivalChanged
     || gaugeChanged);
 }
 
@@ -3323,8 +3422,8 @@ function updateDeliveryClearVisibility(){
 }
 function updateRangeClearVisibility(){
   // The x is offered only when the value is something other than the default
-  // 875 — a blank field (showing the greyed 875 placeholder) or a field
-  // holding exactly 875 is already "at default," with nothing to clear back
+  // — a blank field (showing the greyed placeholder) or a field holding
+  // exactly the default is already "at default," with nothing to clear back
   // to. The .has-clear class tightens the input's right padding when the x is
   // absent, so "mi" sits at the edge instead of leaving dead space beside it.
   const val = $('rangeInput').value.trim();
@@ -3350,10 +3449,12 @@ function clearTrip(){
   $('pickupGpsNote').hidden = true;
   hidePickupGeoError();
 
-  $('rangeInput').value = '';   // empty, so the greyed 875 placeholder returns — not 875 in black
-  // Reuse the disclosure's own collapse behaviour — it already resets the
-  // gauge to F and closes the field.
+  $('rangeInput').value = '';   // empty, so the greyed placeholder returns — not the number in black
+  setRangeTier(DEFAULT_RANGE_TIER);   // back to Long, and hides the custom input
+  // Reuse each disclosure's own collapse behaviour — they already reset the
+  // gauge to F and the reserve to 1/8, and close their fields.
   setPickupRangeOpen(false);
+  setArrivalOpen(false);
 
   geoCands = { pickup: [], delivery: [] };
   confirmed = { pickup: null, delivery: null };
@@ -3400,6 +3501,18 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
   // when the load is planned (see planLoad) — never here — so switching
   // routes stays pure re-render and long plans never pay projection cost.
   shortTrip = shortTrip || { applies: false };
+
+  // A reserve shortfall is NOT a gap, and the distinction has to be made
+  // before lastTrip is built, not just before the headline: the shared text
+  // formats `gap` into "no network stop between mile X and mile Y", which
+  // would describe a stretch of road that is perfectly well fuelled. Every leg
+  // of a shortfall plan is drivable and the delivery is reached — the only
+  // thing that fell short is the cushion on arrival — so the trip is recorded
+  // as the completed plan it is, with its real final leg.
+  const shortfall = !result.ok && !!(result.gap && result.gap.reserveShortfall);
+  const shortfallFinalLeg = shortfall
+    ? +(routeMiles - (result.plan.length ? result.plan[result.plan.length - 1].mile : 0)).toFixed(1)
+    : null;
   // Everything Share trip needs, captured at render time from the values
   // actually planned on — including the CONFIRMED matched addresses rather
   // than the raw text the driver typed.
@@ -3417,8 +3530,9 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     // documented input shape, tested independently of DATA, and reaching
     // into row[20] there would couple it to DATA column order.
     plan: stops.map(s => ({ ...s, legMiles: Math.round(s.legMiles), nav: s.row[20] })),
-    gap: result.ok ? null : result.gap,
-    finalLegMiles: result.ok ? Math.round(result.finalLegMiles) : null,
+    gap: (result.ok || shortfall) ? null : result.gap,
+    finalLegMiles: result.ok ? Math.round(result.finalLegMiles)
+                 : shortfall ? Math.round(shortfallFinalLeg) : null,
     // The post-gap remainder of a gapped route, when one exists — so a
     // shared gap plan carries the same "here's what the rest fuels like"
     // information the screen shows. Omitted entirely on completable plans.
@@ -3460,11 +3574,17 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
   // inherits the count from here — nothing appends it twice. Zero available
   // stays plain: "0 available" is noise.
   const availCount = shortTrip.applies ? shortTrip.onRoute.length : 0;
+  // See the shortfall note above lastTrip: a shortfall must never be headlined
+  // as a gap either. Saying "then a gap" — or worse, "won't make it" — about a
+  // plan whose every leg is drivable would be the app lying about the road.
+  const nStops = stops.length + (stops.length === 1 ? ' fuel stop' : ' fuel stops');
   const headline = result.ok
     ? (stops.length === 0 ? 'No fuel stop needed' + (availCount ? ` — ${availCount} available` : '')
-                          : stops.length + (stops.length === 1 ? ' fuel stop' : ' fuel stops'))
+                          : nStops)
+    : shortfall
+    ? (stops.length === 0 ? "Can't arrive with that much fuel left" : nStops + ', short of your reserve')
     : (stops.length === 0 ? 'No network fuel plan for this load'
-                          : stops.length + (stops.length === 1 ? ' fuel stop' : ' fuel stops') + ', then a gap');
+                          : nStops + ', then a gap');
   let h = `<div class="rr-head">${headline}</div>`;
   h += `<div class="rr-sub">${mi(routeMiles)} mi loaded miles &middot; ${mi(rangeAtPickup)} mi of range leaving the shipper`
      + `${startBurned > 0 ? ` &middot; ${mi(startBurned)} mi already burned` : ''}</div>`;
@@ -3566,6 +3686,21 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
         h += `<div class="rr-tip">${nearPickupLine(near)} — topping off there before you roll is an option.</div>`;
       }
     }
+  } else if(shortfall){
+    // Every leg above is drivable and the delivery is reached; the only thing
+    // that failed is the arrival reserve. So this reads as a shortfall, with
+    // the number the driver actually gets, and points at the two settings that
+    // move it — never at the Fuel Dept, because nothing here needs approval.
+    const achieved = Math.max(0, maxRange - shortfallFinalLeg);
+    const asked = FuelGauge.arrivalReserveMiles(ranges.arrivalTick);
+    h += `<div class="rr-caution"><b>You arrive with less than you asked for</b>
+      You asked to get there with <strong>${FuelGauge.tickLabel(ranges.arrivalTick)}</strong> in the tank
+      (about ${mi(asked)} mi of range on top of the reserve). The last network stop this route
+      offers leaves ${stops.length ? `a final leg of <strong>${mi(shortfallFinalLeg)} mi</strong>` :
+      `<strong>${mi(routeMiles)} mi</strong> to run`}, so you get there with roughly
+      <strong>${mi(achieved)} mi</strong> — still above the bottom 1/8, but short of your reserve.
+      Every stop above is reachable and this load makes it; only the cushion falls short.
+      A shorter range setting plans an extra stop and closes the difference.</div>`;
   } else {
     const g = result.gap;
     const trueGap = nearPickup.length === 0;
@@ -3714,20 +3849,94 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
   setRoutebarOpen(false);
 }
 
-/* ---- Ranges ---- */
+/* ---- Range tiers and arrival reserve ----
+   State lives up beside RANGE_TIERS; see the TDZ note there. */
+// The mile figure the planner actually gets. Custom reads the input (blank
+// falls back to the default, same as the field always did); a tier reads its
+// own constant.
+function tierRangeMiles(){
+  if(rangeTier !== 'custom') return RANGE_TIERS[rangeTier].miles;
+  const raw = $('rangeInput').value.trim();
+  const n = Math.round(Number(raw));
+  if(raw === '' || !Number.isFinite(n) || n <= 0) return ROUTE_DEFAULT_RANGE;
+  return Math.min(RANGE_MAX, Math.max(RANGE_MIN, n));
+}
+
+function setRangeTier(tier, opts){
+  rangeTier = (RANGE_TIERS[tier] || tier === 'custom') ? tier : DEFAULT_RANGE_TIER;
+  document.querySelectorAll('#rangeSeg button').forEach(b => {
+    const on = b.dataset.tier === rangeTier;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+  $('rangeCustomWrap').hidden = rangeTier !== 'custom';
+  // Focus the input when the driver actively picks Custom, but never on the
+  // programmatic calls that run at startup and on Clear trip — an unrequested
+  // keyboard sliding up over the panel is its own small bug.
+  if(rangeTier === 'custom' && opts && opts.focus) $('rangeInput').focus();
+  renderRangeHelp();
+  updateRangeClearVisibility();
+  updateClearVisibility();
+}
+
+function renderRangeHelp(){
+  // The mile figure stays visible whichever tier is chosen: it is what feeds
+  // the planner, and a driver checking the app's arithmetic needs it.
+  const miles = tierRangeMiles();
+  $('rangeHelp').textContent = rangeTier === 'custom'
+    ? `Your own number — ${RANGE_MIN}–${RANGE_MAX} mi. Planning on ${miles} mi between stops.`
+    : `Planning on ${miles} mi between stops — ${RANGE_TIERS[rangeTier].freq.toLowerCase()}.`;
+}
+
+// The reserve control is built from the gauge's own tick labels rather than a
+// second fractions array — one source for "what is 3/8 called", so the two can
+// never drift apart.
+function buildArrivalSeg(){
+  $('arrivalSeg').innerHTML = FuelGauge.ARRIVAL_TICK_CHOICES.map(t =>
+    `<button type="button" data-tick="${t}">${FuelGauge.tickLabel(t)}</button>`).join('');
+  document.querySelectorAll('#arrivalSeg button').forEach(b =>
+    b.addEventListener('click', () => setArrivalTick(Number(b.dataset.tick))));
+}
+
+function setArrivalTick(tick){
+  arrivalTick = FuelGauge.ARRIVAL_TICK_CHOICES.includes(tick) ? tick : FuelGauge.RESERVE_TICKS;
+  document.querySelectorAll('#arrivalSeg button').forEach(b => {
+    const on = Number(b.dataset.tick) === arrivalTick;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+  const extra = FuelGauge.arrivalReserveMiles(arrivalTick);
+  // At the default the honest statement is that nothing is being added — the
+  // bottom 1/8 was always held back and still is. Saying "0 mi of reserve"
+  // would read as if the driver had switched something off.
+  $('arrivalHelp').textContent = extra === 0
+    ? `Standard — the bottom 1/8 (about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} mi) is always held back, as it always has been.`
+    : `Plans a stop early enough to arrive with about ${extra} mi of range still unused, on top of that reserve.`;
+  updateClearVisibility();
+}
+
+function setArrivalOpen(open){
+  $('arrivalField').hidden = !open;
+  $('arrivalToggle').setAttribute('aria-expanded', String(open));
+  // Closing it means the driver is back to the standard reserve; leaving a
+  // raised reserve applying from behind a closed disclosure would be a setting
+  // silently steering every plan. Same contract as the pickup gauge.
+  if(!open) setArrivalTick(FuelGauge.RESERVE_TICKS);
+}
+
 function readRanges(){
-  // Blank stays blank so the greyed 875 placeholder keeps showing — writing
+  // On a tier, the tier's own figure is the answer and the custom input is not
+  // even on screen. On Custom the input behaves exactly as the field always
+  // did: blank stays blank so the greyed placeholder keeps showing — writing
   // the default back would make it look like a setting the driver chose, and
   // permanently, since the first plan would fill the box for the rest of the
   // session. A real typed value that needs clamping IS written back, because
   // seeing "50" snap to "300" is useful feedback, not a surprise.
-  const raw = $('rangeInput').value.trim();
-  let maxRange = Math.round(Number(raw));
-  if(raw === '' || !Number.isFinite(maxRange) || maxRange <= 0){
-    maxRange = ROUTE_DEFAULT_RANGE;                 // blank = use the default
-  } else {
-    maxRange = Math.min(RANGE_MAX, Math.max(RANGE_MIN, maxRange));
-    $('rangeInput').value = maxRange;               // only correct real input
+  const maxRange = tierRangeMiles();
+  if(rangeTier === 'custom'){
+    const raw = $('rangeInput').value.trim();
+    const typed = Math.round(Number(raw));
+    if(raw !== '' && Number.isFinite(typed) && typed > 0) $('rangeInput').value = maxRange;
   }
   updateRangeClearVisibility();
 
@@ -3740,7 +3949,13 @@ function readRanges(){
   // A driver who rolls out with more range than the max is just at max; never
   // let startBurned go negative and hand the planner extra reach.
   const startBurned = FuelGauge.computeStartBurned(maxRange, rangeAtPickup);
-  return { maxRange, rangeAtPickup, startBurned };
+
+  // The reserve is the far end of the trip and is computed independently of
+  // the gauge: the gauge says what is in the tank NOW, this says what should
+  // still be in it at delivery. Both can bind at once, and when they can't
+  // both be satisfied the planner reports it rather than quietly dropping one.
+  const arrivalReserve = FuelGauge.arrivalReserveMiles(arrivalTick);
+  return { maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve };
 }
 
 /* ---- Vehicle profile (dimensions, weight, hazmat) ----
@@ -3875,6 +4090,17 @@ function renderVehicle(){
   $('vehicleErrors').innerHTML = errs.map(e => `<div>${e}</div>`).join('');
   updateVehicleClearVisibility();
 }
+
+// Range tiers + arrival reserve. Wired here beside the vehicle profile
+// because they are the same shape of control and the same lifetime rules —
+// except that neither of these persists, which is why there is no save call.
+document.querySelectorAll('#rangeSeg button').forEach(b =>
+  b.addEventListener('click', () => setRangeTier(b.dataset.tier, { focus: true })));
+$('arrivalToggle').addEventListener('click', () =>
+  setArrivalOpen($('arrivalField').hidden));
+buildArrivalSeg();
+setArrivalTick(FuelGauge.RESERVE_TICKS);
+setRangeTier(DEFAULT_RANGE_TIER);
 
 document.querySelectorAll('#vehicleSeg button').forEach(b =>
   b.addEventListener('click', () => {
@@ -4521,13 +4747,15 @@ async function planLoad(pickup, delivery){
       const cum = FuelPlan.cumulativeMiles(r.poly);
       const routeMiles = cum[cum.length - 1];
       const result = FuelPlanAdaptive.planAdaptive(
-        r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, ranges.startBurned, DETOUR_TIERS);
+        r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, ranges.startBurned, DETOUR_TIERS,
+        ranges.arrivalReserve);
       // A gapped route usually doesn't stay empty past the dry line — show
       // what the rest of the run fuels like, so the driver comparing the map
       // against the plan isn't left wondering where all that Texas fuel went.
       if(!result.ok){
         result.resume = FuelPlanAdaptive.planBeyondGap(
-          r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, result.gap, result.detourMax);
+          r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, result.gap, result.detourMax,
+          ranges.arrivalReserve);
       }
       // Short-trip options are computed ONCE here, per option, and cached on
       // the option object — three consumers need them (the map's available
