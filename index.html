@@ -1003,6 +1003,13 @@
         <button data-v="prim">Primary</button>
       </div>
       <select class="stateSel stops-only" id="stateSel"><option value="all">All states</option></select>
+      <!-- Corridor. Same control type and class as the state select because it
+           is the same kind of dimension: many values, one choice, populated
+           from DATA at startup rather than hardcoded. Text search already
+           matches the exit field, but it matches as a SUBSTRING — "I-5" also
+           returns I-55, I-57 and I-59 — which is wrong in the direction that
+           matters, so this exists to answer the corridor question exactly. -->
+      <select class="stateSel stops-only" id="corridorSel"><option value="all">All corridors</option></select>
       <div class="amen-head">What do you need tonight?</div>
       <div class="amen-wrap" id="amenWrap" role="group" aria-label="Amenity filters">
         <button type="button" data-amen="showers" aria-pressed="false">10+ showers</button>
@@ -1049,29 +1056,31 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.27.0"></script>
+<script src="lib/fuelplan.js?v=1.28.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.27.0"></script>
+<script src="lib/triptext.js?v=1.28.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.27.0"></script>
+<script src="lib/location.js?v=1.28.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.27.0"></script>
+<script src="lib/gauge.js?v=1.28.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.27.0"></script>
+<script src="lib/corridors.js?v=1.28.0"></script>
+<script>var Corridors = module.exports; module = { exports: {} };</script>
+<script src="lib/extract-version.js?v=1.28.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.27.0"></script>
+<script src="lib/autosuggest.js?v=1.28.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.27.0"></script>
+<script src="lib/baselayer.js?v=1.28.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.27.0"></script>
+<script src="lib/memocache.js?v=1.28.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.27.0"></script>
+<script src="lib/routerank.js?v=1.28.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.27.0"></script>
+<script src="lib/vehicleprofile.js?v=1.28.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.27.0"></script>
+<script src="lib/escape.js?v=1.28.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.27.0"></script>
+<script src="lib/navlinks.js?v=1.28.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1087,7 +1096,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.27.0')
+fetch('lib/fuelplan-adaptive.js?v=1.28.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1104,7 +1113,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.27.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.27.0')
+fetch('lib/shorttrip.js?v=1.28.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1115,7 +1124,7 @@ fetch('lib/shorttrip.js?v=1.27.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.27.0"></script>
+<script src="lib/flexible-polyline.js?v=1.28.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1175,7 +1184,7 @@ const DATA = [
 ["LA4","TA","TA Slidell","1682 Gause Boulevard","Slidell","LA","70458","I-10, Exit 266","(985) 643-9974",30.2861,-89.7509,"excl",111,1,10,3,"H,T,R","",1,1,"CVENTA180"],
 ["LA5","TA","TA Tallulah","224 Highway 65 South","Tallulah","LA","71282","I-20, Exit 171","(318) 574-5900",32.3885,-91.2004,"prim",135,1,7,5,"R","",1,1,"CVENTA046"],
 ["LA6","Petro","Petro Shreveport","6910 W. Bert Kouns Industrial Loop","Shreveport","LA","71129","I-20, Exit 8","(318) 686-6111",32.4443,-93.9004,"prim",218,1,15,5,"R","",1,1,"CVENPE308"],
-["LA7","TA","TA Express Laplace","4301 Main St.","Laplace","LA","70068","","(985) 315-8194",30.0861,-90.4450,"excl",117,1,8,0,"","",1,1,"CVENTA479"],
+["LA7","TA","TA Express Laplace","4301 Main St.","Laplace","LA","70068","I-10, Exit 209 / I-55, Exit 1","(985) 315-8194",30.0861,-90.4450,"excl",117,1,8,0,"","",1,1,"CVENTA479"],
 ["MD1","TA","TA Baltimore","5501 O'Donnell Street Cutoff","Baltimore","MD","21224","I-95, Exit 57","(410) 633-4611",39.2777,-76.5492,"prim",181,1,11,3,"B,T","",1,1,"CVENTA216"],
 ["MD2","TA","TA Baltimore South","7401 Assateague Drive","Jessup","MD","20794","I-95, Exit 41A","(410) 799-3835",39.1666,-76.7829,"prim",436,1,19,4,"F,R","",1,1,"CVENTA151"],
 ["MI1","TA","TA Ann Arbor","200 Baker Road","Dexter","MI","48130","I-94, Exit 167","(734) 426-3951",42.2965,-83.8768,"prim",203,1,8,3,"F,T","",1,1,"CVENTA089"],
@@ -1275,7 +1284,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.27.0';
+const APP_VERSION = '1.28.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -1388,6 +1397,35 @@ document.addEventListener('visibilitychange', () => {
 const states = [...new Set(DATA.map(r=>r[5]))].sort();
 const stateSel = document.getElementById('stateSel');
 states.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;stateSel.appendChild(o);});
+
+// Corridors, derived from the exit field at startup — see lib/corridors.js for
+// why they are parsed rather than stored, and why only interstates are parsed.
+//
+// ROW_CORRIDORS is keyed by row REFERENCE, the same way STOP_MARKERS is.
+// passes() runs over all 146 rows on every keystroke, and re-running a regex
+// per row per keystroke would be pure waste; this derives each row's list once.
+const ROW_CORRIDORS = new Map(
+  DATA.map(r => [r, Corridors.corridorsForRow(r[0], r[7])]));
+
+// Only fuel stops feed the dropdown — the HQ terminal is not somewhere a
+// driver fuels, and it carries no exit field either.
+const CORRIDOR_INDEX = Corridors.corridorIndex(
+  DATA.filter(r => r[11] !== 'term').map(r => [r[0], r[7]]));
+
+const corridorSel = document.getElementById('corridorSel');
+CORRIDOR_INDEX.forEach(({corridor, count}) => {
+  const o = document.createElement('option');
+  o.value = corridor;
+  // The stop count rides along: the distribution is long-tailed (I-40 has 13,
+  // twenty corridors have three or fewer), and without the number the driver
+  // cannot tell a main lane from a one-stop spur until after they pick it. It
+  // is the NETWORK total for that corridor, deliberately not recomputed
+  // against whatever else is filtered — a number that changed as you toggled
+  // states would be answering a different question than the one being asked
+  // at the moment the list is opened.
+  o.textContent = `${corridor} (${count})`;
+  corridorSel.appendChild(o);
+});
 
 // Map init — HERE Maps JS API
 const HERE_API_KEY = 'C7r-EHfOixmC3imxi1ATMEUnt_Fx9P7Cc1-0_UsJ0Uo';
@@ -1968,7 +2006,7 @@ map.addObject(markerGroup);
    Covenant terminals lack one); it filters little but never misleads. */
 const SHOWERS_MANY  = 10;
 
-let state = {brand:'all', type:'all', st:'all', q:'',
+let state = {brand:'all', type:'all', st:'all', corridor:'all', q:'',
              showers:false, gym:false, restaurant:false};
 
 // One DomIcon per distinct pin APPEARANCE, not per call. There are only a
@@ -2135,6 +2173,11 @@ function passes(row){
   if(state.brand!=='all' && row[1]!==state.brand) return false;
   if(state.type!=='all' && row[11]!==state.type) return false;
   if(state.st!=='all' && row[5]!==state.st) return false;
+  // Corridor membership, not equality: 25 stops sit on two or more interstates
+  // (TA Tuscaloosa is on both I-20 and I-59 and must be findable under either),
+  // so this is the same shape of test as the amenity codes. The list was
+  // derived once at startup — see ROW_CORRIDORS.
+  if(state.corridor!=='all' && !(ROW_CORRIDORS.get(row) || []).includes(state.corridor)) return false;
   if(state.q){
     const hay = (row[2]+' '+row[4]+' '+row[5]+' '+row[7]).toLowerCase();
     if(!hay.includes(state.q)) return false;
@@ -2355,7 +2398,8 @@ function updateFilterBadge(){
   // on must not later wonder why stops are missing.
   const anyAmenity = state.showers || state.gym || state.restaurant;
   document.getElementById('filterBadge').hidden =
-    state.brand==='all' && state.type==='all' && state.st==='all' && !anyAmenity;
+    state.brand==='all' && state.type==='all' && state.st==='all'
+    && state.corridor==='all' && !anyAmenity;
 }
 
 document.querySelectorAll('#brandSeg button').forEach(b=>b.addEventListener('click',()=>{
@@ -2367,6 +2411,7 @@ document.querySelectorAll('#typeSeg button').forEach(b=>b.addEventListener('clic
   b.classList.add('active'); state.type=b.dataset.v; render(); updateFilterBadge();
 }));
 stateSel.addEventListener('change', e=>{state.st=e.target.value; render(); updateFilterBadge();});
+corridorSel.addEventListener('change', e=>{state.corridor=e.target.value; render(); updateFilterBadge();});
 document.getElementById('searchInput').addEventListener('input', e=>{
   state.q=e.target.value.trim().toLowerCase();
   document.getElementById('searchClearBtn').hidden = !e.target.value.trim();
@@ -2391,7 +2436,7 @@ document.querySelectorAll('#amenWrap button').forEach(b=>{
 // they typed.
 document.getElementById('clearFiltersBtn').addEventListener('click', ()=>{
   state.showers = state.gym = state.restaurant = false;
-  state.brand = state.type = state.st = 'all';
+  state.brand = state.type = state.st = state.corridor = 'all';
   document.querySelectorAll('#amenWrap button').forEach(b=>{
     b.setAttribute('aria-pressed','false');
     b.classList.remove('on');
@@ -2401,6 +2446,7 @@ document.getElementById('clearFiltersBtn').addEventListener('click', ()=>{
   document.querySelectorAll('#typeSeg button').forEach(x=>
     x.classList.toggle('active', x.dataset.v==='all'));
   document.getElementById('stateSel').value='all';
+  document.getElementById('corridorSel').value='all';
   updateFilterBadge();
   render();
 });

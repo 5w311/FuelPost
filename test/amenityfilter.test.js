@@ -176,8 +176,13 @@ ok('there is a clear-filters control in the no-match chip',
    /id="noMatch"[^>]*>[^<]*<button type="button" id="clearFiltersBtn">Clear filters<\/button>/.test(html));
 ok('it resets all three amenity toggles',
    /state\.showers = state\.gym = state\.restaurant = false;/.test(html));
-ok('  and brand, type and state too',
-   /state\.brand = state\.type = state\.st = 'all';/.test(html));
+// Corridor joined the list in v1.28.0. Every dimension that can empty the map
+// has to be reset here, or the driver is left with a filter they cannot see
+// and cannot clear.
+ok('  and brand, type, state and corridor too',
+   /state\.brand = state\.type = state\.st = state\.corridor = 'all';/.test(html));
+ok('  the corridor SELECT is reset as well, not just the state behind it',
+   /document\.getElementById\('corridorSel'\)\.value='all';/.test(html));
 // Nothing may quietly relax a filter to avoid an empty result. Checked on
 // CODE, not prose: filter state is only ever written by the toggle handler
 // and the explicit clear button — never from render() or passes(), which is

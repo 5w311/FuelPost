@@ -456,5 +456,40 @@ ok('  and the summary uses the effective range, not the empty input',
    /tierRangeMiles\(\)\} mi`/.test(codeOnly) &&
    !/\$\('rangeInput'\)\.value\} mi`/.test(codeOnly));
 
+console.log('\n=== the corridor filter (v1.28.0) ===');
+ok('the corridor select exists and is STOPS-only, like the state select',
+   /<select class="stateSel stops-only" id="corridorSel">/.test(html));
+ok('  it defaults to All corridors, mirroring All states',
+   /id="corridorSel"><option value="all">All corridors<\/option><\/select>/.test(html));
+ok('>>> its options are built from DATA, not hardcoded in the markup',
+   (html.match(/id="corridorSel"[\s\S]{0,120}?<\/select>/) || [''])[0].split('<option').length === 2
+   && /CORRIDOR_INDEX\.forEach/.test(codeOnly));
+ok('  built through the shared parser, not a second regex in the page',
+   /Corridors\.corridorIndex\(/.test(codeOnly) && !/I-\\d\+/.test(codeOnly));
+// Derived ONCE. passes() runs over 146 rows per keystroke; a regex per row per
+// keystroke is waste, and keying by row reference matches STOP_MARKERS.
+ok('>>> each row\'s corridors are derived once into a Map keyed by row',
+   /const ROW_CORRIDORS = new Map\(\s*DATA\.map\(r => \[r, Corridors\.corridorsForRow\(r\[0\], r\[7\]\)\]\)\);/.test(codeOnly));
+ok('  and passes() only READS that map, never re-parses',
+   /ROW_CORRIDORS\.get\(row\)/.test(codeOnly) &&
+   !/corridorsForRow[\s\S]{0,80}function passes/.test(codeOnly));
+ok('>>> the predicate is a membership test, not equality',
+   /!\(ROW_CORRIDORS\.get\(row\) \|\| \[\]\)\.includes\(state\.corridor\)/.test(codeOnly));
+ok('  and it is AND-combined like every other filter (an early return)',
+   /if\(state\.corridor!=='all' && !\(ROW_CORRIDORS[^\n]*\) return false;/.test(codeOnly));
+// Both of these were called out as easy to miss, and each leaves a filter the
+// driver cannot see or cannot clear.
+ok('>>> the corridor counts toward the filter badge',
+   /state\.corridor==='all' && !anyAmenity;/.test(codeOnly));
+ok('>>> and clearFilters resets both the state and the select',
+   /state\.brand = state\.type = state\.st = state\.corridor = 'all';/.test(codeOnly) &&
+   /getElementById\('corridorSel'\)\.value='all';/.test(codeOnly));
+ok('the select has its own change handler wired to render()',
+   /corridorSel\.addEventListener\('change'[^\n]*state\.corridor=e\.target\.value; render\(\); updateFilterBadge\(\);/.test(codeOnly));
+// The versioned script tag, which cachebust.test.js then holds to APP_VERSION.
+ok('lib/corridors.js is loaded with a version stamp and shimmed',
+   /<script src="lib\/corridors\.js\?v=[\d.]+"><\/script>/.test(html) &&
+   /var Corridors = module\.exports;/.test(html));
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
