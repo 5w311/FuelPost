@@ -344,6 +344,16 @@
   /* 44px minimum, because this is tapped moving and with gloves. */
   #nearMe .rb-tab{padding:0 10px;min-height:44px;gap:6px;}
   #nearMe .rb-tab-label{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* Smaller and muted, so the stop itself carries the emphasis and keeps the
+     width. See the comment at the assignment for the measurement. */
+  .nm-lead{font-size:11px;font-weight:600;color:var(--sub);}
+  /* Measured across three viewports with an unclipped clone: the network's
+     longest line ("Nearest Fuel Stop: 999 mi NW · Petro North Little Rock")
+     needs 311px, against 348px available at 390 wide and 318px at 360 — but
+     only 278px at 320, where it would ellipsis away the end of the station
+     name. On a screen that narrow the label is the part worth losing: it is
+     framing, and the stop is the answer. */
+  @media (max-width: 340px){ .nm-lead{display:none;} }
   .nm-body-wrap{display:flex;flex-direction:column;overflow:hidden;max-height:320px;transition:max-height .22s ease;}
   #nearMe.nm-collapsed .nm-body-wrap{max-height:0;}
   #nearMe.nm-collapsed .rb-tab-chev{transform:rotate(-90deg);}
@@ -1159,33 +1169,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.29.1"></script>
+<script src="lib/fuelplan.js?v=1.29.2"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.29.1"></script>
+<script src="lib/triptext.js?v=1.29.2"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.29.1"></script>
+<script src="lib/location.js?v=1.29.2"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.29.1"></script>
+<script src="lib/gauge.js?v=1.29.2"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.29.1"></script>
+<script src="lib/corridors.js?v=1.29.2"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.29.1"></script>
+<script src="lib/nearme.js?v=1.29.2"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.29.1"></script>
+<script src="lib/extract-version.js?v=1.29.2"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.29.1"></script>
+<script src="lib/autosuggest.js?v=1.29.2"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.29.1"></script>
+<script src="lib/baselayer.js?v=1.29.2"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.29.1"></script>
+<script src="lib/memocache.js?v=1.29.2"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.29.1"></script>
+<script src="lib/routerank.js?v=1.29.2"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.29.1"></script>
+<script src="lib/vehicleprofile.js?v=1.29.2"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.29.1"></script>
+<script src="lib/escape.js?v=1.29.2"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.29.1"></script>
+<script src="lib/navlinks.js?v=1.29.2"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1201,7 +1211,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.29.1')
+fetch('lib/fuelplan-adaptive.js?v=1.29.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1218,7 +1228,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.29.1')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.29.1')
+fetch('lib/shorttrip.js?v=1.29.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1229,7 +1239,7 @@ fetch('lib/shorttrip.js?v=1.29.1')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.29.1"></script>
+<script src="lib/flexible-polyline.js?v=1.29.2"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1389,7 +1399,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.29.1';
+const APP_VERSION = '1.29.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2988,9 +2998,19 @@ function renderNearMe(){
   // named "TA Something" or "Petro Something" — so prefixing row[1] renders
   // "TA TA Dallas South". The list view has always shown the name alone (the
   // brand is its coloured T/P dot); this matches.
-  $('nmSummary').textContent = nearby
-    ? `${nearMeDist(first)} · ${first.stop.name}`
-    : `No network stop nearby — nearest is ${nearMeDist(first)}`;
+  // The label frames what the line IS, which the bare "9 mi S · Petro North
+  // Baltimore" left the driver to infer. The over-cap case keeps its own
+  // sentence — it already contains "nearest", so labelling it would stutter,
+  // and it is deliberately a different statement rather than a stop.
+  // The label is a smaller muted lead rather than the same weight as the
+  // answer, and that is a width decision as much as a visual one: it costs 19
+  // characters, and at the tab's full 12.5px the longest station in the
+  // network ("Petro North Little Rock", 54 characters with the label and a
+  // three-digit distance) ellipsised away the end of the name — the one part
+  // of the line that is the answer.
+  $('nmSummary').innerHTML = nearby
+    ? `<span class="nm-lead">Nearest Fuel Stop:</span> ${Esc.escapeHtml(nearMeDist(first) + ' · ' + first.stop.name)}`
+    : `No network stop nearby — nearest is ${Esc.escapeHtml(nearMeDist(first))}`;
 
   const body = $('nearMeBody');
   body.innerHTML = '';

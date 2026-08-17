@@ -291,10 +291,18 @@ Note that `TN6`, the Covenant HQ terminal, also carries `F`. Fitness counts over
 
 ## Near Me (STOPS tab footer)
 
-With location on and a live fix, a footer sits above the locate button
-answering one question fast: **where is the nearest network fuel**. Collapsed it
-names the single nearest stop — distance, compass direction, brand and name.
-Expanded it lists the nearest four, nearest first.
+With location on and a live fix, a footer sits flush along the bottom answering
+one question fast: **where is the nearest network fuel**. Collapsed it reads
+*Nearest Fuel Stop: 7 mi S · Petro North Baltimore* — the label frames what the
+line is, in a smaller muted weight so the stop itself carries the emphasis and
+the width. Expanded it lists the nearest four, nearest first.
+
+The label is dropped below 340px wide. Measured with an unclipped clone: the
+network's longest possible line needs 311px, against 348px available at 390 wide
+and 318px at 360, but only 278px at 320 — where the ellipsis would eat the end of
+the station name. On a screen that narrow the framing is the part worth losing.
+The over-cap sentence is deliberately not labelled, since it already says
+"nearest".
 
 **Straight-line distance, never drive time.** The Stops tab makes no network
 calls today beyond map tiles — filtering, searching and station data are all
@@ -617,6 +625,20 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.29.2
+
+**The collapsed line says what it is.** *Nearest Fuel Stop: 7 mi S · Petro North
+Baltimore*, where before it was a bare *7 mi S · Petro North Baltimore* and left
+the driver to infer the rest.
+
+The label is a smaller muted lead rather than the same weight as the answer,
+which is a width decision as much as a visual one: it costs 19 characters, and
+at full weight the network's longest station ellipsised away the end of its own
+name. Measured with an unclipped clone across three viewports — 311px needed
+against 348 available at 390 wide, 318 at 360, and 278 at 320 — so below 340px
+the label is dropped rather than the name. The over-cap sentence keeps its own
+wording, since labelling something that already says "nearest" would stutter.
 
 ### v1.29.1
 

@@ -556,6 +556,21 @@ ok('>>> the summary states miles and a direction, never a time',
    !/\bmin\b|minutes|hrs|hours/.test((/function nearMeDist[\s\S]{0,200}/.exec(codeOnly) || [''])[0]));
 ok('  and the over-cap message still names the distance',
    /No network stop nearby — nearest is/.test(codeOnly));
+// v1.29.2: the line says what it IS, not just a distance and a name.
+ok('>>> the collapsed line is labelled "Nearest Fuel Stop:"',
+   /<span class="nm-lead">Nearest Fuel Stop:<\/span>/.test(codeOnly));
+ok('  the label is a smaller muted lead, so the stop keeps the width',
+   /\.nm-lead\{font-size:11px;font-weight:600;color:var\(--sub\);\}/.test(html));
+// Measured with an unclipped clone: the longest line needs 311px, and a 320px
+// screen offers 278. The label is the part worth dropping there.
+ok('  and it is dropped below 340px, where the name would ellipsis instead',
+   /@media \(max-width: 340px\)\{ \.nm-lead\{display:none;\} \}/.test(html));
+// The over-cap sentence is NOT labelled — it already contains "nearest".
+ok('  the over-cap sentence is not double-labelled',
+   !/nm-lead[^`]*No network stop nearby/.test(codeOnly));
+// innerHTML now, so the station name must still be escaped.
+ok('>>> the station name is escaped, since the line is innerHTML now',
+   /nmSummary'\)\.innerHTML[\s\S]{0,200}Esc\.escapeHtml\(/.test(codeOnly));
 // Tap-through reuses the one detail view.
 ok('>>> tapping a row opens the existing station sheet',
    /b\.addEventListener\('click', \(\) => openSheet\(n\.stop\.row\)\);/.test(codeOnly));
