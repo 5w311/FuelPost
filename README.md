@@ -289,6 +289,73 @@ them as unexplained drift:
 Note that `TN6`, the Covenant HQ terminal, also carries `F`. Fitness counts over
 *stops* therefore run one lower than counts over all 146 `DATA` rows.
 
+## Near Me (STOPS tab footer)
+
+With location on and a live fix, a footer sits above the locate button
+answering one question fast: **where is the nearest network fuel**. Collapsed it
+names the single nearest stop — distance, compass direction, brand and name.
+Expanded it lists the nearest four, nearest first.
+
+**Straight-line distance, never drive time.** The Stops tab makes no network
+calls today beyond map tiles — filtering, searching and station data are all
+local — and routing for a drive time would add an API call per candidate and
+break the tab in a dead zone, which is exactly where a driver most needs to know
+where fuel is. So distances are `haversine` from `lib/fuelplan.js` and are
+labelled as distances. Sixty straight-line miles can be fifty minutes on an
+interstate or ninety on two-lane, and a minutes figure the app did not compute
+would be a lie.
+
+A **compass point** rides alongside every distance (eight points — N, NE, E …).
+Straight-line distance without direction is close to useless when the driver
+cannot tell whether fuel is ahead or behind.
+
+**The ranking ignores every filter, deliberately.** Not brand, type, state,
+corridor, the amenity toggles, or the search box. *Where am I* is a different
+question from *what am I looking for*, and a driver who filtered to sit-down
+restaurants an hour ago must not be told the nearest fuel is 200 miles away.
+This will look like a bug to a future reader — it is commented as such in both
+`lib/nearme.js` and at the call site, and `nearestStops()` takes no filter
+argument at all so there is nothing to wire in by accident.
+
+It does exclude closed stops and the two Covenant terminals, because it is fed
+`FUEL_STOPS`, which already handles both — one exclusion rule shared with the
+planner rather than a second one to drift.
+
+**The hard cap is 200 miles.** Beyond it the footer stops offering a stop and
+reports a situation instead — *No network stop nearby — nearest is 224 mi S* —
+because it still has to name the distance to be actionable. 200 was chosen from
+the brief's 150–250 band: it is half of the smallest range tier (Regular, 400 mi
+between stops) and over three hours of driving, so past it the answer is no
+longer a fuelling decision. The band's edges both fail: 150 would fire during
+ordinary sparse-network driving, and 250 would stay silent through the ~490 mile
+I-40 gap in New Mexico, where the nearest stop measures **224 mi** and a driver
+most needs telling plainly.
+
+**It only appears with a live fix**, keyed off `liveFix` alone — no second flag
+for whether location is on. `setLocationOff()` already clears `liveFix`, so
+switching location off, denying permission, an unavailable sensor and a fix
+still being acquired all hide it for the same reason. It is STOPS-only and
+hidden in Route mode, which owns that region of the screen with its own results
+panel, and it hides with the list view alongside the legend and locate button.
+
+Recomputes on fix updates, but only once the driver has moved **a quarter mile**
+— `watchPosition` fires repeatedly while parked, and GPS jitter alone is tens of
+metres, so without the threshold every firing would rebuild four rows of DOM for
+an unchanged answer.
+
+**Layout, and why the numbers are what they are.** That corner is crowded, and
+two of the constraints are not cosmetic. Measured on a 390×844 phone against the
+real SDK: HERE's copyright is bottom-flush from x=194, and the scalebar sits
+24–36px up at x=214–310. Covering either is a terms issue, not a layout
+preference. So the panel starts **40px up** (clear of the scalebar) and **58px
+in** from the left (clear of the locate button), at z-index 400 — level with the
+locate button and legend, below the `locateError`/`locateHint` chips at 401,
+which it can never collide with anyway since those report a location failure and
+this only shows with a live fix. Touch targets are 44px; it is used moving.
+
+Tapping any row opens the same station sheet a pin or list row opens — one
+detail view, not a parallel one, and navigation and calling are already there.
+
 ## Corridor filter
 
 A driver plans by corridor: *show me the network on I-40* is the natural
@@ -531,6 +598,42 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.29.0
+
+**Near Me: the nearest network fuel, on the STOPS tab.** A collapsible footer
+that appears whenever there is a live GPS fix, naming the nearest stop with its
+distance and compass direction; expanded, the nearest four. Tapping a row opens
+the station sheet.
+
+Distances are **straight-line and never drive time**, computed with the existing
+`haversine` — the Stops tab makes no network calls beyond map tiles, and routing
+for a time would break it in exactly the dead zone where a driver most needs to
+know where fuel is. Every figure is labelled as a distance, with a compass point
+alongside, because distance without direction cannot tell you whether fuel is
+ahead or behind.
+
+**The ranking ignores every filter**, which is the point rather than an
+oversight: a driver who filtered to sit-down restaurants an hour ago must not be
+told the nearest fuel is 200 miles away. `nearestStops()` takes no filter
+argument, and both the module and the call site say why. It is fed `FUEL_STOPS`,
+so closed stops and terminals are excluded by the same rule the planner uses.
+
+Beyond a **200 mile** cap it reports the situation instead of offering a stop,
+still naming the distance. Measured: from mid-New-Mexico the nearest is 224 mi,
+so the cap fires there — a 250 mile cap would have stayed silent through the
+network's largest real gap.
+
+`lib/nearme.js` is pure and takes the distance function as a parameter rather
+than requiring `fuelplan.js`, so it loads as a plain script with no fetch and no
+offline dependency — the modules that do require it pay for it with a
+`fetch` + `new Function` loader, which this tab cannot afford.
+
+Layout was measured, not guessed: HERE's copyright is bottom-flush from x=194
+and the scalebar sits 24–36px up, so the panel clears both (40px up, 58px in
+from the left, z-index 400). Covering HERE's attribution is a terms issue.
+Recomputes only after a quarter mile of movement, so `watchPosition` jitter
+never rebuilds the DOM.
 
 ### v1.28.0
 
