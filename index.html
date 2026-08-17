@@ -302,18 +302,26 @@
   #locateError[hidden]{display:none;}
 
   /* ---- Near Me footer ----
-     GEOMETRY IS LOAD-BEARING HERE, and two of the three constraints are not
-     cosmetic. Measured on a 390x844 phone against the real 3.2.9.0 SDK:
+     GEOMETRY IS LOAD-BEARING HERE, and one constraint is not cosmetic.
+     Measured on a 390x844 phone against the real 3.2.9.0 SDK:
 
-       HERE copyright   bottom-flush, x 194 to the right edge, 16px tall
-       HERE scalebar    24-36px up from the bottom, x 214-310
+       HERE copyright   bottom-flush, x 194 to the right edge, in .H_imprint
+       HERE scalebar    24-36px up from the bottom, inside .H_ui
        #locateBtn       left 10, 40x40, sitting 34px up
 
-     Covering HERE's attribution or scalebar is a TERMS issue, not a layout
-     preference, so this starts 40px up (clear of the scalebar's 36px top) and
-     58px in from the left (clear of the locate button plus a gap). What is
-     left is a strip that still spans most of the width for the one line of
-     text it has to fit.
+     v1.29.0 shipped this as a floating card inset 58px from the left and 40px
+     up, so that it dodged all of the above. On a real phone that read as a
+     card stranded in the middle of the map with the locate button beside it,
+     so v1.29.1 made it a proper footer: FLUSH to the bottom, full width.
+
+     Which means it now sits exactly where HERE's attribution and the map
+     buttons were, and covering the attribution is a TERMS issue rather than a
+     layout preference. So nothing is covered — everything above it is LIFTED
+     by the footer's own height, published as --nm-h (see setNearMeHeight).
+     Two containers carry HERE's bottom chrome and they are siblings, not
+     nested, so both need lifting: .H_ui holds the scalebar and the layer
+     switcher, .H_imprint holds the copyright. Shrinking only .H_ui leaves the
+     copyright behind — measured, after assuming otherwise.
 
      z-index 400 puts it level with the locate button and legend — above the
      map and its overlays, below the list view (350 covers everything when
@@ -327,9 +335,10 @@
      over the panel. The chips now lift clear whenever the panel is showing
      (see #mapwrap.nm-on below). #locateError is genuinely exclusive, since it
      only appears when there is no fix at all. */
-  #nearMe{position:absolute;left:58px;right:10px;bottom:40px;z-index:400;
-    background:var(--surface);border:1px solid var(--line);border-radius:12px;
-    box-shadow:0 2px 8px rgba(0,0,0,.18);overflow:hidden;}
+  #nearMe{position:absolute;left:0;right:0;bottom:0;z-index:400;
+    background:var(--surface);border-top:1px solid var(--line);
+    border-radius:12px 12px 0 0;box-shadow:0 -2px 10px rgba(0,0,0,.22);overflow:hidden;
+    padding-bottom:env(safe-area-inset-bottom,0px);}
   #nearMe[hidden]{display:none;}
   body.route-mode #nearMe{display:none;}
   /* 44px minimum, because this is tapped moving and with gloves. */
@@ -356,14 +365,30 @@
   /* The far-from-anything state. Amber rather than red: nothing has failed,
      the answer is just that the network is a long way off. */
   #nearMe.nm-far .rb-tab-label{color:var(--warn-text,#7A5200);}
-  /* Lift the locate chips above the panel whenever it is showing: 92px clears
-     the collapsed tab (40px up + 44px tall + a gap), and 268px clears it
-     expanded (44px tab + four 44px rows). Both numbers are measured, not
-     guessed — #locateHint fires on the very tap that turns location ON, so it
-     shares the screen with the panel at exactly the moment the panel first
-     appears, and a screenshot showed it sitting across the third row. */
-  #mapwrap.nm-on #locateHint, #mapwrap.nm-on #locateError{bottom:92px;}
-  #mapwrap.nm-open #locateHint, #mapwrap.nm-open #locateError{bottom:268px;}
+  /* Everything that lives in the map's bottom chrome rides up by the footer's
+     height while it is showing. --nm-h is republished on every size change by
+     a ResizeObserver, so these track the collapse/expand animation frame by
+     frame instead of jumping at either end — and no hardcoded panel height
+     can go stale when a row is added or the font changes.
+
+     #locateHint matters here beyond tidiness: it fires on the very tap that
+     turns location ON, so it lands on screen at the same moment the first fix
+     does. */
+  #mapwrap.nm-on #locateBtn{bottom:calc(12px + var(--nm-h,0px));}
+  #mapwrap.nm-on #locateHint, #mapwrap.nm-on #locateError{bottom:calc(58px + var(--nm-h,0px));}
+  /* HERE's own controls. .H_ui carries the scalebar and the layer switcher;
+     .H_imprint carries the copyright, and it is a SIBLING of .H_ui rather
+     than inside it, so it needs its own rule.
+
+     The !important is not laziness. The SDK writes `bottom: 0px` as an INLINE
+     style on .H_imprint, which outranks any stylesheet selector no matter how
+     specific — measured: the scalebar lifted and the copyright did not, and
+     the inline attribute is why. An !important declaration is the one thing
+     that beats a normal inline one, and the alternative (writing the offset
+     from JS on every resize) would put layout back into script for no gain.
+     .H_ui needs no such escape, having no inline bottom of its own. */
+  #mapwrap.nm-on .H_ui{bottom:var(--nm-h,0px);}
+  #mapwrap.nm-on .H_imprint{bottom:var(--nm-h,0px) !important;}
 
   /* Live position dot — own H.map.Group so STOPS filter re-renders (which
      rebuild markerGroup) never touch it. Uses --you-are-here, not --ta —
@@ -1134,33 +1159,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.29.0"></script>
+<script src="lib/fuelplan.js?v=1.29.1"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.29.0"></script>
+<script src="lib/triptext.js?v=1.29.1"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.29.0"></script>
+<script src="lib/location.js?v=1.29.1"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.29.0"></script>
+<script src="lib/gauge.js?v=1.29.1"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.29.0"></script>
+<script src="lib/corridors.js?v=1.29.1"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.29.0"></script>
+<script src="lib/nearme.js?v=1.29.1"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.29.0"></script>
+<script src="lib/extract-version.js?v=1.29.1"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.29.0"></script>
+<script src="lib/autosuggest.js?v=1.29.1"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.29.0"></script>
+<script src="lib/baselayer.js?v=1.29.1"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.29.0"></script>
+<script src="lib/memocache.js?v=1.29.1"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.29.0"></script>
+<script src="lib/routerank.js?v=1.29.1"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.29.0"></script>
+<script src="lib/vehicleprofile.js?v=1.29.1"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.29.0"></script>
+<script src="lib/escape.js?v=1.29.1"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.29.0"></script>
+<script src="lib/navlinks.js?v=1.29.1"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1176,7 +1201,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.29.0')
+fetch('lib/fuelplan-adaptive.js?v=1.29.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1193,7 +1218,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.29.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.29.0')
+fetch('lib/shorttrip.js?v=1.29.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1204,7 +1229,7 @@ fetch('lib/shorttrip.js?v=1.29.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.29.0"></script>
+<script src="lib/flexible-polyline.js?v=1.29.1"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1364,7 +1389,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.29.0';
+const APP_VERSION = '1.29.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2928,7 +2953,9 @@ function renderNearMe(){
   const wrap = $('mapwrap');
   if(!liveFix){
     el.hidden = true;
-    wrap.classList.remove('nm-on');   // let the locate chips drop back down
+    // Drop the lift: the map's bottom chrome goes back to its own positions.
+    wrap.classList.remove('nm-on');
+    setNearMeHeight(0);
     nearMeLastFix = null;
     return;
   }
@@ -2990,9 +3017,35 @@ function nearMeDist(n){
 function setNearMeExpanded(open){
   nearMeExpanded = open;
   $('nearMe').classList.toggle('nm-collapsed', !open);
-  // Keeps the locate chips clear of the taller panel — see #mapwrap.nm-open.
-  $('mapwrap').classList.toggle('nm-open', open);
   $('nmTab').setAttribute('aria-expanded', String(open));
+  // The height changes over the 220ms max-height transition; the observer
+  // below republishes --nm-h on every frame of it, so the map buttons ride
+  // the animation rather than jumping when it ends.
+}
+
+// Publishes the footer's live height so everything in the map's bottom chrome
+// can sit above it — see the --nm-h rules in the CSS. A ResizeObserver rather
+// than a measurement at each state change, because the panel's height also
+// moves when the row count changes, when the text wraps on a narrow screen,
+// and throughout the expand/collapse animation.
+function setNearMeHeight(px){
+  $('mapwrap').style.setProperty('--nm-h', Math.round(px) + 'px');
+}
+if(window.ResizeObserver){
+  // getBoundingClientRect, NOT entry.contentRect: contentRect is the CONTENT
+  // box, so it omits the 1px top border and the env(safe-area-inset-bottom)
+  // padding. That left HERE's copyright overlapping the footer by exactly one
+  // pixel — and on an iPhone, by the whole home-indicator inset.
+  new ResizeObserver(() => {
+    const el = $('nearMe');
+    setNearMeHeight(el && !el.hidden ? el.getBoundingClientRect().height : 0);
+  }).observe($('nearMe'));
+} else {
+  // No observer: fall back to measuring at each state change. Older browsers
+  // lose the smooth ride, not the clearance.
+  const measure = () => { const el = $('nearMe');
+    setNearMeHeight(el && !el.hidden ? el.getBoundingClientRect().height : 0); };
+  $('nmTab').addEventListener('click', () => setTimeout(measure, 240));
 }
 $('nmTab').addEventListener('click', () => setNearMeExpanded(!nearMeExpanded));
 

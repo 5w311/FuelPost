@@ -343,15 +343,34 @@ Recomputes on fix updates, but only once the driver has moved **a quarter mile**
 metres, so without the threshold every firing would rebuild four rows of DOM for
 an unchanged answer.
 
-**Layout, and why the numbers are what they are.** That corner is crowded, and
-two of the constraints are not cosmetic. Measured on a 390×844 phone against the
-real SDK: HERE's copyright is bottom-flush from x=194, and the scalebar sits
-24–36px up at x=214–310. Covering either is a terms issue, not a layout
-preference. So the panel starts **40px up** (clear of the scalebar) and **58px
-in** from the left (clear of the locate button), at z-index 400 — level with the
-locate button and legend, below the `locateError`/`locateHint` chips at 401,
-which it can never collide with anyway since those report a location failure and
-this only shows with a live fix. Touch targets are 44px; it is used moving.
+**Layout: a flush footer, with everything else lifted above it.** v1.29.0
+shipped this as a floating card inset from the left and bottom so that it dodged
+HERE's attribution, the scalebar and the locate button. On a real phone that read
+as a card stranded mid-map. Since **v1.29.1** it is a proper footer — flush to
+the bottom, full width, rounded only on top, with `env(safe-area-inset-bottom)`
+padding for the home indicator.
+
+Nothing is covered, because everything in the map's bottom chrome is **lifted by
+the footer's own height**, published as a `--nm-h` custom property from a
+`ResizeObserver`. That tracks the collapse/expand animation frame by frame and
+survives a changed row count or font size, where a hardcoded per-state height
+would go stale.
+
+Three things had to be measured rather than assumed:
+
+- HERE's bottom chrome lives in **two sibling containers**, not one. `.H_ui`
+  carries the scalebar and layer switcher; `.H_imprint` carries the copyright.
+  Lifting only `.H_ui` leaves the copyright behind — covering HERE's attribution
+  is a terms issue, so this one matters.
+- `.H_imprint` gets `bottom: 0` as an **inline** style from the SDK, which
+  outranks any selector. Its rule needs `!important`, which is exactly the case
+  that keyword is for.
+- The observer must read `getBoundingClientRect()`, not `entry.contentRect`.
+  contentRect is the *content* box, so it omits the 1px top border and the
+  safe-area padding — that was a one-pixel copyright overlap on desktop, and the
+  whole home-indicator inset on an iPhone.
+
+Touch targets are 44px; it is used moving.
 
 Tapping any row opens the same station sheet a pin or list row opens — one
 detail view, not a parallel one, and navigation and calling are already there.
@@ -598,6 +617,30 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.29.1
+
+**Near Me is a real footer now.** Reported from the road against v1.29.0: the
+panel should sit flush to the bottom, with the map buttons above it whether it
+is collapsed or expanded. It shipped as a floating card inset 58px from the left
+and 40px up, which dodged HERE's attribution and the locate button but read as a
+card stranded in the middle of the map.
+
+It is now flush to the bottom edge, full width, rounded on top only, with
+`env(safe-area-inset-bottom)` padding for the home indicator. Everything in the
+map's bottom chrome — the locate button, the locate hint and error chips, HERE's
+scalebar, layer switcher and copyright — rides **up** by the footer's live
+height instead of being dodged or covered. The height is published as `--nm-h`
+from a `ResizeObserver`, so the buttons track the expand animation frame by frame
+and no hardcoded panel height can go stale.
+
+Three measurements made it work, each after an assumption failed: HERE's bottom
+chrome is split across two *sibling* containers (`.H_ui` and `.H_imprint`), so
+lifting one leaves the copyright behind; `.H_imprint` carries an inline
+`bottom: 0` from the SDK that only `!important` can beat; and the observer has to
+measure the border box, since `contentRect` omits the border and the safe-area
+padding — a one-pixel overlap on desktop, the entire home-indicator inset on a
+phone.
 
 ### v1.29.0
 

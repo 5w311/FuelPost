@@ -505,12 +505,30 @@ ok('>>> with aria-expanded and aria-controls on the tab',
    /id="nmTab"[^>]*aria-expanded="false"[^>]*aria-controls="nearMeBody"/.test(html));
 ok('  and aria-expanded is kept in sync in code',
    /\$\('nmTab'\)\.setAttribute\('aria-expanded', String\(open\)\);/.test(codeOnly));
-// Attribution is a terms issue: the panel must clear HERE's chrome. Measured
-// on a 390px phone — copyright is bottom-flush from x=194, scalebar 24-36px up.
-ok('>>> it sits clear of HERE\'s attribution and scalebar (bottom >= 40px)',
-   /#nearMe\{[^}]*bottom:40px/.test(html), (/#nearMe\{[^}]*\}/.exec(html) || [''])[0]);
-ok('  and clear of the locate button (left >= 58px)',
-   /#nearMe\{[^}]*left:58px/.test(html));
+// v1.29.1: the footer is FLUSH to the bottom and full width, and nothing is
+// covered because everything above it is lifted instead. Covering HERE's
+// attribution is a terms issue, so the lift rules are what carry that now.
+ok('>>> the footer is flush to the bottom, edge to edge',
+   /#nearMe\{[^}]*left:0;right:0;bottom:0/.test(html), (/#nearMe\{[^}]*\}/.exec(html) || [''])[0]);
+ok('>>> the map buttons are lifted by the footer height, not left underneath',
+   /#mapwrap\.nm-on #locateBtn\{bottom:calc\(12px \+ var\(--nm-h,0px\)\);\}/.test(html));
+ok('>>> HERE\'s scalebar and layer switcher lift with it (.H_ui)',
+   /#mapwrap\.nm-on \.H_ui\{bottom:var\(--nm-h,0px\);\}/.test(html));
+// !important because the SDK sets bottom inline on .H_imprint, which beats
+// any selector — measured, after the copyright alone failed to lift.
+ok('>>> and HERE\'s COPYRIGHT too — .H_imprint is a sibling of .H_ui, not inside it',
+   /#mapwrap\.nm-on \.H_imprint\{bottom:var\(--nm-h,0px\) !important;\}/.test(html));
+ok('  the height is published live rather than hardcoded per state',
+   /new ResizeObserver\(/.test(codeOnly) && /setNearMeHeight\(/.test(codeOnly));
+// contentRect omits the border and the safe-area padding — a one-pixel
+// overlap on desktop, the whole home-indicator inset on an iPhone.
+ok('  measured as the BORDER box, not contentRect',
+   /setNearMeHeight\(el && !el\.hidden \? el\.getBoundingClientRect\(\)\.height : 0\)/.test(codeOnly) &&
+   !/entries\[0\]\.contentRect/.test(codeOnly));
+ok('  and reset to zero when the footer goes away',
+   /wrap\.classList\.remove\('nm-on'\);\s*setNearMeHeight\(0\);/.test(codeOnly));
+ok('  no stale hardcoded panel heights remain',
+   !/bottom:92px|bottom:268px|nm-open/.test(html));
 ok('  at z-index 400, level with the other map chrome',
    /#nearMe\{[^}]*z-index:400/.test(html));
 ok('  with 44px touch targets, for gloved hands on the move',
