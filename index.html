@@ -169,7 +169,8 @@
      this they float over the list overlay, and in ROUTE mode they hang over
      the plan panel pointing at a locate button that isn't even shown. */
   #listview.show ~ #legendBtn, #listview.show ~ #locateBtn, #listview.show ~ #legendCard,
-  #listview.show ~ #locateError, #listview.show ~ #locateHint{display:none;}
+  #listview.show ~ #locateError, #listview.show ~ #locateHint,
+  #listview.show ~ #nearMe{display:none;}
   .list-item{display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);align-items:flex-start;}
   .list-item .dot{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;margin-top:2px;}
   .list-item .info{flex:1;min-width:0;}
@@ -299,6 +300,70 @@
     line-height:1.35;box-shadow:0 2px 6px rgba(0,0,0,.15);}
   #locateHint[hidden]{display:none;}
   #locateError[hidden]{display:none;}
+
+  /* ---- Near Me footer ----
+     GEOMETRY IS LOAD-BEARING HERE, and two of the three constraints are not
+     cosmetic. Measured on a 390x844 phone against the real 3.2.9.0 SDK:
+
+       HERE copyright   bottom-flush, x 194 to the right edge, 16px tall
+       HERE scalebar    24-36px up from the bottom, x 214-310
+       #locateBtn       left 10, 40x40, sitting 34px up
+
+     Covering HERE's attribution or scalebar is a TERMS issue, not a layout
+     preference, so this starts 40px up (clear of the scalebar's 36px top) and
+     58px in from the left (clear of the locate button plus a gap). What is
+     left is a strip that still spans most of the width for the one line of
+     text it has to fit.
+
+     z-index 400 puts it level with the locate button and legend — above the
+     map and its overlays, below the list view (350 covers everything when
+     open, and the rule above hides this outright anyway) and below the
+     locateError/locateHint chips at 401.
+
+     Those chips are NOT mutually exclusive with this panel, which an earlier
+     draft of this comment claimed and a screenshot disproved: #locateHint
+     fires on the very tap that turns location ON, so it lands on screen at
+     the same moment the first fix does — and its old bottom:80px sat squarely
+     over the panel. The chips now lift clear whenever the panel is showing
+     (see #mapwrap.nm-on below). #locateError is genuinely exclusive, since it
+     only appears when there is no fix at all. */
+  #nearMe{position:absolute;left:58px;right:10px;bottom:40px;z-index:400;
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,.18);overflow:hidden;}
+  #nearMe[hidden]{display:none;}
+  body.route-mode #nearMe{display:none;}
+  /* 44px minimum, because this is tapped moving and with gloves. */
+  #nearMe .rb-tab{padding:0 10px;min-height:44px;gap:6px;}
+  #nearMe .rb-tab-label{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .nm-body-wrap{display:flex;flex-direction:column;overflow:hidden;max-height:320px;transition:max-height .22s ease;}
+  #nearMe.nm-collapsed .nm-body-wrap{max-height:0;}
+  #nearMe.nm-collapsed .rb-tab-chev{transform:rotate(-90deg);}
+  .nm-body{border-top:1px solid var(--line);}
+  /* Rows are buttons, not divs: this opens the station sheet, so it has to be
+     reachable by keyboard and announce itself as an action. */
+  .nm-row{display:flex;align-items:baseline;gap:8px;width:100%;min-height:44px;
+    padding:7px 10px;border:none;background:none;font:inherit;color:inherit;text-align:left;
+    border-bottom:1px solid var(--line);-webkit-tap-highlight-color:transparent;}
+  .nm-row:last-child{border-bottom:none;}
+  .nm-row .nm-dist{flex-shrink:0;font-size:12.5px;font-weight:800;color:var(--navy-text);
+    min-width:62px;font-variant-numeric:tabular-nums;}
+  .nm-row .nm-what{flex:1;min-width:0;}
+  /* display:block, because both are spans: without it the name and the exit
+     run together on one line as "TA AmarilloI-40, Exit 74". Caught on screen,
+     not in review. */
+  .nm-row .nm-name{display:block;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .nm-row .nm-exit{display:block;font-size:11px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* The far-from-anything state. Amber rather than red: nothing has failed,
+     the answer is just that the network is a long way off. */
+  #nearMe.nm-far .rb-tab-label{color:var(--warn-text,#7A5200);}
+  /* Lift the locate chips above the panel whenever it is showing: 92px clears
+     the collapsed tab (40px up + 44px tall + a gap), and 268px clears it
+     expanded (44px tab + four 44px rows). Both numbers are measured, not
+     guessed — #locateHint fires on the very tap that turns location ON, so it
+     shares the screen with the panel at exactly the moment the panel first
+     appears, and a screenshot showed it sitting across the third row. */
+  #mapwrap.nm-on #locateHint, #mapwrap.nm-on #locateError{bottom:92px;}
+  #mapwrap.nm-open #locateHint, #mapwrap.nm-open #locateError{bottom:268px;}
 
   /* Live position dot — own H.map.Group so STOPS filter re-renders (which
      rebuild markerGroup) never touch it. Uses --you-are-here, not --ta —
@@ -969,6 +1034,19 @@
       </button>
       <div class="rr-body-wrap" id="routeResultsBodyWrap"><div class="rr-body" id="routeResultsBody"></div></div>
     </div>
+    <!-- Near Me. A sibling of #listview and #locateBtn inside #mapwrap, so it
+         hides with the same chrome the list already hides (see the
+         "#listview.show ~" rule) and with the same body.route-mode override.
+         Follows #routeResults' collapsible idiom exactly — tab button carrying
+         the collapsed answer, chevron, aria-expanded/aria-controls, and a
+         max-height body wrap — rather than inventing a second one. -->
+    <div id="nearMe" class="stops-only nm-collapsed" hidden>
+      <button type="button" id="nmTab" class="rb-tab" aria-expanded="false" aria-controls="nearMeBody">
+        <span class="rb-tab-label" id="nmSummary"></span>
+        <svg class="rb-tab-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="nm-body-wrap"><div class="nm-body" id="nearMeBody"></div></div>
+    </div>
     <div id="noMatch" class="stops-only" hidden>No network stops match these filters.<button type="button" id="clearFiltersBtn">Clear filters</button></div>
     <button id="legendBtn">Legend ⓘ</button>
     <button id="locateBtn" class="stops-only" title="Show my location" aria-label="Show my location">
@@ -1056,31 +1134,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.28.0"></script>
+<script src="lib/fuelplan.js?v=1.29.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.28.0"></script>
+<script src="lib/triptext.js?v=1.29.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.28.0"></script>
+<script src="lib/location.js?v=1.29.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.28.0"></script>
+<script src="lib/gauge.js?v=1.29.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.28.0"></script>
+<script src="lib/corridors.js?v=1.29.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.28.0"></script>
+<script src="lib/nearme.js?v=1.29.0"></script>
+<script>var NearMe = module.exports; module = { exports: {} };</script>
+<script src="lib/extract-version.js?v=1.29.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.28.0"></script>
+<script src="lib/autosuggest.js?v=1.29.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.28.0"></script>
+<script src="lib/baselayer.js?v=1.29.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.28.0"></script>
+<script src="lib/memocache.js?v=1.29.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.28.0"></script>
+<script src="lib/routerank.js?v=1.29.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.28.0"></script>
+<script src="lib/vehicleprofile.js?v=1.29.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.28.0"></script>
+<script src="lib/escape.js?v=1.29.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.28.0"></script>
+<script src="lib/navlinks.js?v=1.29.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1096,7 +1176,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.28.0')
+fetch('lib/fuelplan-adaptive.js?v=1.29.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1113,7 +1193,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.28.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.28.0')
+fetch('lib/shorttrip.js?v=1.29.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1124,7 +1204,7 @@ fetch('lib/shorttrip.js?v=1.28.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.28.0"></script>
+<script src="lib/flexible-polyline.js?v=1.29.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1284,7 +1364,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.28.0';
+const APP_VERSION = '1.29.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2658,6 +2738,7 @@ function startWatch(){
     pos => {
       liveFix = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
       renderLocationDot();
+      renderNearMe();
       setLocateBtnState('locked');
       hideLocateError();
       // The very first fix needs the same recenter+zoom a second tap would
@@ -2718,6 +2799,7 @@ function setLocationOff(off){
     locateBtnPending = false;
     liveFix = null;
     locateGroup.removeAll();
+    renderNearMe();          // liveFix is gone, so this hides the footer
     setLocateBtnState(null);
     hidePickupGeoError();
     showLocateHint('Location off \u2014 tap to turn on');
@@ -2806,6 +2888,113 @@ renderLocateOffState();
 const FUEL_STOPS = DATA.filter(r => r[11] !== 'term' && !CLOSED_STOP_IDS.has(r[0])).map(r => ({
   id: r[0], name: r[2], lat: r[9], lng: r[10], tier: r[11], row: r
 }));
+
+/* ---- Near Me footer ----
+   The nearest network fuel, from the live GPS fix, on the STOPS tab.
+
+   Defined here rather than beside the other location code because it reads
+   FUEL_STOPS, declared immediately above: a function DECLARATION hoists, so
+   renderLocationDot can call it from further up the file, but the body must
+   not run before this line executes. It never does — every caller is a fix
+   update or a mode switch, all of which happen long after parse.
+
+   FUEL_STOPS is also the whole exclusion story: it already drops the two
+   Covenant terminals and every CLOSED_STOP_IDS entry, so a closed stop can
+   never be offered as the nearest place to fuel and this file needs no
+   exclusion logic of its own to drift out of sync with the planner's.
+
+   IT DELIBERATELY IGNORES EVERY FILTER. Not passes(), not currentFiltered,
+   not the search box, not the corridor select. "Where am I" is a different
+   question from "what am I looking for", and a driver who filtered to
+   sit-down restaurants an hour ago must not be told the nearest fuel is 200
+   miles away. See lib/nearme.js for the same warning at the ranking. */
+const NEAR_ME_COUNT = 4;             // collapsed shows the first; expanded, all four
+
+// Recompute only when the driver has actually MOVED. watchPosition fires
+// repeatedly while parked — GPS jitter alone is tens of metres — and each
+// firing would otherwise rebuild four rows of DOM for an unchanged answer.
+// A quarter mile is well past jitter and far below the distance that could
+// reorder even two adjacent stops.
+const NEAR_ME_MOVE_MI = 0.25;
+let nearMeLastFix = null;            // the fix the current rows were built from
+let nearMeExpanded = false;
+
+function renderNearMe(){
+  const el = $('nearMe');
+  if(!el) return;
+  // One source of truth for "is location on": liveFix is null whenever
+  // location is off, denied, unavailable or still acquiring, because
+  // setLocationOff clears it and nothing else sets it but a real fix.
+  const wrap = $('mapwrap');
+  if(!liveFix){
+    el.hidden = true;
+    wrap.classList.remove('nm-on');   // let the locate chips drop back down
+    nearMeLastFix = null;
+    return;
+  }
+  el.hidden = false;
+  wrap.classList.add('nm-on');
+
+  // Skip the rebuild if the driver hasn't moved far enough to change the
+  // answer. The panel stays exactly as it is — no flicker, no DOM churn.
+  if(nearMeLastFix){
+    const moved = FuelPlan.haversine(nearMeLastFix.lat, nearMeLastFix.lng, liveFix.lat, liveFix.lng);
+    if(moved < NEAR_ME_MOVE_MI) return;
+  }
+  nearMeLastFix = { lat: liveFix.lat, lng: liveFix.lng };
+
+  // The real haversine, injected — lib/nearme.js never imports it, so that it
+  // stays a plain script with no fetch and no offline dependency.
+  const near = NearMe.nearestStops(liveFix.lat, liveFix.lng, FUEL_STOPS,
+                                   FuelPlan.haversine, NEAR_ME_COUNT);
+  if(!near.length){ el.hidden = true; return; }
+
+  const first = near[0];
+  const nearby = NearMe.isNearby(first.miles);
+  el.classList.toggle('nm-far', !nearby);
+  // Miles and a compass point, never a time: nothing here computed one, and
+  // a minutes figure the app did not compute would be a lie. Beyond the cap
+  // the sentence changes shape — it stops offering a stop and starts
+  // reporting a situation — but it still names the distance, because "no
+  // network stop nearby" without a number is not actionable either.
+  // The name already carries the brand — every one of the 144 fuel stops is
+  // named "TA Something" or "Petro Something" — so prefixing row[1] renders
+  // "TA TA Dallas South". The list view has always shown the name alone (the
+  // brand is its coloured T/P dot); this matches.
+  $('nmSummary').textContent = nearby
+    ? `${nearMeDist(first)} · ${first.stop.name}`
+    : `No network stop nearby — nearest is ${nearMeDist(first)}`;
+
+  const body = $('nearMeBody');
+  body.innerHTML = '';
+  near.forEach(n => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'nm-row';
+    b.innerHTML = `<span class="nm-dist">${nearMeDist(n)}</span>`
+      + `<span class="nm-what"><span class="nm-name">${Esc.escapeHtml(n.stop.name)}</span>`
+      + `<span class="nm-exit">${Esc.escapeHtml(n.stop.row[7] || n.stop.row[4] + ', ' + n.stop.row[5])}</span></span>`;
+    // Tapping a row opens the same station sheet a pin or list row opens —
+    // one detail view, not a parallel one.
+    b.addEventListener('click', () => openSheet(n.stop.row));
+    body.appendChild(b);
+  });
+}
+
+// "12 mi NE" — one formatting rule, so the summary and the rows can never
+// disagree about how far away something is.
+function nearMeDist(n){
+  return `${Math.round(n.miles)} mi ${n.direction}`;
+}
+
+function setNearMeExpanded(open){
+  nearMeExpanded = open;
+  $('nearMe').classList.toggle('nm-collapsed', !open);
+  // Keeps the locate chips clear of the taller panel — see #mapwrap.nm-open.
+  $('mapwrap').classList.toggle('nm-open', open);
+  $('nmTab').setAttribute('aria-expanded', String(open));
+}
+$('nmTab').addEventListener('click', () => setNearMeExpanded(!nearMeExpanded));
 
 // Detour tolerance widens only when the tight search would strand the driver.
 // planAdaptive (lib/fuelplan-adaptive.js) tries these in order and stops at

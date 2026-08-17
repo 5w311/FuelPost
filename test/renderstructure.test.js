@@ -491,5 +491,65 @@ ok('lib/corridors.js is loaded with a version stamp and shimmed',
    /<script src="lib\/corridors\.js\?v=[\d.]+"><\/script>/.test(html) &&
    /var Corridors = module\.exports;/.test(html));
 
+console.log('\n=== the Near Me footer (v1.29.0) ===');
+ok('the panel exists, STOPS-only, hidden until there is a fix',
+   /<div id="nearMe" class="stops-only nm-collapsed" hidden>/.test(html));
+ok('>>> it hides with the list view, alongside the legend and locate button',
+   /#listview\.show ~ #nearMe\{display:none;\}/.test(html));
+ok('>>> and it is hidden outright in Route mode, which owns that space',
+   /body\.route-mode #nearMe\{display:none;\}/.test(html));
+// The collapsible idiom is the existing one, not a second invention.
+ok('it reuses the routeResults tab pattern (.rb-tab + chevron)',
+   /<button type="button" id="nmTab" class="rb-tab"/.test(html));
+ok('>>> with aria-expanded and aria-controls on the tab',
+   /id="nmTab"[^>]*aria-expanded="false"[^>]*aria-controls="nearMeBody"/.test(html));
+ok('  and aria-expanded is kept in sync in code',
+   /\$\('nmTab'\)\.setAttribute\('aria-expanded', String\(open\)\);/.test(codeOnly));
+// Attribution is a terms issue: the panel must clear HERE's chrome. Measured
+// on a 390px phone — copyright is bottom-flush from x=194, scalebar 24-36px up.
+ok('>>> it sits clear of HERE\'s attribution and scalebar (bottom >= 40px)',
+   /#nearMe\{[^}]*bottom:40px/.test(html), (/#nearMe\{[^}]*\}/.exec(html) || [''])[0]);
+ok('  and clear of the locate button (left >= 58px)',
+   /#nearMe\{[^}]*left:58px/.test(html));
+ok('  at z-index 400, level with the other map chrome',
+   /#nearMe\{[^}]*z-index:400/.test(html));
+ok('  with 44px touch targets, for gloved hands on the move',
+   /#nearMe \.rb-tab\{[^}]*min-height:44px/.test(html) && /\.nm-row\{[^}]*min-height:44px/.test(html));
+
+// The ranking must never see a filter. This is the invariant the brief calls
+// out as most likely to be broken later.
+ok('>>> the ranking is fed FUEL_STOPS, never the filtered set',
+   /NearMe\.nearestStops\(liveFix\.lat, liveFix\.lng, FUEL_STOPS,/.test(codeOnly));
+ok('  and never currentFiltered or passes()',
+   !/nearestStops\([^)]*currentFiltered/.test(codeOnly) && !/nearestStops\([^)]*passes/.test(codeOnly));
+ok('  the real haversine is what measures every mile',
+   /FuelPlan\.haversine, NEAR_ME_COUNT\)/.test(codeOnly));
+// One source of truth for "is location on".
+ok('>>> visibility keys off liveFix alone, with no second flag',
+   /if\(!liveFix\)\{\s*el\.hidden = true;/.test(codeOnly));
+ok('  and it re-renders on every fix update', /renderLocationDot\(\);\s*renderNearMe\(\);/.test(codeOnly));
+ok('  and when location is switched off', /liveFix = null;[\s\S]{0,120}renderNearMe\(\);/.test(codeOnly));
+// Movement threshold, so watchPosition jitter does not rebuild the DOM.
+ok('>>> a movement threshold guards the rebuild',
+   /const NEAR_ME_MOVE_MI = 0\.25;/.test(codeOnly) && /if\(moved < NEAR_ME_MOVE_MI\) return;/.test(codeOnly));
+// No drive time, ever.
+ok('>>> the summary states miles and a direction, never a time',
+   /\$\{Math\.round\(n\.miles\)\} mi \$\{n\.direction\}/.test(codeOnly) &&
+   !/\bmin\b|minutes|hrs|hours/.test((/function nearMeDist[\s\S]{0,200}/.exec(codeOnly) || [''])[0]));
+ok('  and the over-cap message still names the distance',
+   /No network stop nearby — nearest is/.test(codeOnly));
+// Tap-through reuses the one detail view.
+ok('>>> tapping a row opens the existing station sheet',
+   /b\.addEventListener\('click', \(\) => openSheet\(n\.stop\.row\)\);/.test(codeOnly));
+// The stop name already begins with its brand ("TA Dallas South"), so
+// prefixing row[1] rendered "TA TA Dallas South" — caught on screen, not in
+// review. The list view has always shown the name alone.
+ok('>>> the brand is not prefixed onto a name that already carries it',
+   !/row\[1\] \+ ' ' \+ n\.stop\.name/.test(codeOnly) &&
+   !/\$\{first\.stop\.row\[1\]\} \$\{first\.stop\.name\}/.test(codeOnly));
+ok('lib/nearme.js is loaded with a version stamp and shimmed',
+   /<script src="lib\/nearme\.js\?v=[\d.]+"><\/script>/.test(html) &&
+   /var NearMe = module\.exports;/.test(html));
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
