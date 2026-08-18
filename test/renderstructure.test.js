@@ -402,7 +402,7 @@ ok('>>> Long is the one marked active in the initial markup',
    /data-tier="long"[^>]*class="active"/.test(tierSeg), tierSeg.slice(0, 400));
 ok('  and no other tier is', (tierSeg.match(/class="active"/g) || []).length === 1);
 ok('each button shows its mile figure, not just a name',
-   /400 mi/.test(tierSeg) && /625 mi/.test(tierSeg) && /875 mi/.test(tierSeg));
+   /500 mi/.test(tierSeg) && /675 mi/.test(tierSeg) && /875 mi/.test(tierSeg));
 ok('and the stop-frequency tradeoff alongside it',
    /Most stops/.test(tierSeg) && /Fewer stops/.test(tierSeg) && /Fewest stops/.test(tierSeg));
 // The constants behind them.
@@ -411,9 +411,17 @@ ok('>>> ROUTE_DEFAULT_RANGE is derived from the tier table, never hardcoded',
    /const ROUTE_DEFAULT_RANGE = RANGE_TIERS\[DEFAULT_RANGE_TIER\]\.miles;/.test(codeOnly));
 ok('  so it can no longer be the old 875 by accident',
    !/const ROUTE_DEFAULT_RANGE = 875/.test(codeOnly));
-ok('the three tier mile values are 400 / 625 / 875',
-   /regular:\s*\{ miles: 400/.test(codeOnly) && /long:\s*\{ miles: 625/.test(codeOnly)
+ok('the three tier mile values are 500 / 675 / 875',
+   /regular:\s*\{ miles: 500/.test(codeOnly) && /long:\s*\{ miles: 675/.test(codeOnly)
    && /max:\s*\{ miles: 875/.test(codeOnly));
+// The button labels must agree with the constants — they are written by hand
+// in the markup, so nothing else keeps them honest.
+ok('  and the buttons show those same figures',
+   /data-tier="regular"[^>]*><b>Regular<\/b><span>500 mi<\/span>/.test(html) &&
+   /data-tier="long"[^>]*><b>Long<\/b><span>675 mi<\/span>/.test(html));
+ok('>>> Custom names the range it accepts rather than "Your own"',
+   /data-tier="custom"[^>]*><b>Custom<\/b><span>300&ndash;1200<\/span>/.test(html) &&
+   !/Your own/.test(html));
 
 // Custom must keep the original input, clamping and all — a driver who knows
 // their number must not lose it.

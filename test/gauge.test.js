@@ -123,9 +123,13 @@ console.log('\n=== the range tiers land on the tank scale ===');
 
   ok('Max 875 is exactly 7 ticks — a full tank minus the held-back eighth',
      875 === (G.TICKS - G.RESERVE_TICKS) * G.MILES_PER_TICK);
-  ok('Long 625 is exactly 5 ticks', 625 === 5 * G.MILES_PER_TICK);
-  ok('Regular 400 is NOT a whole tick (3.2) — a road-practice number, as documented',
-     400 % G.MILES_PER_TICK !== 0 && 400 / G.MILES_PER_TICK === 3.2);
+  ok('Regular 500 is exactly 4 ticks — half a tank', 500 === 4 * G.MILES_PER_TICK);
+  // v1.30.0 moved the values from 400/625 to 500/675, and in doing so SWAPPED
+  // which tier falls off the tick scale: it used to be Regular at 3.2 ticks
+  // with Long landing exactly on 5. Asserting the odd one out by name is what
+  // catches the comment in index.html drifting away from the numbers.
+  ok('Long 675 is NOT a whole tick (5.4) — a road-practice number, as documented',
+     675 % G.MILES_PER_TICK !== 0 && 675 / G.MILES_PER_TICK === 5.4);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

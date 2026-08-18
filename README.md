@@ -61,10 +61,10 @@ Three inputs shape the plan:
 
 ### Range tiers, and the default that moved (v1.27.0)
 
-> **The default range changed from 875 mi to 625 mi.** A familiar route will
-> plan **more stops** than it did on v1.26.x and earlier. That is the intended
-> improvement, not a bug — but if a plan looks busier than you remember, this is
-> why.
+> **The default range is 675 mi** (875 before v1.27.0, 625 in v1.27.0–v1.29.x).
+> A familiar route plans **more stops** than it did before v1.27.0. That is the
+> intended improvement, not a bug — but if a plan looks busier than you
+> remember, this is why.
 
 The old control was a number box asking "how far do you run between fuel
 stops?", and its own help text conceded the problem: *set this once, most
@@ -75,16 +75,20 @@ fewest-stops setting.
 
 | Tier | Miles | On the tank scale | Stop frequency |
 |---|---|---|---|
-| Regular | 400 | 3.2 ticks — *not* a whole tick | Most stops |
-| **Long** (default) | **625** | exactly 5 ticks | Fewer stops |
+| Regular | 500 | exactly 4 ticks — half a tank | Most stops |
+| **Long** (default) | **675** | 5.4 ticks — *not* a whole tick | Fewer stops |
 | Max | 875 | exactly 7 ticks — a full tank minus the held-back 1/8 | Fewest stops |
 | Custom | 300–1200 | whatever you type | — |
 
-Two of the three sit exactly on the fuel gauge's own scale, and that is the
-point: with `FULL_TANK_MILES` 1000 over `TICKS` 8, a tick is 125 mi. Regular's
-400 is deliberately *not* a whole tick — it is a road-practice number, roughly
-seven hours of driving, and `gauge.test.js` asserts that it isn't one so nobody
-"corrects" it later.
+Two of the three sit exactly on the fuel gauge's own scale: with
+`FULL_TANK_MILES` 1000 over `TICKS` 8, a tick is 125 mi. Long's 675 is
+deliberately *not* a whole tick — it is a road-practice number, and
+`gauge.test.js` asserts that it isn't one so nobody "corrects" it later.
+
+**Which tier is the odd one out changed at v1.30.0**, when the values moved from
+400/625 to 500/675: before that it was Regular that fell off the tick scale and
+Long that landed on it. Both the code comment and the test said so, and both had
+to be corrected rather than left describing the old numbers.
 
 The tier names the tradeoff the driver is actually making — how often they stop
 — while each button still shows its mile figure, because that number is what
@@ -135,7 +139,7 @@ of unused range, while 3/8 and 1/2 then change nothing further. It decides
 *whether* a late stop is needed, not how gently the tank drains.
 
 **When the reserve can't be met.** A driver can ask for more than a route can
-give — Regular's 400 mi range with a 1/2 reserve needs a stop within 25 mi of
+give — Regular's 500 mi range with a 1/2 reserve needs a stop within 125 mi of
 the delivery. That is a real state and it reads as one: the app shows the plan
 it *can* make, says what the arrival actually works out to, and points at the
 settings that move it. It is explicitly **not** shown as a fuel gap. Every leg
@@ -332,9 +336,9 @@ planner rather than a second one to drift.
 **The hard cap is 200 miles.** Beyond it the footer stops offering a stop and
 reports a situation instead — *No network stop nearby — nearest is 224 mi S* —
 because it still has to name the distance to be actionable. 200 was chosen from
-the brief's 150–250 band: it is half of the smallest range tier (Regular, 400 mi
-between stops) and over three hours of driving, so past it the answer is no
-longer a fuelling decision. The band's edges both fail: 150 would fire during
+the brief's 150–250 band: it is well inside the smallest range tier (Regular,
+500 mi between stops) and over three hours of driving, so past it the answer is
+no longer a fuelling decision. The band's edges both fail: 150 would fire during
 ordinary sparse-network driving, and 250 would stay silent through the ~490 mile
 I-40 gap in New Mexico, where the nearest stop measures **224 mi** and a driver
 most needs telling plainly.
@@ -626,9 +630,26 @@ overlay unmount it.
 
 ## Version history
 
-### v1.29.2
+### v1.30.0
 
-**The collapsed line says what it is.** *Nearest Fuel Stop: 7 mi S · Petro North
+**Range tier values, and the Near Me line says what it is.**
+
+The tiers move to **Regular 500, Long 675, Max 875** (from 400/625/875), so the
+default range — which is the Long tier — goes 625 → 675. Plans on a familiar
+route may shed a stop relative to v1.27–v1.29.
+
+That swapped which tier sits on the fuel gauge's tick scale: Regular's 500 is now
+exactly 4 ticks (half a tank) while Long's 675 lands at 5.4 and is the
+road-practice number. The comment in `index.html` and the assertion in
+`gauge.test.js` both named the *old* odd-one-out and both were corrected — that
+pairing exists precisely so a value change cannot leave the prose describing
+numbers that are gone.
+
+**Custom** no longer reads "Your own". It shows the range it actually accepts,
+`300–1200`, so every tier button's middle line is a mile figure, with *Set a
+number* beneath it.
+
+**The collapsed Near Me line says what it is.** *Nearest Fuel Stop: 7 mi S · Petro North
 Baltimore*, where before it was a bare *7 mi S · Petro North Baltimore* and left
 the driver to infer the rest.
 
