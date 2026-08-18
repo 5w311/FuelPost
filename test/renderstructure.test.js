@@ -402,7 +402,7 @@ ok('>>> Long is the one marked active in the initial markup',
    /data-tier="long"[^>]*class="active"/.test(tierSeg), tierSeg.slice(0, 400));
 ok('  and no other tier is', (tierSeg.match(/class="active"/g) || []).length === 1);
 ok('each button shows its mile figure, not just a name',
-   /400 mi/.test(tierSeg) && /625 mi/.test(tierSeg) && /875 mi/.test(tierSeg));
+   /500 mi/.test(tierSeg) && /675 mi/.test(tierSeg) && /875 mi/.test(tierSeg));
 ok('and the stop-frequency tradeoff alongside it',
    /Most stops/.test(tierSeg) && /Fewer stops/.test(tierSeg) && /Fewest stops/.test(tierSeg));
 // The constants behind them.
@@ -411,9 +411,17 @@ ok('>>> ROUTE_DEFAULT_RANGE is derived from the tier table, never hardcoded',
    /const ROUTE_DEFAULT_RANGE = RANGE_TIERS\[DEFAULT_RANGE_TIER\]\.miles;/.test(codeOnly));
 ok('  so it can no longer be the old 875 by accident',
    !/const ROUTE_DEFAULT_RANGE = 875/.test(codeOnly));
-ok('the three tier mile values are 400 / 625 / 875',
-   /regular:\s*\{ miles: 400/.test(codeOnly) && /long:\s*\{ miles: 625/.test(codeOnly)
+ok('the three tier mile values are 500 / 675 / 875',
+   /regular:\s*\{ miles: 500/.test(codeOnly) && /long:\s*\{ miles: 675/.test(codeOnly)
    && /max:\s*\{ miles: 875/.test(codeOnly));
+// The button labels must agree with the constants — they are written by hand
+// in the markup, so nothing else keeps them honest.
+ok('  and the buttons show those same figures',
+   /data-tier="regular"[^>]*><b>Regular<\/b><span>500 mi<\/span>/.test(html) &&
+   /data-tier="long"[^>]*><b>Long<\/b><span>675 mi<\/span>/.test(html));
+ok('>>> Custom names the range it accepts rather than "Your own"',
+   /data-tier="custom"[^>]*><b>Custom<\/b><span>300&ndash;1200<\/span>/.test(html) &&
+   !/Your own/.test(html));
 
 // Custom must keep the original input, clamping and all — a driver who knows
 // their number must not lose it.
@@ -556,6 +564,21 @@ ok('>>> the summary states miles and a direction, never a time',
    !/\bmin\b|minutes|hrs|hours/.test((/function nearMeDist[\s\S]{0,200}/.exec(codeOnly) || [''])[0]));
 ok('  and the over-cap message still names the distance',
    /No network stop nearby — nearest is/.test(codeOnly));
+// v1.29.2: the line says what it IS, not just a distance and a name.
+ok('>>> the collapsed line is labelled "Nearest Fuel Stop:"',
+   /<span class="nm-lead">Nearest Fuel Stop:<\/span>/.test(codeOnly));
+ok('  the label is a smaller muted lead, so the stop keeps the width',
+   /\.nm-lead\{font-size:11px;font-weight:600;color:var\(--sub\);\}/.test(html));
+// Measured with an unclipped clone: the longest line needs 311px, and a 320px
+// screen offers 278. The label is the part worth dropping there.
+ok('  and it is dropped below 340px, where the name would ellipsis instead',
+   /@media \(max-width: 340px\)\{ \.nm-lead\{display:none;\} \}/.test(html));
+// The over-cap sentence is NOT labelled — it already contains "nearest".
+ok('  the over-cap sentence is not double-labelled',
+   !/nm-lead[^`]*No network stop nearby/.test(codeOnly));
+// innerHTML now, so the station name must still be escaped.
+ok('>>> the station name is escaped, since the line is innerHTML now',
+   /nmSummary'\)\.innerHTML[\s\S]{0,200}Esc\.escapeHtml\(/.test(codeOnly));
 // Tap-through reuses the one detail view.
 ok('>>> tapping a row opens the existing station sheet',
    /b\.addEventListener\('click', \(\) => openSheet\(n\.stop\.row\)\);/.test(codeOnly));
