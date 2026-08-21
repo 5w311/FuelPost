@@ -116,10 +116,24 @@ range; this puts a dial on it:
 
 | Setting | Extra range held for arrival | Effect |
 |---|---|---|
-| **1/8** (default) | 0 mi | exactly the behaviour of every release before v1.27.0 |
+| *(nothing selected)* | 0 mi | the standard reserve — exactly the behaviour of every release before v1.27.0 |
 | 1/4 | 125 mi | |
 | 3/8 | 250 mi | |
 | 1/2 | 375 mi | |
+
+**1/8 is not offered as a choice** (removed in v1.30.1). Nobody wants to arrive
+on an eighth of a tank, and presenting it as a button offered a target no driver
+would pick. It is gone from the buttons only, **not from the model**: 1/8 is
+still `RESERVE_TICKS`, still the reserve every release has held back, and still
+what the planner uses when the driver has not raised it.
+
+So the disclosure opens with three buttons and **none selected**, which is the
+correct state rather than an unset one — the help line says what is already held
+back and what the buttons add on top of it. Closing the disclosure remains the
+way back to standard. There is deliberately no fourth *Standard* button and no
+tap-to-deselect: the disclosure toggle is already the on/off control, and a
+second route to the same state is redundant. Opening it never changes the plan,
+the same contract the pickup gauge holds.
 
 Mechanically it is one changed loop condition: the planner now runs until it can
 reach `routeMiles + reserve`, which is exactly the condition
@@ -629,6 +643,33 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.30.1
+
+**1/8 is no longer offered as an arrival reserve.** Nobody wants to arrive on an
+eighth of a tank, so presenting it as a button offered a target no driver would
+pick. `ARRIVAL_TICK_CHOICES` becomes 1/4, 3/8, 1/2.
+
+It is removed from the choices, **not from the model**: 1/8 remains
+`RESERVE_TICKS`, remains the reserve every release has applied, and remains what
+the planner uses when nothing is selected — `arrivalReserveMiles(RESERVE_TICKS)`
+is still 0, which is what keeps the standard reserve byte-identical to today's
+behaviour. `gauge.test.js` now asserts those two facts *as a pair*: that
+`RESERVE_TICKS` is absent from the choices, and that it still adds zero miles.
+Either alone would read as an accident.
+
+The surrounding wiring needed no changes and was verified rather than assumed:
+`setArrivalTick` already falls back to `RESERVE_TICKS` for any tick not in the
+choices, the button loop already matches on `data-tick` (so nothing is active at
+1/8), the help text already branches on a zero reserve, and the Clear-trip check
+already compares against `RESERVE_TICKS`.
+
+One wording change: the standard-reserve line is now the **first** thing a
+driver sees on opening, so it explains the empty state and the affordance —
+*"the bottom 1/8 (about 125 mi) is always held back. Pick one to arrive with
+more on top of that."* It previously trailed off with "as it always has been",
+which works as reassurance on the way back to standard but explains nothing to
+someone seeing the control for the first time.
 
 ### v1.30.0
 
