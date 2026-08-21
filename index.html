@@ -1169,33 +1169,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.30.0"></script>
+<script src="lib/fuelplan.js?v=1.30.1"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.30.0"></script>
+<script src="lib/triptext.js?v=1.30.1"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.30.0"></script>
+<script src="lib/location.js?v=1.30.1"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.30.0"></script>
+<script src="lib/gauge.js?v=1.30.1"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.30.0"></script>
+<script src="lib/corridors.js?v=1.30.1"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.30.0"></script>
+<script src="lib/nearme.js?v=1.30.1"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.30.0"></script>
+<script src="lib/extract-version.js?v=1.30.1"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.30.0"></script>
+<script src="lib/autosuggest.js?v=1.30.1"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.30.0"></script>
+<script src="lib/baselayer.js?v=1.30.1"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.30.0"></script>
+<script src="lib/memocache.js?v=1.30.1"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.30.0"></script>
+<script src="lib/routerank.js?v=1.30.1"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.30.0"></script>
+<script src="lib/vehicleprofile.js?v=1.30.1"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.30.0"></script>
+<script src="lib/escape.js?v=1.30.1"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.30.0"></script>
+<script src="lib/navlinks.js?v=1.30.1"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1211,7 +1211,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.30.0')
+fetch('lib/fuelplan-adaptive.js?v=1.30.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1228,7 +1228,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.30.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.30.0')
+fetch('lib/shorttrip.js?v=1.30.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1239,7 +1239,7 @@ fetch('lib/shorttrip.js?v=1.30.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.30.0"></script>
+<script src="lib/flexible-polyline.js?v=1.30.1"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1399,7 +1399,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.30.0';
+const APP_VERSION = '1.30.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -4221,11 +4221,19 @@ function setArrivalTick(tick){
     b.setAttribute('aria-pressed', String(on));
   });
   const extra = FuelGauge.arrivalReserveMiles(arrivalTick);
-  // At the default the honest statement is that nothing is being added — the
-  // bottom 1/8 was always held back and still is. Saying "0 mi of reserve"
-  // would read as if the driver had switched something off.
+  // At the standard reserve the honest statement is that nothing is being
+  // added — the bottom 1/8 was always held back and still is. Saying "0 mi of
+  // reserve" would read as if the driver had switched something off.
+  //
+  // Since v1.30.1 this is also the FIRST thing a driver sees: 1/8 is no longer
+  // a button, so opening the disclosure shows three choices with none
+  // selected. A segmented control with no selection can read as broken, so
+  // this line has to carry the meaning — it says what is already being held
+  // back, and then what the buttons are for. The old wording ended "as it
+  // always has been", which works as reassurance on the way BACK to standard
+  // but explains nothing to someone seeing the control for the first time.
   $('arrivalHelp').textContent = extra === 0
-    ? `Standard — the bottom 1/8 (about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} mi) is always held back, as it always has been.`
+    ? `Standard — the bottom 1/8 (about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} mi) is always held back. Pick one to arrive with more on top of that.`
     : `Plans a stop early enough to arrive with about ${extra} mi of range still unused, on top of that reserve.`;
   updateClearVisibility();
 }

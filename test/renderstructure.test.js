@@ -442,6 +442,28 @@ ok('>>> it defaults to RESERVE_TICKS — exactly the pre-v1.27.0 floor',
    /setArrivalTick\(FuelGauge\.RESERVE_TICKS\)/.test(codeOnly));
 ok('  the choices come from the gauge, not a local list',
    /FuelGauge\.ARRIVAL_TICK_CHOICES\.map/.test(codeOnly));
+// v1.30.1: 1/8 is no longer a button, so the disclosure opens with THREE
+// choices and none selected. The help line is what makes that read as
+// deliberate rather than broken, so it has to say what is held back AND what
+// the buttons are for.
+ok('>>> the standard-reserve line explains the empty state and the affordance',
+   /is always held back\. Pick one to arrive with more on top of that\./.test(codeOnly));
+ok('  and it no longer trails off with "as it always has been"',
+   !/as it always has been/.test(codeOnly));
+// No fourth Standard button, and no deselect-on-tap: the disclosure toggle is
+// already the on/off control, and a second route to the same state is
+// redundant. Both were considered and rejected.
+// Scoped to buildArrivalSeg's own body: a bare />Standard</ search matches the
+// VEHICLE profile's Standard button, which is a different control entirely.
+{
+  const bas = codeOnly.slice(codeOnly.indexOf('function buildArrivalSeg('));
+  const basBody = bas.slice(0, bas.indexOf('\n}\n') + 3);
+  ok('  the segment is built ONLY from the choices — no extra button appended',
+     /ARRIVAL_TICK_CHOICES\.map/.test(basBody) && !/Standard/.test(basBody)
+     && !/data-tick="1"/.test(basBody), basBody.slice(0, 240));
+}
+ok('  and opening the disclosure does not auto-select a reserve',
+   !/setArrivalOpen\(true\)[\s\S]{0,120}setArrivalTick\([234]\)/.test(codeOnly));
 ok('  and the fraction labels come from tickLabel, never a second array',
    /FuelGauge\.tickLabel\(t\)/.test(codeOnly) && !/\['1\/8', ?'1\/4'/.test(codeOnly));
 ok('closing the disclosure resets it, so nothing steers plans from behind a closed panel',

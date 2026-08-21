@@ -80,24 +80,34 @@ console.log('\n=== the 1/8 floor feeds the real planner into an immediate zero-w
 }
 
 console.log('\n=== arrival reserve: ticks -> miles (v1.27.0) ===');
-// The four choices a driver can make, pinned at their exact mile values.
+// The three choices a driver can make, pinned at their exact mile values.
 // These are what planFuel receives, so a silent change here would move every
 // plan without a single test in fuelplan.test.js noticing.
 {
 
-  ok('the four choices are 1/8, 1/4, 3/8, 1/2',
-     JSON.stringify(G.ARRIVAL_TICK_CHOICES) === '[1,2,3,4]', JSON.stringify(G.ARRIVAL_TICK_CHOICES));
-  ok('1/8 -> 0 mi', G.arrivalReserveMiles(1) === 0, String(G.arrivalReserveMiles(1)));
+  ok('the three choices are 1/4, 3/8, 1/2',
+     JSON.stringify(G.ARRIVAL_TICK_CHOICES) === '[2,3,4]', JSON.stringify(G.ARRIVAL_TICK_CHOICES));
+  // v1.30.1 dropped 1/8 as a CHOICE while keeping it as the model's standard
+  // reserve. These two together are the whole intent, and they have to be
+  // asserted as a pair: either alone reads as an accident.
+  ok('>>> RESERVE_TICKS is deliberately NOT offered as a choice',
+     !G.ARRIVAL_TICK_CHOICES.includes(G.RESERVE_TICKS), JSON.stringify(G.ARRIVAL_TICK_CHOICES));
+  ok('>>> but it is still the standard reserve, adding exactly zero miles',
+     G.arrivalReserveMiles(G.RESERVE_TICKS) === 0);
+  ok('  every offered choice adds MORE than the standard reserve',
+     G.ARRIVAL_TICK_CHOICES.every(t => G.arrivalReserveMiles(t) > 0),
+     JSON.stringify(G.ARRIVAL_TICK_CHOICES.map(t => G.arrivalReserveMiles(t))));
+  // Still pinned even though 1/8 is no longer selectable: the planner reads
+  // this value every time the driver leaves the reserve alone.
+  ok('1/8 -> 0 mi (the standard reserve, no longer a button)',
+     G.arrivalReserveMiles(1) === 0, String(G.arrivalReserveMiles(1)));
   ok('1/4 -> 125 mi', G.arrivalReserveMiles(2) === 125, String(G.arrivalReserveMiles(2)));
   ok('3/8 -> 250 mi', G.arrivalReserveMiles(3) === 250, String(G.arrivalReserveMiles(3)));
   ok('1/2 -> 375 mi', G.arrivalReserveMiles(4) === 375, String(G.arrivalReserveMiles(4)));
 
-  // THE ONE THAT MATTERS MOST: the default is zero extra. RESERVE_TICKS was
-  // always an arrival reserve of 1/8 that no driver could change, so the
-  // default choice must add nothing on top of it — that is what makes every
-  // pre-v1.27.0 plan reproduce exactly.
-  ok('>>> the default choice (RESERVE_TICKS) adds exactly zero miles',
-     G.arrivalReserveMiles(G.RESERVE_TICKS) === 0);
+  // (The "RESERVE_TICKS adds zero miles" assertion lives above, paired with
+  // the one saying it is not offered as a choice — the two only mean anything
+  // together, so they are not repeated separately here.)
   // Every choice is a whole tick above the floor, by construction.
   ok('each step up is exactly one tick of miles',
      G.ARRIVAL_TICK_CHOICES.every(t => G.arrivalReserveMiles(t) === (t - G.RESERVE_TICKS) * G.MILES_PER_TICK));
@@ -108,7 +118,7 @@ console.log('\n=== arrival reserve: ticks -> miles (v1.27.0) ===');
      [0,1,2,3,4,5,6,7,8].every(t => G.arrivalReserveMiles(t) === G.plannableMilesForTick(t)));
   // Labels come from tickLabel, never a second fractions array.
   ok('the labels are the gauge\'s own fraction strings',
-     G.ARRIVAL_TICK_CHOICES.map(t => G.tickLabel(t)).join('|') === '1/8|1/4|3/8|1/2',
+     G.ARRIVAL_TICK_CHOICES.map(t => G.tickLabel(t)).join('|') === '1/4|3/8|1/2',
      G.ARRIVAL_TICK_CHOICES.map(t => G.tickLabel(t)).join('|'));
   // Defensive, same shape as the rest of this module: clamped, never negative.
   ok('clamped below', G.arrivalReserveMiles(-3) === 0);
