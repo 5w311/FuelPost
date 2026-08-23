@@ -167,22 +167,63 @@ ok('>>> it sits at the TOP — before the first data row, not among the amenitie
    osBody0.indexOf('class="closedNote"') < osBody0.indexOf('class="k">Address'),
    'closedNote must precede the address row');
 ok('  and immediately after the badges', osBody0.indexOf('class="badges"') < osBody0.indexOf('class="closedNote"'));
-ok('it says plainly that the stop is closed and is not planned',
-   /Permanently closed/.test(osBody0) && /not used for fuel planning/i.test(osBody0));
+ok('it says plainly that the stop is not planned',
+   /not used for fuel planning/i.test(osBody0));
 // Colour must not be the only carrier: a ✕ and the words do the work too.
-ok('>>> meaning does not rest on colour alone (a mark and words carry it)',
-   /✕/.test(osBody0) && /Permanently closed<\/b>/.test(osBody0));
+// The headline is data now (v1.30.2), so the mark is pinned here and the
+// words are pinned on the table below.
+ok('>>> meaning does not rest on colour alone (a mark and a headline carry it)',
+   /✕/.test(osBody0) && /\$\{info\.title[^}]*\}<\/b>/.test(osBody0));
+// v1.30.2: two closures that do not read alike. A driver told "permanently
+// closed" about TA Gary writes off a lot they could still park in overnight;
+// one told "parking only" about TA Corning goes looking for a gate that isn't
+// there. Both sentences must exist, and the renderer must pick between them
+// by lookup rather than by an if on the station id.
+ok('>>> the banner copy is looked up per station, not hardcoded in the renderer',
+   /CLOSED_STOP_INFO\[id\]/.test(osBody0)
+   && !/CA5|IN1/.test(osBody0), 'no station id may appear in openSheet');
+const infoSrc = html.slice(html.indexOf('const CLOSED_STOP_INFO'));
+const infoBody = infoSrc.slice(0, infoSrc.indexOf('\n};') + 3);
+const entry = id => {
+  const i = infoBody.indexOf(id + ': {');
+  if (i < 0) return '';
+  return infoBody.slice(i, infoBody.indexOf('\n  }', i));
+};
+const CA5_E = entry('CA5'), IN1_E = entry('IN1');
+ok('  both entries were actually found (not two empty strings)',
+   CA5_E.length > 40 && IN1_E.length > 40 && !CA5_E.includes('IN1:'),
+   JSON.stringify([CA5_E.length, IN1_E.length]));
+ok('  the permanent closure still says "Permanently closed"',
+   /title: 'Permanently closed'/.test(CA5_E));
+ok('>>> TA Gary says temporarily closed AND that parking is what is left',
+   /title: 'Temporarily closed — parking only'/.test(IN1_E)
+   && /The lot is open and taking trucks/.test(IN1_E), IN1_E);
+ok('  the list chip for TA Gary reads "Parking only", not "Closed"',
+   /tag: 'Parking only'/.test(IN1_E) && /tag: 'Closed'/.test(CA5_E));
+// The banner has to disown the amenity rows under it: those rows still read
+// 14 showers and 6 bays, straight from the fuel book.
+ok('  and it names what is closed, not just that something is',
+   /showers/.test(IN1_E) && /service bays/.test(IN1_E), IN1_E);
 ok('the banner uses theme custom properties, not a fixed light-mode red',
    /#sheet \.closedNote\{[^}]*var\(--danger-text\)/.test(html)
    && !/#sheet \.closedNote\{[^}]*background:#[0-9A-Fa-f]{6}/.test(html));
 // An alternative is named only where one exists — TA Saginaw has no sibling
 // and the sheet must not invent one.
 ok('>>> the alternative is looked up, never hardcoded per station',
-   /CLOSED_STOP_ALT\[id\]/.test(osBody0) && /\$\{alt \?/.test(osBody0));
-ok('  the alt map names Petro Corning for TA Corning and nothing for Saginaw',
-   /const CLOSED_STOP_ALT = \{ CA5: 'CA4' \};/.test(html));
-ok('the list row also carries a closed tag',
-   /CLOSED_STOP_IDS\.has\(row\[0\]\)\?'<span class="tag tag-closed">Closed<\/span>'/.test(html));
+   /const alt = DATA\.find\(r => r\[0\] === info\.alt\)/.test(osBody0)
+   && /\$\{alt \?/.test(osBody0));
+ok('  the table names Petro Corning for TA Corning and Petro Gary for TA Gary',
+   /alt: 'CA4'/.test(CA5_E) && /alt: 'IN2'/.test(IN1_E));
+// Only ONE of the two alternatives is at the same exit — Petro Gary is at
+// exit 9 against TA Gary's exit 6 — so the relationship cannot be a constant
+// in the sentence. It was one before v1.30.2, and shipping the new row
+// without this would have told drivers to look for Petro Gary at exit 6.
+ok('>>> how the alternative relates to the stop is per-station, not "same exit"',
+   /\$\{info\.altNote\}/.test(osBody0) && !/same exit \(/.test(osBody0));
+ok('  and each entry says which it is', /altNote: 'same exit'/.test(CA5_E)
+   && /altNote: '2\.5 mi east'/.test(IN1_E));
+ok('the list row also carries a closed tag, worded per station',
+   /CLOSED_STOP_IDS\.has\(row\[0\]\)\?`<span class="tag tag-closed">\$\{CLOSED_STOP_INFO\[row\[0\]\]\.tag\}<\/span>`/.test(html));
 
 console.log('\n=== the station sheet hands off to a nav app ===');
 const osFn = html.slice(html.indexOf('function openSheet('));
