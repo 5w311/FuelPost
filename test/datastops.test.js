@@ -151,6 +151,41 @@ console.log('\n=== marker stacking: a closed pin never hides an open one ===');
      /if\(CLOSED_STOP_IDS\.has\(row\[0\]\)\) marker\.setZIndex\(CLOSED_PIN_Z\);/.test(html));
   ok('  CLOSED_PIN_Z is below every default the engine assigns',
      /const CLOSED_PIN_Z = -1;/.test(html));
+  // v1.30.3: the pin also SAYS it, rather than only sitting behind. Stacking
+  // order is invisible unless two pins overlap; a closed stop alone on screen
+  // looked exactly like an open one.
+  ok('>>> closed pins carry a red dot',
+     /\.pin\.closed:after\{[^}]*background:var\(--pin-closed\)/.test(html));
+  ok('  in its own marker colour, not the theme-swapping --danger-text',
+     /--pin-closed:#[0-9A-Fa-f]{6};/.test(html)
+     && !/\.pin\.closed:after\{[^}]*--danger-text/.test(html));
+  // Equal specificity, so source order is the whole rule. 31 rows are `excl`
+  // and any of them could close; a closed exclusive must read red, not gold.
+  // Index on the RULE, not the bare selector: the comment above these rules
+  // names `.pin.excl:after` in prose, and a first version of this assertion
+  // matched that comment instead — it sits above both rules, so swapping the
+  // two rules left it passing. Requiring the `{` pins the declaration itself.
+  ok('>>> the closed dot is declared AFTER the exclusive dot (red beats gold)',
+     html.indexOf('.pin.excl:after{') < html.indexOf('.pin.closed:after{')
+     && html.indexOf('.pin.excl:after{') !== -1);
+  ok('  and shares the exclusive dot\'s offsets — .pin is rotate(-45deg), so '
+     + 'top-right IS visually above',
+     /\.pin\.excl:after\{[^}]*top:-5px;right:-5px/.test(html)
+     && /\.pin\.closed:after\{[^}]*top:-5px;right:-5px/.test(html));
+  // A new symbol on the map that nothing explains is a symbol the driver has
+  // to guess at. The legend already documented the gold dot; the red one is
+  // held to the same bar, in the same card, from the same variable.
+  const legendCard = (html.match(/<div id="legendCard">[\s\S]*?\n {4}<\/div>/) || [''])[0];
+  ok('>>> the legend explains the red dot', /var\(--pin-closed\)/.test(legendCard), legendCard.slice(0, 60));
+  ok('  right after the gold one it has to be told apart from',
+     legendCard.indexOf('var(--gold)') < legendCard.indexOf('var(--pin-closed)'));
+  // Worded for what BOTH closures share. TA Gary is still open for parking,
+  // so a bare "Closed" in the legend would overstate its own pin.
+  ok('  and says "for fuel", not a bare "Closed" that overstates TA Gary',
+     /Closed for fuel/.test(legendCard), legendCard);
+  ok('  the swatch reads the same variable as the pin (one red, not two)',
+     (html.match(/var\(--pin-closed\)/g) || []).length === 2,
+     String((html.match(/var\(--pin-closed\)/g) || []).length));
   ok('  only closed rows get it — open pins keep the engine default',
      (html.match(/marker\.setZIndex\(/g) || []).length === 1);
   // The sort is deliberately untouched: it matches render()'s list order and

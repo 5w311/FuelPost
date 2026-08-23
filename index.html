@@ -59,6 +59,13 @@
   :root{
     --navy:#0B2340; --navy2:#12335c; --ta:#0057B8; --petro:#00843D;
     --gold:#F0A93A; --bg:#F5F6F8; --line:#DEE3EA; --ink:#101826; --sub:#5B6B7D;
+    /* The closed-pin dot. A MARKER colour, so it joins navy/ta/petro/gold in
+       being one value for both themes — it sits on map tiles, not on chrome,
+       inside its own white border (see the dark-palette note below). It is
+       deliberately NOT --danger-text: that variable is for red TEXT on a
+       background that changes, and its light value #8A1C1C is a maroon that
+       reads as near-black at 12px over a road tile. */
+    --pin-closed:#E0242B;
     --surface:#FFFFFF;
     --radius:14px;
     /* Location dot — must read as its own thing at a glance, not blend into
@@ -194,6 +201,22 @@
   .pin-term{background:var(--navy);border-radius:6px;transform:rotate(0deg);}
   .pin-term span{transform:none;font-size:9px;}
   .pin.excl:after{content:'';position:absolute;top:-5px;right:-5px;width:12px;height:12px;background:var(--gold);border-radius:50%;border:2px solid #fff;transform:rotate(45deg);}
+  /* Closed stations wear a red dot in the same slot. .pin carries
+     rotate(-45deg), so the top-RIGHT corner of its un-rotated box is what
+     lands visually straight ABOVE the teardrop — which is why this shares
+     .excl's offsets rather than inventing top-centre ones.
+
+     It is declared AFTER .pin.excl:after on purpose. The two have equal
+     specificity and both closed stops happen to be `prim` today, but 31 rows
+     are `excl` and any of them could close tomorrow; source order is what
+     decides that a closed exclusive shows red, not gold. Closed is the more
+     urgent fact — a driver who reads gold and skips the red has been told the
+     stop is a preferred one when it cannot sell them fuel. */
+  .pin.closed:after{content:'';position:absolute;top:-5px;right:-5px;width:12px;height:12px;background:var(--pin-closed);border-radius:50%;border:2px solid #fff;transform:rotate(45deg);}
+  /* The terminal pin is a rounded square with no rotation, so its dot needs
+     un-rotated offsets. No terminal is closed today; this exists so the rule
+     cannot render a dot floating off the corner if one ever is. */
+  .pin-term.closed:after{top:-5px;right:-5px;transform:none;}
   /* Route mode's available-but-not-planned stops: the SAME station pin,
      faded. .65 measured for the white letter's legibility on both tile
      styles (T on TA fill: 3.7:1 day, 9.8:1 night) while staying visibly
@@ -1098,6 +1121,12 @@
       <div><span class="sw" style="background:var(--petro)"></span> Petro location</div>
       <div><span class="sw" style="background:var(--navy);border-radius:4px"></span> Covenant terminal</div>
       <div><span class="sw" style="background:var(--gold)"></span> Exclusive (most cost-effective)</div>
+      <!-- The legend already explained the gold dot, so a red one with nothing
+           explaining it would be a symbol the driver has to guess at. Worded
+           for what the two closures SHARE — neither can sell fuel — since one
+           of them (TA Gary) is still open for parking and "Closed" alone would
+           overstate it. The pin's own sheet carries the specifics. -->
+      <div><span class="sw" style="background:var(--pin-closed)"></span> Closed for fuel — tap for details</div>
       <div id="legendSupportNote" style="margin-top:6px;color:var(--sub);font-size:10.5px;line-height:1.4;border-top:1px solid var(--line);padding-top:6px;"></div>
       <div class="theme-row">
         <span class="theme-label">Theme</span>
@@ -1175,33 +1204,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.30.2"></script>
+<script src="lib/fuelplan.js?v=1.30.3"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.30.2"></script>
+<script src="lib/triptext.js?v=1.30.3"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.30.2"></script>
+<script src="lib/location.js?v=1.30.3"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.30.2"></script>
+<script src="lib/gauge.js?v=1.30.3"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.30.2"></script>
+<script src="lib/corridors.js?v=1.30.3"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.30.2"></script>
+<script src="lib/nearme.js?v=1.30.3"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.30.2"></script>
+<script src="lib/extract-version.js?v=1.30.3"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.30.2"></script>
+<script src="lib/autosuggest.js?v=1.30.3"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.30.2"></script>
+<script src="lib/baselayer.js?v=1.30.3"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.30.2"></script>
+<script src="lib/memocache.js?v=1.30.3"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.30.2"></script>
+<script src="lib/routerank.js?v=1.30.3"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.30.2"></script>
+<script src="lib/vehicleprofile.js?v=1.30.3"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.30.2"></script>
+<script src="lib/escape.js?v=1.30.3"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.30.2"></script>
+<script src="lib/navlinks.js?v=1.30.3"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1217,7 +1246,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.30.2')
+fetch('lib/fuelplan-adaptive.js?v=1.30.3')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1234,7 +1263,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.30.2')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.30.2')
+fetch('lib/shorttrip.js?v=1.30.3')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1245,7 +1274,7 @@ fetch('lib/shorttrip.js?v=1.30.2')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.30.2"></script>
+<script src="lib/flexible-polyline.js?v=1.30.3"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1405,7 +1434,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.30.2';
+const APP_VERSION = '1.30.3';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2150,8 +2179,16 @@ function buildIcon(row, opts){
   // knows from Stops mode instead of a competing abstract shape. Every
   // existing caller passes one argument and renders exactly as before.
   const faded = opts && opts.faded ? ' pin-faded' : '';
-  // The class string fully determines the markup, so it is the cache key.
-  const key = `${cls} ${exclClass}${faded}`;
+  // Closed stations carry a red dot (see .pin.closed:after). Read from the
+  // same set the planner and the sheet read, so a pin can never disagree with
+  // the banner on the sheet it opens. Safe to read here despite being declared
+  // further down the file: both callers run long after that const initialises.
+  const closed = CLOSED_STOP_IDS.has(row[0]) ? ' closed' : '';
+  // The class string fully determines the markup, so it is the cache key —
+  // which is why `closed` has to be IN it. Leave it out and the first pin
+  // built for a given brand wins the cache entry for every other pin of that
+  // brand, so whether the red dot appears at all comes down to build order.
+  const key = `${cls} ${exclClass}${faded}${closed}`;
   let icon = iconCache.get(key);
   if(!icon){
     const wrap = document.createElement('div');
