@@ -679,6 +679,64 @@ overlay unmount it.
 
 ## Version history
 
+### v1.30.3
+
+**Closed stations now wear a red dot on their map pin.** Until now the only
+thing that marked a closed pin on the map was its z-index — it sat *behind* an
+open one it overlapped. That is invisible unless two pins overlap, which at
+Corning they do and at Gary they don't: a closed stop alone on screen looked
+exactly like an open one, and the driver found out only by tapping it.
+
+The dot reuses the exclusive badge's geometry deliberately. `.pin` carries
+`rotate(-45deg)`, so the **top-right** corner of its un-rotated box is what
+lands visually straight above the teardrop — which is why `.pin.closed:after`
+shares `.pin.excl:after`'s `top:-5px;right:-5px` rather than inventing
+top-centre offsets. Measured in a browser rather than reasoned about.
+
+`.pin.closed:after` is declared **after** `.pin.excl:after` on purpose. The two
+have equal specificity, so source order is the whole rule. Both closed stops
+happen to be `prim` today, but **31 rows are `excl`** and any of them could
+close tomorrow — a closed exclusive must read red, not gold, because a driver
+who sees gold and skips the red has been told the stop is a *preferred* one
+when it cannot sell them fuel.
+
+The colour is a new `--pin-closed: #E0242B`, joining navy/TA/Petro/gold as a
+**marker** colour — one value in both themes, because it sits on map tiles
+inside its own white border, not on chrome that changes. It is deliberately
+**not** `--danger-text`: that variable is for red *text* on a background that
+changes, and its light value `#8A1C1C` is a maroon that reads as near-black at
+12px over a road tile.
+
+`closed` had to go into buildIcon's **cache key**, not just the markup. Icons
+are shared per appearance; leave it out and the first pin built for a brand
+wins the cache entry for every other pin of that brand, so whether the dot
+appears at all comes down to build order. `renderstructure` now asserts the
+invariant behind that rather than the literal: the key *is* the class list
+written into the pin, and every appearance variable buildIcon computes is in it.
+
+**The legend gained a row** — *Closed for fuel — tap for details*, from the same
+`--pin-closed` variable, immediately after the gold one it has to be told apart
+from. A new symbol on the map that nothing explains is a symbol the driver has
+to guess at. It is worded for what the two closures *share*, since TA Gary is
+still open for parking and a bare "Closed" would overstate its own pin.
+
+**One measured trade-off, pinned in the direction it actually runs.** Where the
+two Corning pins overlap, Petro Corning covers the closed pin's dot. That
+follows from `CLOSED_PIN_Z` and is the right outcome — v1.22.2 put closed pins
+behind precisely so one can never hide an open station, and the dot rides on
+the pin. Where they overlap the driver sees the stop they can actually use;
+zoom in, the pins separate, and the red dot is there. Both directions are now
+asserted, so "make the dot show through at Corning" cannot be introduced by
+raising the closed pin's z-index and quietly bringing the v1.22.2 bug back.
+
+*(Two drafts of that browser check reported green while measuring nothing:
+`marker.getIcon().getElement()` does not exist on a public API in 3.2.9.0 — the
+DomIcon's own properties are minified `ik`/`Vn` — so every lookup returned null
+and every negative assertion passed vacuously; and a second attempt projecting
+each stop to screen never settled and resolved all six stops to the same
+distant pin. The check now identifies a row's pin by object identity against
+`iconCache`, and asserts up front that every lookup found something.)*
+
 ### v1.30.2
 
 **TA Gary (`IN1`) is marked temporarily closed, parking only.** The lot is open

@@ -101,8 +101,23 @@ ok('buildIcon consults the icon cache BEFORE constructing',
    && biBody.indexOf('iconCache.get(') < biBody.indexOf('new H.map.DomIcon'),
    'cache lookup missing or after construction');
 ok('a cache miss stores what it built', /iconCache\.set\(key, icon\)/.test(biBody));
-ok('the cache key distinguishes exclusive and faded variants',
-   /const key = `\$\{cls\} \$\{exclClass\}\$\{faded\}`/.test(biBody), biBody.slice(0, 300));
+ok('the cache key distinguishes exclusive, faded and closed variants',
+   /const key = `\$\{cls\} \$\{exclClass\}\$\{faded\}\$\{closed\}`/.test(biBody), biBody.slice(0, 400));
+// The invariant behind that literal, stated so it survives a reordering: the
+// key IS the class list written into the pin, so anything that changes how a
+// pin LOOKS is in the key by construction. Miss one and the first pin built
+// for a brand wins the cache entry for every other pin of that brand — the
+// v1.30.3 red dot would then appear or not depending on build order.
+ok('>>> the key is exactly what gets written as the pin class list',
+   /class="pin \$\{key\}"/.test(biBody), biBody.slice(0, 400));
+ok('>>> every appearance variable buildIcon computes is in the key',
+   ['cls', 'exclClass', 'faded', 'closed'].every(v => {
+     const declared = new RegExp('(const|let) ' + v + '\\b').test(biBody);
+     const inKey = new RegExp('\\$\\{' + v + '\\}').test(/const key = `[^`]*`/.exec(biBody)[0]);
+     return declared && inKey;
+   }), /const key = `[^`]*`/.exec(biBody)[0]);
+ok('  and closed is read from the same set the planner and sheet read',
+   /CLOSED_STOP_IDS\.has\(row\[0\]\)/.test(biBody), biBody.slice(0, 400));
 
 console.log('\n=== the nav code rides on EVERY result card type ===');
 // renderPlan builds stop cards in three places — required plan stops, the
