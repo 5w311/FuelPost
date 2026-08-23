@@ -202,16 +202,44 @@ They answer different questions and must not be conflated:
 - **`APP_VERSION`** (`1.3.0`) — the code. Shown in the **legend card** as a
   support detail. Bumped for every shipped change.
 
-### One station is marked closed, pending the next fuel book
+### Two stations are marked closed, pending the next fuel book
 
-`DATA` holds **146 rows**, but only **143** are plannable: two Covenant
-terminals, plus one station that has closed since the book was issued.
+`DATA` holds **146 rows**, but only **142** are plannable: two Covenant
+terminals, plus two stations that are shut — in two different senses.
 
-- **TA Corning** (`CA5`, nav `CVENTA040`) — 3524 South Highway 99 W, Corning CA
+- **TA Corning** (`CA5`, nav `CVENTA040`) — 3524 South Highway 99 W, Corning CA.
+  **Permanently closed.** Neither its address nor its phone (530-824-4646)
+  appears in TA's own location master dated **08-2026**.
+- **TA Gary** (`IN1`, nav `CVENTA010`) — 2510 Burr St., Gary IN.
+  **Temporarily closed, parking only.** The lot is open and taking trucks;
+  fuel, showers and the service bays are not available. Reported by the fleet,
+  08-2026 — an *operational status*, which is a different kind of evidence from
+  CA5's absence-from-master and is labelled as such in the source rather than
+  dressed up as a citation. It was not confirmable against TA's public site
+  from the build environment.
 
-Neither its address nor its phone (530-824-4646) appears in TA's own location
-master dated **08-2026**. It is listed in `CLOSED_STOP_IDS`, next to
-`FUEL_STOPS` in `index.html`, and filtered out of planning there.
+Both are listed in `CLOSED_STOP_IDS` in `index.html` and filtered out of
+planning by the same `FUEL_STOPS` filter. **"Parking only" is excluded exactly
+as hard as "permanently closed"** — the tempting half-measure, leaving it
+plannable because the gate is open, routes a driver to an island that cannot
+sell them fuel, which is the whole failure this set exists to prevent. The
+difference between the two is something a driver *reads*, never something the
+router branches on.
+
+The wording lives in `CLOSED_STOP_INFO`, keyed by id: the list chip (`Closed`
+vs `Parking only`), the banner headline, the sentence under it, and the id of a
+real alternative plus how it relates to this stop. That last field is why the
+table exists rather than one hardcoded banner — Petro Corning is at TA
+Corning's own exit, while Petro Gary is **2.5 mi east at exit 9** against TA
+Gary's exit 6, so "same exit" cannot be a constant in the sentence.
+
+TA Gary's banner also names the amenity rows below it. Those rows are the fuel
+book's record of the site and still read *14 showers, 6 bays*; without the
+banner disowning them, a driver who has just read "temporarily closed" would
+plan a shower stop there anyway.
+
+Being temporary, `IN1` expires on its own terms: when the stop reopens, delete
+the id and its `CLOSED_STOP_INFO` entry, and nothing else has to change.
 
 > **Correction (v1.22.1).** v1.22.0 also marked **TA Saginaw** (`MI3`) closed.
 > That was wrong, and the error was in the lookup rather than the master: the
@@ -224,23 +252,27 @@ master dated **08-2026**. It is listed in `CLOSED_STOP_IDS`, next to
 > renames stations and the fuel book keeps the old name. Match on address,
 > phone and coordinates before adding an id to `CLOSED_STOP_IDS`.
 
+> **A closed row is not its neighbour.** Both closed entries have a same-city
+> sibling a couple of miles off, and in both cases exactly one of the pair is
+> shut. TA Corning is not a rename of **Petro Corning** (`CA4`) — two separate
+> rows at the same I-5 exit 630 with different addresses and phones. TA Gary is
+> not **Petro Gary** (`IN2`) — two stations 2.5 mi apart on I-80/I-94, at exits
+> 6 and 9, with different addresses, phones and nav codes. Both siblings are
+> open and stay plannable, and `datastops.test.js` asserts it for each pair.
+
 **The row is deliberately not deleted.** `DATA`'s station list is sourced
 from the fuel book edition in `FUEL_BOOK_REV`, and dropping rows would put
 `DATA` out of agreement with the book it claims to come from. The row goes when
 the book revs — and `CLOSED_STOP_IDS` gets deleted with it. That expiry is
-why the marker is a one-id set rather than a column on `DATA`, which would drag
+why the marker is a two-id set rather than a column on `DATA`, which would drag
 `FIELD_COUNT`, `tools/geocode.js` and the data tests along with it.
 
-It stays visible on the map, in the list, and in its station sheet, where a
-banner says the stop appears permanently closed and is not used for planning. A
-driver who knows the stop and goes looking for it should find it and learn why
-it is gone, rather than wonder whether the app lost it.
-
-**TA Corning is not a rename of Petro Corning** — the same trap as TA Saginaw,
-in the other direction. They are two separate rows at the same I-5 exit 630 with
-different addresses and phone numbers. Petro Corning (`CA4`, 2151 South Avenue)
-is in TA's master, stays plannable, and is named in TA Corning's sheet as the
-alternative at that exit.
+Both stay visible on the map, in the list (behind a `Closed` or `Parking only`
+chip), and in a station sheet whose banner says which kind of shut it is and
+that it is not used for planning. A driver who knows the stop and goes looking
+for it should find it and learn what happened to it, rather than wonder whether
+the app lost it. TA Gary keeps its **Call** and **Navigate** buttons for the
+same reason: a driver can still go park there.
 
 TA Saginaw keeps the name the fuel book gives it, not TA's current one — that
 is the name a Covenant driver recognises — and keeps nav code `CVENTA198`.
@@ -277,9 +309,12 @@ storing them needs a column.
 
 ### What is trustworthy here, and what isn't
 
-- **`R` is complete and current** for all 143 matched stops, straight from TA's
-  master. `CA5` (TA Corning) has none — it is the one stop with no match in
-  TA's current data, consistent with it being closed.
+- **`R` is complete and current** for all 143 stops that matched TA's master,
+  straight from it. (That is the *matched* count, not the plannable one:
+  `IN1` matched and is still in TA's data — it is closed for business, not
+  delisted — but is excluded from the 142 plannable stops.) `CA5`
+  (TA Corning) has none — it is the one stop with no match in TA's current
+  data, consistent with it being closed.
 - **`F` is good but not complete.** Of 34 claimed fitness rooms, 32 were
   confirmed and one contradicted — so what is recorded is largely right. But
   only ~20 of the 110 non-fitness stops were sampled, and two of those turned
@@ -643,6 +678,57 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.30.2
+
+**TA Gary (`IN1`) is marked temporarily closed, parking only.** The lot is open
+and taking trucks; fuel, showers and the service bays are not. Reported by the
+fleet, 08-2026.
+
+It joins `CLOSED_STOP_IDS` and drops out of `FUEL_STOPS` on exactly the same
+terms as a permanent closure — **`FUEL_STOPS` goes 143 → 142.** The half-measure
+of leaving it plannable because the gate is open would route a driver to an
+island that cannot sell them fuel, which is the whole failure that set exists to
+prevent. The planner has one question to ask, and "parking only" answers it the
+same way "closed" does.
+
+What is *not* the same is what a driver reads, and that is now data rather than
+one hardcoded banner. `CLOSED_STOP_ALT` (an id per station) becomes
+**`CLOSED_STOP_INFO`** (a small record per station): the list chip, the banner
+headline, the sentence under it, the alternative's id, and **how that
+alternative relates to this stop**. The last field is what forced the change:
+the old sentence ended *"— same exit"*, which is true of Petro Corning and false
+of Petro Gary, 2.5 mi east at exit 9 against TA Gary's exit 6. Shipping the new
+row without it would have sent drivers to the wrong ramp. `renderstructure`
+pins the renderer taking every one of those fields by lookup, and asserts no
+station id appears in `openSheet` at all.
+
+The chip style is deliberately shared: *Parking only* is not a milder fact at
+the pump than *Closed*, and the chip's job in a scanned list is exactly that one
+bit. The distinction a driver can act on needs a sentence, and gets one in the
+sheet. Contrast is measured on the new chip in dark mode rather than assumed to
+have come along — 5.13:1.
+
+TA Gary's banner also reaches forward and disowns the amenity rows beneath it.
+Those rows are the fuel book's record of the site and still read *14 showers, 6
+bays*; without that clause a driver who has just read "temporarily closed" plans
+a shower stop there anyway.
+
+**On the evidence.** CA5 is closed because its address and phone are absent from
+TA's location master. IN1 is closed because it was reported so. Those are
+different kinds of claim, and the comment above `CLOSED_STOP_IDS` says which is
+which instead of giving the second one the first one's citation — the same
+instinct as the v1.22.1 correction, applied before the mistake rather than
+after. It was not confirmable against TA's public site from the build
+environment. Being temporary, it expires on its own terms: when the stop
+reopens, delete the id and its `CLOSED_STOP_INFO` entry, and nothing else has
+to change.
+
+And the Corning trap again, in Indiana: **TA Gary and Petro Gary are two
+stations, not one renamed** — 2.5 mi apart, different addresses, phones and nav
+codes. `IN2` is open, stays plannable, and is the alternative TA Gary's sheet
+points at. `datastops.test.js` now asserts the separation for both pairs, so a
+future over-broad exclusion cannot quietly take the sibling.
 
 ### v1.30.1
 

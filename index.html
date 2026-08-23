@@ -230,7 +230,8 @@
   .b-ta{background:#DCEBFF;color:var(--ta);}
   .b-petro{background:#DCF3E5;color:var(--petro);}
   /* Closed-station banner. Colour is not carrying the meaning on its own:
-     the block leads with a ✕ and the words "Permanently closed", so it still
+     the block leads with a ✕ and a headline naming the state in words
+     ("Permanently closed", "Temporarily closed — parking only"), so it still
      reads on a monochrome screen or to a driver who can't separate the red.
      Background stays transparent and only border+text take --danger-text,
      which is already redefined for dark mode (5.1:1 on --surface there) —
@@ -239,6 +240,11 @@
   #sheet .closedNote b{font-weight:800;}
   #sheet .closedNote>b{display:block;font-size:13.5px;margin-bottom:3px;}
   #sheet .closedAlt{display:block;margin-top:6px;}
+  /* One chip style for both closures. A temporary closure is not a milder
+     fact at the pump — "Parking only" means no fuel here just as flatly as
+     "Closed" does — and the chip's job in a scanned list is exactly that one
+     bit. The distinction that a driver can act on (the lot is still open)
+     needs a sentence, and it gets one in the sheet. */
   .list-item .tag-closed{background:var(--danger-text);color:var(--surface);}
   #sheet .row{display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:13px;}
   #sheet .row .k{color:var(--sub);}
@@ -1169,33 +1175,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.30.1"></script>
+<script src="lib/fuelplan.js?v=1.30.2"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.30.1"></script>
+<script src="lib/triptext.js?v=1.30.2"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.30.1"></script>
+<script src="lib/location.js?v=1.30.2"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.30.1"></script>
+<script src="lib/gauge.js?v=1.30.2"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.30.1"></script>
+<script src="lib/corridors.js?v=1.30.2"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.30.1"></script>
+<script src="lib/nearme.js?v=1.30.2"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.30.1"></script>
+<script src="lib/extract-version.js?v=1.30.2"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.30.1"></script>
+<script src="lib/autosuggest.js?v=1.30.2"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.30.1"></script>
+<script src="lib/baselayer.js?v=1.30.2"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.30.1"></script>
+<script src="lib/memocache.js?v=1.30.2"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.30.1"></script>
+<script src="lib/routerank.js?v=1.30.2"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.30.1"></script>
+<script src="lib/vehicleprofile.js?v=1.30.2"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.30.1"></script>
+<script src="lib/escape.js?v=1.30.2"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.30.1"></script>
+<script src="lib/navlinks.js?v=1.30.2"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1211,7 +1217,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.30.1')
+fetch('lib/fuelplan-adaptive.js?v=1.30.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1228,7 +1234,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.30.1')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.30.1')
+fetch('lib/shorttrip.js?v=1.30.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1239,7 +1245,7 @@ fetch('lib/shorttrip.js?v=1.30.1')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.30.1"></script>
+<script src="lib/flexible-polyline.js?v=1.30.2"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1399,7 +1405,7 @@ const DATA = [
 // the 146 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.30.1';
+const APP_VERSION = '1.30.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2182,15 +2188,21 @@ function openSheet(row){
     <div class="badges">${brandBadge}${typeBadge}</div>`;
   // Closed stations: the first thing in the sheet after the name and badges,
   // never a row buried among the amenities — a driver skimming must not miss
-  // it. Where a real alternative exists at the same exit it is named; TA
-  // Saginaw has none and none is invented.
+  // it. The headline and the sentence come from CLOSED_STOP_INFO, because
+  // "permanently closed" and "temporarily closed, parking only" are different
+  // facts: a driver given the wrong one either burns a stop that cannot fuel
+  // them or writes off a lot they could have parked in overnight. The line
+  // every closure shares — that it is not planned — is appended here rather
+  // than repeated in each entry. An alternative is named only where a real
+  // one exists; TA Saginaw would have had none and none would be invented.
   if(CLOSED_STOP_IDS.has(id)){
-    const alt = DATA.find(r => r[0] === CLOSED_STOP_ALT[id]);
+    const info = CLOSED_STOP_INFO[id] || {};
+    const alt = DATA.find(r => r[0] === info.alt);
     html += `<div class="closedNote">
-      <b><span aria-hidden="true">✕</span> Permanently closed</b>
-      This stop is not in TA's location master (08-2026) and appears to have closed.
+      <b><span aria-hidden="true">✕</span> ${info.title || 'Closed'}</b>
+      ${info.body || ''}
       It is not used for fuel planning.${alt ? `
-      <span class="closedAlt">Use <b>${alt[2]}</b> instead — same exit (${alt[7]}).</span>` : ''}</div>`;
+      <span class="closedAlt">Use <b>${alt[2]}</b> instead — ${info.altNote} (${alt[7]}).</span>` : ''}</div>`;
   }
   // How far the truck is from this stop right now — first row, because it's
   // the "should I even consider this one" number. Straight-line miles, same
@@ -2320,10 +2332,28 @@ function passes(row){
 let listDirty = true;          // list rows are stale relative to the filters
 let currentFiltered = [];      // what the last render() resolved to
 
-// Stations that have CLOSED since the fuel book was issued. One row: TA
-// Corning (CA5). Source: TA's own location master dated 08-2026, in which
-// neither its address (3524 South Highway 99 W) nor its phone
-// (530-824-4646) appears.
+// Stations a driver CANNOT FUEL AT, though every row stays in DATA. Two of
+// them, and they are shut in two different senses — which is why the wording
+// below is a per-station table and not one hardcoded banner:
+//
+//   CA5  TA Corning — permanently closed. Source: TA's own location master
+//        dated 08-2026, in which neither its address (3524 South Highway
+//        99 W) nor its phone (530-824-4646) appears.
+//
+//   IN1  TA Gary — TEMPORARILY closed, parking still open. The lot takes
+//        trucks; the fuel island and the building do not. Source: reported
+//        by the fleet, 08-2026. That is an OPERATIONAL STATUS, not a
+//        master-list lookup — a different kind of evidence from CA5's, and
+//        worth naming as such rather than dressing up as a citation. It was
+//        not confirmable against TA's public site from the build
+//        environment. Being temporary it expires on its own terms: when the
+//        stop reopens, delete the id here and its entry in
+//        CLOSED_STOP_INFO, and nothing else has to change.
+//
+// Both are excluded from FUEL_STOPS by the same filter, because "parking
+// only" is still "no fuel here" and the planner has exactly one question to
+// ask. The difference between them is something a driver reads, not
+// something the router branches on.
 //
 // ===> BEFORE YOU ADD AN ID HERE: absence under a station's old name is NOT
 // evidence of closure. TA renames stations, and the fuel book keeps the old
@@ -2342,19 +2372,45 @@ let currentFiltered = [];      // what the last render() resolved to
 // lost it — and the sheet says plainly that it is closed. It is simply never
 // selected for a plan.
 //
-// TEMPORARY BY DESIGN: this set is deleted when the fuel book revs and the
-// row goes with it. That expiry is why it is a one-id set here and not a
-// column on DATA, which would drag FIELD_COUNT, tools/geocode.js and the data
-// tests along with it for a marker with a known end date.
+// TEMPORARY BY DESIGN: entries are deleted when the fuel book revs, or (for
+// IN1) when the stop reopens. That expiry is why this is a two-id set here
+// and not a column on DATA, which would drag FIELD_COUNT, tools/geocode.js
+// and the data tests along with it for markers with known end dates.
 //
-// TA Corning is NOT a rename of Petro Corning — the trap above, in the other
-// direction. They are two separate rows at the same I-5 exit 630 with
-// different addresses and phone numbers; Petro Corning (CA4), at 2151 South
-// Avenue, IS in TA's master and stays plannable.
-const CLOSED_STOP_IDS = new Set(['CA5']);
-// Named alternatives at the same exit, for the sheet. Only where one really
-// exists; a closed row with no entry here simply names none.
-const CLOSED_STOP_ALT = { CA5: 'CA4' };
+// A CLOSED ROW IS NOT ITS NEIGHBOUR. Both entries have a same-city sibling a
+// couple of miles off, and in both cases exactly one of the pair is shut:
+// TA Corning is NOT a rename of Petro Corning — two separate rows at the same
+// I-5 exit 630, different addresses, different phones; Petro Corning (CA4) at
+// 2151 South Avenue IS in TA's master and stays plannable. Likewise TA Gary
+// (IN1, 2510 Burr St., I-80/I-94 exit 6) and Petro Gary (IN2, 3001 Grant
+// Street, exit 9) are two stations 2.5 mi apart, and Petro Gary is open and
+// stays plannable. Closing one of a pair must never quietly take the other.
+const CLOSED_STOP_IDS = new Set(['CA5', 'IN1']);
+// What the list row and the sheet SAY, per station. The two closures do not
+// read alike, so the copy is data rather than an if-chain in the renderer:
+// `tag` is the chip in the list, `title` the banner headline, `body` the
+// sentence under it, `alt` the id of a real alternative and `altNote` how
+// that alternative relates to this stop — only one of the two is at the same
+// exit, so "same exit" cannot be hardcoded into the sentence. A closed row
+// with no `alt` names none; nothing is invented to fill the slot.
+const CLOSED_STOP_INFO = {
+  CA5: {
+    tag: 'Closed',
+    title: 'Permanently closed',
+    body: "This stop is not in TA's location master (08-2026) and appears to have closed.",
+    alt: 'CA4', altNote: 'same exit'
+  },
+  IN1: {
+    tag: 'Parking only',
+    title: 'Temporarily closed — parking only',
+    // Names the amenity rows on purpose. Those rows are the fuel book's record
+    // of the site and they still say 14 showers and 6 bays; a driver who reads
+    // "temporarily closed" and then that list will otherwise plan a shower
+    // stop here. The banner has to reach forward and disown them.
+    body: 'The lot is open and taking trucks. Fuel, showers and service bays are closed for now — the counts below are what the stop has when it is open.',
+    alt: 'IN2', altNote: '2.5 mi east'
+  }
+};
 // Below every default marker z-index the engine assigns (it uses small
 // non-negative integers derived from screen Y), so a closed pin always sits
 // behind an open one it overlaps. See the marker build for why this is an
@@ -2459,7 +2515,7 @@ function renderList(filtered){
     item.innerHTML = `<div class="dot" style="background:${dotColor}">${row[1]==='TA'?'T':(row[1]==='Petro'?'P':'HQ')}</div>
       <div class="info">
         <div class="name">${row[2]}${row[11]==='excl'?'<span class="tag">Exclusive</span>':''}${
-          CLOSED_STOP_IDS.has(row[0])?'<span class="tag tag-closed">Closed</span>':''}</div>
+          CLOSED_STOP_IDS.has(row[0])?`<span class="tag tag-closed">${CLOSED_STOP_INFO[row[0]].tag}</span>`:''}</div>
         <div class="addr">${row[3]}, ${row[4]}, ${row[5]} ${row[6]}</div>
         <div class="meta mono">${row[7]||'Terminal'}</div>
       </div>`;
@@ -2906,7 +2962,7 @@ renderLocateOffState();
    switches to ROUTE, so STOPS mode never depends on it.
    ========================================================================== */
 
-// CLOSED_STOP_IDS / CLOSED_STOP_ALT are declared ABOVE the marker build,
+// CLOSED_STOP_IDS / CLOSED_STOP_INFO are declared ABOVE the marker build,
 // not here next to FUEL_STOPS where they are most used. That is deliberate
 // and load-bearing: the STOP_MARKERS block runs at parse time and sorts on
 // closure, so a declaration down here is a TDZ crash on load — an empty map
