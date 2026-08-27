@@ -14,11 +14,16 @@
 // matched 79%, and 4+ bays 71%. A filter earns its place by landing roughly
 // between 15% and 60%.
 //
-// POPULATION MATTERS AND IS EASY TO GET WRONG. passes() runs over all 146 DATA
-// rows, terminals included, so the count a driver sees on screen is over 146.
-// Counts over the 144 non-terminal stops differ, because TN6 (the Covenant HQ
+// POPULATION MATTERS AND IS EASY TO GET WRONG. passes() runs over all 144 DATA
+// rows, terminals included, so the count a driver sees on screen is over 144.
+// Counts over the 143 non-terminal stops differ, because TN6 (the Covenant HQ
 // terminal) carries both a fitness room and 30 showers. Both are asserted
 // below and labelled, so neither can quietly rot into the other.
+//
+// v1.31.0 moved these: DATA went 146 -> 144 and stops 144 -> 143 when TA
+// Corning and the Greenville terminal came out. Only the showers counts
+// actually changed value (TA Corning had 10); the rest moved denominator only,
+// which is why they are re-stated here rather than left to look stale.
 
 const fs = require('fs');
 const path = require('path');
@@ -55,31 +60,31 @@ const applyAll = (rows, keys) => rows.filter(r => keys.every(k => amen[k](r)));
 const STOPS = DATA.filter(r => r[11] !== 'term');
 
 console.log('\n=== each filter discriminates, and none is a dead control ===');
-ok(`fixture: DATA has 146 rows`, DATA.length === 146, String(DATA.length));
+ok(`fixture: DATA has 144 rows`, DATA.length === 144, String(DATA.length));
 for (const k of ['showers', 'gym', 'restaurant']) {
   const n = applyAll(DATA, [k]).length;
   const pct = 100 * n / DATA.length;
-  ok(`${k}: keeps ${n}/146 (${pct.toFixed(0)}%), neither a no-op nor empty`,
-     n > 0 && n < DATA.length, `${n}/146`);
+  ok(`${k}: keeps ${n}/144 (${pct.toFixed(0)}%), neither a no-op nor empty`,
+     n > 0 && n < DATA.length, `${n}/144`);
   ok(`  and lands in the 15-60% band a filter has to earn`,
      pct >= 15 && pct <= 60, `${pct.toFixed(1)}%`);
 }
 
 console.log('\n=== exact counts, over BOTH populations ===');
 // What a driver actually sees, since passes() runs over all of DATA.
-ok('10+ showers keeps 76 of 146 DATA rows', applyAll(DATA, ['showers']).length === 76,
+ok('10+ showers keeps 75 of 144 DATA rows', applyAll(DATA, ['showers']).length === 75,
    String(applyAll(DATA, ['showers']).length));
-ok('gym keeps 38 of 146 DATA rows', applyAll(DATA, ['gym']).length === 38,
+ok('gym keeps 38 of 144 DATA rows', applyAll(DATA, ['gym']).length === 38,
    String(applyAll(DATA, ['gym']).length));
-ok('sit-down keeps 70 of 146 DATA rows', applyAll(DATA, ['restaurant']).length === 70,
+ok('sit-down keeps 70 of 144 DATA rows', applyAll(DATA, ['restaurant']).length === 70,
    String(applyAll(DATA, ['restaurant']).length));
 // Over stops only — one lower for showers and gym, because the HQ terminal
 // TN6 has a fitness room and 30 showers.
-ok('  over the 144 non-terminal stops: showers 75', applyAll(STOPS, ['showers']).length === 75,
+ok('  over the 143 non-terminal stops: showers 74', applyAll(STOPS, ['showers']).length === 74,
    String(applyAll(STOPS, ['showers']).length));
-ok('  over the 144 non-terminal stops: gym 37', applyAll(STOPS, ['gym']).length === 37,
+ok('  over the 143 non-terminal stops: gym 37', applyAll(STOPS, ['gym']).length === 37,
    String(applyAll(STOPS, ['gym']).length));
-ok('  over the 144 non-terminal stops: sit-down 70', applyAll(STOPS, ['restaurant']).length === 70,
+ok('  over the 143 non-terminal stops: sit-down 70', applyAll(STOPS, ['restaurant']).length === 70,
    String(applyAll(STOPS, ['restaurant']).length));
 ok('  the difference is exactly TN6, which has a gym and 30 showers',
    amen.gym(DATA.find(r => r[0] === 'TN6')) && amen.showers(DATA.find(r => r[0] === 'TN6')));
