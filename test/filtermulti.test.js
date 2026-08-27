@@ -44,7 +44,12 @@ function passes(row, st) {
   if (st.corridor.size
       && !(ROW_CORRIDORS.get(row) || []).some(c => st.corridor.has(c))) return false;
   if (st.q) {
-    const hay = (row[2] + ' ' + row[4] + ' ' + row[5] + ' ' + row[7]).toLowerCase();
+    // row[20], the nav code, joined the haystack in v1.33.0. This mirror had
+    // to move with it — the tests here search for 'a' and 'dallas', which
+    // match through name and city either way, so a stale mirror would have
+    // gone on passing while quietly describing a different function. The pin
+    // below is what actually catches that.
+    const hay = (row[2] + ' ' + row[4] + ' ' + row[5] + ' ' + row[7] + ' ' + row[20]).toLowerCase();
     if (!hay.includes(st.q)) return false;
   }
   if (st.showers && !(Number(row[14]) >= SHOWERS_MANY)) return false;
@@ -72,6 +77,11 @@ ok('>>> corridor intersects the row\'s corridor list, guarded on .size',
    /if\(state\.corridor\.size\s*&& !\(ROW_CORRIDORS\.get\(row\) \|\| \[\]\)\.some\(c => state\.corridor\.has\(c\)\)\) return false;/.test(code));
 ok('>>> both are declared as Sets, not strings',
    /let state = \{st:new Set\(\), corridor:new Set\(\), q:''/.test(code));
+// The search clause is pinned here for the same reason the others are: this
+// file's `q` cases would keep passing against a haystack that had gained or
+// lost a column, so only the source pin can tell.
+ok('>>> the search haystack is exactly the five columns this mirror joins',
+   /const hay = \(row\[2\]\+' '\+row\[4\]\+' '\+row\[5\]\+' '\+row\[7\]\+' '\+row\[20\]\)\.toLowerCase\(\);/.test(code));
 ok('  and the amenity clauses this mirror copies are unchanged',
    /if\(state\.showers\s+&& !\(Number\(row\[14\]\) >= SHOWERS_MANY\)\) return false;/.test(code)
    && /if\(state\.restaurant && !hasAmenCode\(row,'R'\)\) return false;/.test(code));

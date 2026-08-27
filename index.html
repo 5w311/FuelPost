@@ -1251,33 +1251,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.32.0"></script>
+<script src="lib/fuelplan.js?v=1.33.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.32.0"></script>
+<script src="lib/triptext.js?v=1.33.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.32.0"></script>
+<script src="lib/location.js?v=1.33.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.32.0"></script>
+<script src="lib/gauge.js?v=1.33.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.32.0"></script>
+<script src="lib/corridors.js?v=1.33.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.32.0"></script>
+<script src="lib/nearme.js?v=1.33.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.32.0"></script>
+<script src="lib/extract-version.js?v=1.33.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.32.0"></script>
+<script src="lib/autosuggest.js?v=1.33.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.32.0"></script>
+<script src="lib/baselayer.js?v=1.33.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.32.0"></script>
+<script src="lib/memocache.js?v=1.33.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.32.0"></script>
+<script src="lib/routerank.js?v=1.33.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.32.0"></script>
+<script src="lib/vehicleprofile.js?v=1.33.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.32.0"></script>
+<script src="lib/escape.js?v=1.33.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.32.0"></script>
+<script src="lib/navlinks.js?v=1.33.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1293,7 +1293,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.32.0')
+fetch('lib/fuelplan-adaptive.js?v=1.33.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1310,7 +1310,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.32.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.32.0')
+fetch('lib/shorttrip.js?v=1.33.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1321,7 +1321,7 @@ fetch('lib/shorttrip.js?v=1.32.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.32.0"></script>
+<script src="lib/flexible-polyline.js?v=1.33.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1493,7 +1493,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.32.0';
+const APP_VERSION = '1.33.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2301,7 +2301,10 @@ function amenChips(str, labelMap){
 }
 
 function openSheet(row){
-  const [id,brand,name,addr,city,st,zip,exit,phone,lat,lng,type,park,resIt,showers,bays,amen,clin,scale,ulsd,nav] = row;
+  // Stops at `ulsd` on purpose: row[20] (nav) was the last column this sheet
+  // read, and it stopped reading it in v1.33.0. The full 21-column shape is
+  // documented above DATA, not here.
+  const [id,brand,name,addr,city,st,zip,exit,phone,lat,lng,type,park,resIt,showers,bays,amen,clin,scale,ulsd] = row;
   const dotColor = brand==='TA' ? 'var(--ta)' : (brand==='Petro' ? 'var(--petro)' : 'var(--navy)');
   const typeBadge = type==='excl' ? '<span class="badge-pill b-excl">★ Exclusive</span>' : (type==='term' ? '<span class="badge-pill b-term">Terminal</span>' : '<span class="badge-pill b-prim">Primary</span>');
   const brandBadge = brand==='TA' ? '<span class="badge-pill b-ta">TA</span>' : (brand==='Petro' ? '<span class="badge-pill b-petro">Petro</span>' : '');
@@ -2353,7 +2356,12 @@ function openSheet(row){
   if(bays) html += `<div class="row"><div class="k">Truck service bays</div><div class="v">${bays}</div></div>`;
   if(scale) html += `<div class="row"><div class="k">CAT scale</div><div class="v">Yes</div></div>`;
   if(ulsd) html += `<div class="row"><div class="k">ULSD</div><div class="v">Yes</div></div>`;
-  if(nav) html += `<div class="row"><div class="k">Nav code</div><div class="v mono">${nav}</div></div>`;
+  // The Nav code row lived here until v1.33.0. It is gone because the driver
+  // no longer has to tap in to find the code: the list row now carries it on
+  // the exit line, and the route result cards carry it during planning, which
+  // is the one flow where the list is never on screen. Nothing else in this
+  // sheet referenced it — the navblock below is the hand-off to the driver's
+  // MAP app, and its Copy address button copies the address, not the code.
   if(amen){
     html += `<div class="amenities"><h4>Amenities</h4><div class="chip-wrap">${amenChips(amen,AMEN_LABEL)}</div></div>`;
   }
@@ -2448,7 +2456,26 @@ function passes(row){
   if(state.corridor.size
      && !(ROW_CORRIDORS.get(row) || []).some(c => state.corridor.has(c))) return false;
   if(state.q){
-    const hay = (row[2]+' '+row[4]+' '+row[5]+' '+row[7]).toLowerCase();
+    // Name, city, state, exit — and since v1.33.0 the NAV CODE, so a driver
+    // holding a code off a dispatch message or a fuel receipt can look the
+    // stop up instead of having no way to.
+    //
+    // The match is a lowercased substring, which gives DIGITS-ONLY search for
+    // free and that is the point: a driver reads the number off a card, not
+    // the CVEN prefix. "260" finds CVENTA260, and so do "ta260" and the whole
+    // code. Verified, not assumed — see navcode.test.js.
+    //
+    // What makes digits-only trustworthy: every numeric suffix is UNIQUE
+    // across all 143 codes, so a complete digit string always identifies
+    // exactly one stop. navcode.test.js asserts that over DATA, so it cannot
+    // quietly stop being true when the fuel book revs.
+    //
+    // Short numeric queries do match more broadly now — "20" already matched
+    // every I-20 stop through the exit field and now also matches codes
+    // containing 20. That is inherent to substring search, is not new, and is
+    // deliberately not special-cased: no prefix anchoring, no field-scoped
+    // syntax.
+    const hay = (row[2]+' '+row[4]+' '+row[5]+' '+row[7]+' '+row[20]).toLowerCase();
     if(!hay.includes(state.q)) return false;
   }
   // Amenity filters — the evening question, AND-combined with everything
@@ -2653,6 +2680,23 @@ function renderList(filtered){
   // touch the live document; this touches it a single time. replaceChildren
   // also subsumes the old innerHTML='' clear.
   const frag = document.createDocumentFragment();
+  // The third line carries the exit AND the nav code, separated by a middot.
+  // ONE line, not two — deliberately unlike the route result cards, whose
+  // navLine puts the code on its own line (see the comment there). Those cards
+  // are narrower and sit inside a scrolling results panel; this list is a
+  // full-width view with room for both. The inconsistency is considered, not
+  // an oversight.
+  //
+  // Nothing is truncated and the code is not right-aligned into a column of
+  // its own: the EXIT is the more important of the two at the ramp and must
+  // stay fully readable, so long lines wrap instead. Measured over the 144
+  // rows: 7 exceed 40 characters and exactly one reaches 50 — Petro Oklahoma
+  // City, "I-40E/I-35, Exit 127 / I-40W, Exit 154 · CVENPE316".
+  //
+  // The terminal has no code (row[20] is empty) and its exit falls back to
+  // "Terminal", so the separator is conditional — a dangling middot after
+  // "Terminal" would read as missing data rather than as data that does not
+  // exist.
   filtered.forEach(row=>{
     const dotColor = row[1]==='TA' ? 'var(--ta)' : (row[1]==='Petro' ? 'var(--petro)' : 'var(--navy)');
     const item = document.createElement('div');
@@ -2662,7 +2706,7 @@ function renderList(filtered){
         <div class="name">${row[2]}${row[11]==='excl'?'<span class="tag">Exclusive</span>':''}${
           CLOSED_STOP_IDS.has(row[0])?`<span class="tag tag-closed">${CLOSED_STOP_INFO[row[0]].tag}</span>`:''}</div>
         <div class="addr">${row[3]}, ${row[4]}, ${row[5]} ${row[6]}</div>
-        <div class="meta mono">${row[7]||'Terminal'}</div>
+        <div class="meta mono">${row[7]||'Terminal'}${row[20]?' &middot; '+row[20]:''}</div>
       </div>`;
     item.addEventListener('click', ()=>{
       document.getElementById('listview').classList.remove('show');

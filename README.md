@@ -6,7 +6,8 @@ deployed to GitHub Pages.
 Two modes:
 
 - **Stops** — map and list of all 144 Covenant network locations, filterable by
-  brand, tier, state and free text search. Works with no signal once loaded.
+  state, corridor, amenities and free text search — including by nav code.
+  Works with no signal once loaded.
 - **Route** — enter the pickup and delivery addresses off a dispatch, get a truck
   route from HERE and a fuel plan: which network stops to fuel at, at what mile
   marker, with the fewest stops possible.
@@ -656,6 +657,70 @@ not appear merely because search is set.
 > is on screen at that moment, which is exactly why it exists — and closing the
 > card reaches the other one. Both halves are asserted.
 
+## The nav code
+
+The Covenant nav code is what a driver types into the fuel desk. Since
+**v1.33.0** it lives in two places, and deliberately not in a third.
+
+### On the list row
+
+Appended to the **exit line** — the third line, `meta mono` — after a middot:
+
+```
+TA Lincoln
+1201 Kelley Blvd, Lincoln, AL 35096
+I-20, Exit 168 · CVENTA260
+```
+
+One line, not two. That is **deliberately unlike the route result cards**,
+whose `navLine` puts the code on its own line: those cards are narrower and sit
+inside a scrolling results panel, while the list is a full-width view with room
+for both. The inconsistency is considered, not an oversight, and both comments
+say so.
+
+Nothing is truncated and the code is **not** right-aligned into a column of its
+own. At the ramp the *exit* is the more important of the two and has to stay
+fully readable, so long lines wrap instead. Measured over the 144 rows: 7 exceed
+40 characters and exactly one reaches 50 — Petro Oklahoma City,
+`I-40E/I-35, Exit 127 / I-40W, Exit 154 · CVENPE316`, which wraps onto a second
+line with the exit intact.
+
+The Covenant HQ terminal has no code, and its exit line already falls back to
+*Terminal*. The separator is conditional, so it reads `Terminal` and not
+`Terminal · ` — a dangling middot would look like missing data rather than data
+that does not exist.
+
+### In search
+
+`row[20]` joined the haystack alongside name, city, state and exit.
+
+Because the match is a lowercased substring, **digits-only search comes for
+free, and that is the point** — a driver reads the number off a card, not the
+`CVEN` prefix. `260`, `ta260` and `CVENTA260` all find TA Lincoln.
+
+What makes digits-only trustworthy: **every numeric suffix is unique across all
+143 codes**, so a complete digit string always identifies exactly one stop.
+`navcode.test.js` asserts that over `DATA` rather than taking it on trust, so it
+cannot quietly stop being true when the fuel book revs — and it checks every one
+of the 143 codes resolves to its own row, not just a sample.
+
+**Short numeric queries match more broadly, and that is accepted.** `20` already
+matched every I-20 stop through the exit field; it now also matches codes
+containing 20. That is inherent to substring search, is not new, and is
+deliberately not special-cased — no prefix anchoring, no field-scoped syntax.
+
+### Not in the station sheet
+
+The **Nav code** detail row, which sat between ULSD and Amenities, is gone. The
+driver no longer has to tap into a stop and back out to read a code: the list
+carries it beforehand, and the result cards carry it during planning — the one
+flow where the list is never on screen, which is why `navLine` stays.
+
+Nothing else in the sheet referenced the code. The `navblock` below it is the
+hand-off to the driver's **map** app, and its *Copy address* button copies the
+address; neither touches the nav code. `row[20]` is no longer destructured in
+`openSheet` either, so there is no unused binding inviting a later cleanup.
+
 ## Amenity filters
 
 Three, under *What do you need tonight?*, AND-combined with state, corridor
@@ -815,6 +880,76 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.33.0
+
+**The nav code moves out of the station sheet and into the list row and the
+search box.**
+
+The list is where a driver browses the network, and it showed name, address and
+exit but not the code — so reading a code meant tapping into a stop and coming
+back out. Search covered name, city, state and exit but not the code, so a
+driver holding one from dispatch or a fuel receipt could not look it up at all.
+
+#### On the list row
+
+Appended to the exit line after a middot — `I-20, Exit 168 · CVENTA260`. One
+line, not two, **deliberately unlike the result cards**, whose `navLine` gives
+the code its own line because those cards are narrower and sit in a scrolling
+panel. Both comments now say why the two differ, so the inconsistency reads as
+considered.
+
+Nothing is truncated and there is no separate right-aligned column: the exit
+matters more at the ramp, so long lines wrap. 7 of 144 rows exceed 40 characters
+and exactly one reaches 50 — **Petro Oklahoma City**, verified wrapping cleanly
+in a browser with the row layout intact. *(The brief attributed that line to
+Petro Amarillo; the quoted string was right, the station name was not.)*
+
+The HQ terminal has no code, so the separator is conditional — `Terminal`, never
+`Terminal · `.
+
+#### In search
+
+`row[20]` joined the haystack. Substring matching gives **digits-only search for
+free**, which is the point — a driver reads the number off a card, not the
+`CVEN` prefix. `260`, `ta260` and `CVENTA260` all reach TA Lincoln, verified
+rather than assumed.
+
+`navcode.test.js` asserts **all 143 numeric suffixes are unique** over `DATA`,
+which is what makes digits-only trustworthy, and checks every code resolves to
+its own row — not just the worked example. Short numeric queries matching more
+broadly is accepted and not special-cased.
+
+#### Out of the station sheet
+
+The **Nav code** row is deleted. Checked before deleting, and recorded so the
+next reader need not check again: nothing else in the sheet referenced the code.
+The `navblock` is the map-app hand-off and its *Copy address* button copies the
+address. `row[20]` is no longer destructured in `openSheet`, so no unused
+binding is left behind.
+
+#### Testing
+
+**1024 assertions, up from 975**, with a new `test/navcode.test.js` (45) and a
+browser suite covering the painted list line, the longest line actually
+wrapping, search through the real input, and the sheet losing its row.
+
+Four mutations caught: an unconditional separator (dangling middot on the
+terminal), the code dropped from the haystack, the sheet row restored, and
+`navLine` emptied.
+
+**A mirror had silently drifted.** `filtermulti.test.js` mirrors `passes()`, and
+its copy of the haystack no longer matched the source — its own `q` cases search
+for `a` and `dallas`, which match through name and city either way, so it would
+have gone on passing while describing a different function. That file warns
+about exactly this; it now pins the haystack too, and both mirrors catch the
+mutation.
+
+**One fixture was wrong about the data, not the code.** A browser assertion
+expected an amenities block on TA Lincoln's sheet — but TA Lincoln has an empty
+amenity column and never rendered one, on `main` just as much as here. The check
+moved to a stop that actually has amenities, with the emptiness of AL3's column
+asserted alongside it.
 
 ### v1.32.0
 
