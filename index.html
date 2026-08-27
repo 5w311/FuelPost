@@ -401,7 +401,34 @@
      run together on one line as "TA AmarilloI-40, Exit 74". Caught on screen,
      not in review. */
   .nm-row .nm-name{display:block;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .nm-row .nm-exit{display:block;font-size:11px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* Exit and nav code share the second line, and the split is NOT the same
+     one the list row makes. There the line wraps and the exit stays whole,
+     because the list is a full-width view that can grow. This panel cannot:
+     it sits over the map at a height the map layout is built around, so the
+     line has to fit or lose something.
+     So the code gets a slot that never shrinks (flex:0 0 auto) and the EXIT
+     is what ellipsises. The alternative loses the code exactly on the stops
+     whose exit text is longest, which would be dropping the thing this row is
+     here to show; the full exit is one tap away on the station sheet and the
+     code would not be.
+     MEASURED over all 142 fuel stops in this exact layout: nothing clips at
+     all at 360px, 390px or 430px — the code is short and monospaced and the
+     line simply fits. Only at 320px does one row give anything up (Petro
+     Oklahoma City, the longest exit in the network, losing ~27px of it) and
+     even there the code survives, which is the split working as intended.
+     An earlier note here claimed 3 rows overflowed at 390px. That came from
+     measuring "exit · code" as ONE proportional span, which is not what ships;
+     the real two-span layout is narrower. Corrected after measuring the thing
+     actually rendered. */
+  .nm-row .nm-meta{display:flex;align-items:baseline;gap:6px;min-width:0;}
+  /* flex:0 1 auto, NOT 1 1 auto. With the exit allowed to grow it swallowed
+     the free space and shoved the code against the right edge, which read as a
+     separate right-aligned column rather than as something sitting next to the
+     exit. Caught on screen. It still SHRINKS when it has to — that is the 1 in
+     the middle, and what makes the ellipsis work at 320px. */
+  .nm-row .nm-exit{flex:0 1 auto;min-width:0;font-size:11px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .nm-row .nm-code{flex:0 0 auto;font-size:11px;color:var(--sub);
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
   /* The far-from-anything state. Amber rather than red: nothing has failed,
      the answer is just that the network is a long way off. */
   #nearMe.nm-far .rb-tab-label{color:var(--warn-text,#7A5200);}
@@ -1251,33 +1278,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.33.1"></script>
+<script src="lib/fuelplan.js?v=1.34.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.33.1"></script>
+<script src="lib/triptext.js?v=1.34.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.33.1"></script>
+<script src="lib/location.js?v=1.34.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.33.1"></script>
+<script src="lib/gauge.js?v=1.34.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.33.1"></script>
+<script src="lib/corridors.js?v=1.34.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.33.1"></script>
+<script src="lib/nearme.js?v=1.34.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.33.1"></script>
+<script src="lib/extract-version.js?v=1.34.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.33.1"></script>
+<script src="lib/autosuggest.js?v=1.34.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.33.1"></script>
+<script src="lib/baselayer.js?v=1.34.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.33.1"></script>
+<script src="lib/memocache.js?v=1.34.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.33.1"></script>
+<script src="lib/routerank.js?v=1.34.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.33.1"></script>
+<script src="lib/vehicleprofile.js?v=1.34.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.33.1"></script>
+<script src="lib/escape.js?v=1.34.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.33.1"></script>
+<script src="lib/navlinks.js?v=1.34.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1293,7 +1320,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.33.1')
+fetch('lib/fuelplan-adaptive.js?v=1.34.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1310,7 +1337,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.33.1')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.33.1')
+fetch('lib/shorttrip.js?v=1.34.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1321,7 +1348,7 @@ fetch('lib/shorttrip.js?v=1.33.1')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.33.1"></script>
+<script src="lib/flexible-polyline.js?v=1.34.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1493,7 +1520,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.33.1';
+const APP_VERSION = '1.34.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -3339,9 +3366,21 @@ function renderNearMe(){
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'nm-row';
+    // The nav code rides beside the exit, the same fact the list row carries —
+    // this panel is the other place a driver picks a stop without opening it,
+    // so it should not be the one place the code is missing.
+    //
+    // Conditional, like the list row's: every FUEL_STOPS row has a code today
+    // (only the HQ terminal lacks one, and terminals are filtered out of
+    // FUEL_STOPS), so this branch is defensive rather than load-bearing — but
+    // a bare middot would read as missing data if that ever changed.
+    const nmExit = n.stop.row[7] || n.stop.row[4] + ', ' + n.stop.row[5];
     b.innerHTML = `<span class="nm-dist">${nearMeDist(n)}</span>`
       + `<span class="nm-what"><span class="nm-name">${Esc.escapeHtml(n.stop.name)}</span>`
-      + `<span class="nm-exit">${Esc.escapeHtml(n.stop.row[7] || n.stop.row[4] + ', ' + n.stop.row[5])}</span></span>`;
+      + `<span class="nm-meta"><span class="nm-exit">${Esc.escapeHtml(nmExit)}</span>`
+      + (n.stop.row[20]
+          ? `<span class="nm-code">&middot; ${Esc.escapeHtml(n.stop.row[20])}</span>` : '')
+      + `</span></span>`;
     // Tapping a row opens the same station sheet a pin or list row opens —
     // one detail view, not a parallel one.
     b.addEventListener('click', () => openSheet(n.stop.row));

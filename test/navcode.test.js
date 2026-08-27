@@ -191,7 +191,7 @@ console.log('\n=== line lengths, measured rather than hoped for ===');
      !/\.list-item \.meta\{[^}]*white-space:nowrap/.test(html));
 }
 
-console.log('\n=== the code appears in all THREE places (v1.33.1) ===');
+console.log('\n=== the code appears in all FOUR places (v1.34.0) ===');
 // v1.33.0 removed the sheet's row on the reasoning that the list and the
 // result cards already carried it. v1.33.1 put it back: the sheet is where a
 // driver goes for everything ELSE about a stop, and the code belongs with the
@@ -231,6 +231,27 @@ console.log('\n=== the code appears in all THREE places (v1.33.1) ===');
   ok('>>> 2. the route result cards still render it — the flow with no list',
      /const navLine = row =>/.test(code)
      && /class="rr-meta rr-nav">Nav code <span class="mono">\$\{row\[20\]\}<\/span>/.test(code));
+  // v1.34.0 added a fourth surface: the Near Me footer's rows, which are the
+  // other place a driver picks a stop without opening it.
+  const nmFn = code.slice(code.indexOf('function renderNearMe('));
+  const nmBody = nmFn.slice(0, nmFn.indexOf('\n}\n') + 3);
+  ok('>>> 4. the Near Me rows carry it beside the exit',
+     /<span class="nm-code">&middot; \$\{Esc\.escapeHtml\(n\.stop\.row\[20\]\)\}<\/span>/.test(nmBody),
+     nmBody.slice(nmBody.indexOf('nm-dist'), nmBody.indexOf('nm-dist') + 500));
+  ok('  conditionally, like the list row and the sheet',
+     /n\.stop\.row\[20\]\s*\?/.test(nmBody));
+  ok('  escaped on the way in, like every other value in that row',
+     /Esc\.escapeHtml\(n\.stop\.row\[20\]\)/.test(nmBody));
+  // The layout decision that makes it reliable: the code never shrinks, so on
+  // a narrow screen the EXIT ellipsises instead of the code vanishing.
+  ok('>>> the code slot never shrinks (flex:0 0 auto)',
+     /\.nm-row \.nm-code\{flex:0 0 auto/.test(html));
+  ok('  while the exit may shrink but does not GROW — 0 1 auto, not 1 1 auto',
+     /\.nm-row \.nm-exit\{flex:0 1 auto/.test(html));
+  ok('  (1 1 auto would push the code to the right edge as its own column)',
+     !/\.nm-row \.nm-exit\{flex:1 1 auto/.test(html));
+  ok('  and the code is mono, like the sheet and the cards',
+     /\.nm-row \.nm-code\{[^}]*ui-monospace/.test(html));
   ok('>>> 3. and the list row still carries it on the exit line',
      /\$\{row\[7\]\|\|'Terminal'\}\$\{row\[20\]\?' &middot; '\+row\[20\]:''\}/.test(code));
   ok('  and the share text still carries it', /nav: s\.row\[20\]/.test(code));
