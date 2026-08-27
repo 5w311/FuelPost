@@ -131,11 +131,12 @@
   .search-wrap > svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--sub);}
   /* Room for the clear button so text never runs underneath it. */
   .search-wrap input{padding-right:32px;}
-  select.stateSel{padding:8px 10px;border-radius:10px;border:1px solid var(--line);font-size:12.5px;background:var(--bg);color:var(--ink);flex-shrink:0;font-weight:600;}
   .iconbtn{flex-shrink:0;border:1px solid var(--line);background:var(--bg);border-radius:10px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;}
 
-  /* Filters button — brand + type live behind it now (the two least-touched
-     controls in the toolbar; most sessions never leave "All"). #filterCard
+  /* Filters button — state, corridor and the amenity toggles live behind it.
+     (It was introduced to hold brand + type, the two least-touched controls in
+     the toolbar; those filters were removed in v1.32.0 and the card kept the
+     dimensions that are actually asked about.) #filterCard
      itself is NOT nested here: .toolbar's overflow-x:auto forces its
      overflow-y to compute as auto too (a real CSS quirk — one non-visible
      axis drags the other off "visible"), which would clip a popover taller
@@ -486,7 +487,29 @@
   #filterCard .seg{width:100%;}
   #filterCard .seg button{flex:1;text-align:center;}
   #filterCard .seg + .seg{margin-top:8px;}
-  #filterCard .stateSel{width:100%;margin-top:8px;}
+  /* Multi-select disclosure. The toggle is styled as a control rather than
+     rb-disclosure's underlined link, because unlike the Route tab's two
+     disclosures this one carries a VALUE when collapsed — the summary — and a
+     value needs a field to sit in. aria-expanded does the semantic work in
+     both places; only the paint differs. */
+  #filterCard .fm{margin-top:8px;}
+  #filterCard .fm-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);
+    background:var(--bg);color:var(--ink);font-size:12.5px;font-weight:600;text-align:left;}
+  #filterCard .fm-sum{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #filterCard .fm-caret{flex-shrink:0;font-size:10px;color:var(--sub);transition:transform .15s;}
+  #filterCard .fm-toggle[aria-expanded="true"] .fm-caret{transform:rotate(180deg);}
+  /* The list scrolls INSIDE the card. 40 states at ~30px each would otherwise
+     push the card past the viewport on a phone and take the amenity row and
+     the reset button off screen with it. */
+  #filterCard .fm-list{max-height:168px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    margin-top:6px;border:1px solid var(--line);border-radius:10px;padding:4px;background:var(--bg);}
+  #filterCard .fm-opt{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;
+    font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;}
+  #filterCard .fm-opt input{flex-shrink:0;width:16px;height:16px;accent-color:var(--ta);margin:0;}
+  #filterCard .reset-filters{display:block;width:100%;margin-top:10px;padding:8px 10px;
+    border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--navy-text);
+    font-size:12.5px;font-weight:700;}
 
   /* ---- Route mode ---- */
   /* STOPS-mode filters stay in the DOM; they just hide while planning a route. */
@@ -1140,30 +1163,54 @@
               aria-live="polite" aria-label="App version — tap to check for an update"></button>
     </div>
     <div id="filterCard">
-      <div class="seg stops-only" id="brandSeg">
-        <button data-v="all" class="active">All</button>
-        <button data-v="TA">TA</button>
-        <button data-v="Petro">Petro</button>
+      <!-- State and corridor: MULTI-SELECT, as a disclosure over a checkbox
+           list. Deliberately NOT <select multiple>, which the two mobile
+           platforms render as different controls entirely — iOS Safari gives
+           an inline scrolling listbox (hard one-handed, and it eats the card's
+           vertical space) while Android gives a checkbox dialog. This is the
+           same disclosure pattern as arrivalToggle and pickupRangeToggle on
+           the Route tab: a button carrying aria-expanded and aria-controls,
+           over a body wrapper it owns.
+
+           Both lists are built from DATA at startup, never hardcoded — 40
+           states and 39 corridors — which is why the containers ship empty.
+           The collapsed button summarises the selection so a driver who has
+           filtered and moved on still sees what is applied. -->
+      <div class="fm stops-only">
+        <button type="button" id="stateToggle" class="fm-toggle"
+                aria-expanded="false" aria-controls="stateList">
+          <span class="fm-sum" id="stateSummary">All states</span>
+          <span class="fm-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="fm-list" id="stateList" role="group" aria-label="Filter by state" hidden></div>
       </div>
-      <div class="seg stops-only" id="typeSeg">
-        <button data-v="all" class="active">All types</button>
-        <button data-v="excl">Exclusive</button>
-        <button data-v="prim">Primary</button>
+      <!-- Corridor. Same control as state because it is the same kind of
+           dimension: many values, several selectable, populated from DATA.
+           Text search already matches the exit field, but it matches as a
+           SUBSTRING — "I-5" also returns I-55, I-57 and I-59 — which is wrong
+           in the direction that matters, so this answers it exactly. -->
+      <div class="fm stops-only">
+        <button type="button" id="corridorToggle" class="fm-toggle"
+                aria-expanded="false" aria-controls="corridorList">
+          <span class="fm-sum" id="corridorSummary">All corridors</span>
+          <span class="fm-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="fm-list" id="corridorList" role="group" aria-label="Filter by corridor" hidden></div>
       </div>
-      <select class="stateSel stops-only" id="stateSel"><option value="all">All states</option></select>
-      <!-- Corridor. Same control type and class as the state select because it
-           is the same kind of dimension: many values, one choice, populated
-           from DATA at startup rather than hardcoded. Text search already
-           matches the exit field, but it matches as a SUBSTRING — "I-5" also
-           returns I-55, I-57 and I-59 — which is wrong in the direction that
-           matters, so this exists to answer the corridor question exactly. -->
-      <select class="stateSel stops-only" id="corridorSel"><option value="all">All corridors</option></select>
       <div class="amen-head">What do you need tonight?</div>
       <div class="amen-wrap" id="amenWrap" role="group" aria-label="Amenity filters">
         <button type="button" data-amen="showers" aria-pressed="false">10+ showers</button>
         <button type="button" data-amen="gym" aria-pressed="false">Fitness room</button>
         <button type="button" data-amen="restaurant" aria-pressed="false">Sit-down restaurant</button>
       </div>
+      <!-- Reset lives HERE, where the filters are set. The only other one is
+           inside the no-match panel, which by definition appears after a driver
+           has already filtered everything away — too late to be the way out of
+           a filter they merely regret. Hidden until there is something to
+           clear, the same rule clearTripBtn and the per-field clear buttons
+           follow, and driven by the same filtersActive() that drives the badge
+           so the two can never disagree. -->
+      <button type="button" id="resetFiltersBtn" class="reset-filters stops-only" hidden>Reset filters</button>
     </div>
   </div>
 
@@ -1204,33 +1251,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.31.0"></script>
+<script src="lib/fuelplan.js?v=1.32.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.31.0"></script>
+<script src="lib/triptext.js?v=1.32.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.31.0"></script>
+<script src="lib/location.js?v=1.32.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.31.0"></script>
+<script src="lib/gauge.js?v=1.32.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.31.0"></script>
+<script src="lib/corridors.js?v=1.32.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.31.0"></script>
+<script src="lib/nearme.js?v=1.32.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.31.0"></script>
+<script src="lib/extract-version.js?v=1.32.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.31.0"></script>
+<script src="lib/autosuggest.js?v=1.32.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.31.0"></script>
+<script src="lib/baselayer.js?v=1.32.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.31.0"></script>
+<script src="lib/memocache.js?v=1.32.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.31.0"></script>
+<script src="lib/routerank.js?v=1.32.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.31.0"></script>
+<script src="lib/vehicleprofile.js?v=1.32.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.31.0"></script>
+<script src="lib/escape.js?v=1.32.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.31.0"></script>
+<script src="lib/navlinks.js?v=1.32.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1246,7 +1293,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.31.0')
+fetch('lib/fuelplan-adaptive.js?v=1.32.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1263,7 +1310,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.31.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.31.0')
+fetch('lib/shorttrip.js?v=1.32.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1274,7 +1321,7 @@ fetch('lib/shorttrip.js?v=1.31.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.31.0"></script>
+<script src="lib/flexible-polyline.js?v=1.32.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1446,7 +1493,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.31.0';
+const APP_VERSION = '1.32.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -1555,10 +1602,30 @@ document.addEventListener('visibilitychange', () => {
   if(document.visibilityState === 'visible') checkForUpdate(true);
 });
 
-// Populate state dropdown
+// Populate the state list. Built from DATA, never hardcoded, so a fuel book
+// that adds a state needs no edit here.
 const states = [...new Set(DATA.map(r=>r[5]))].sort();
-const stateSel = document.getElementById('stateSel');
-states.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;stateSel.appendChild(o);});
+
+// One builder for both multi-selects. `value` is what passes() tests against;
+// `label` is what the driver reads, and they differ for corridors (the stop
+// count rides along). Checkboxes rather than buttons on purpose: the checked
+// state is native, so a screen reader announces it without an aria-* mirror
+// that could drift from what passes() reads.
+function buildFilterList(container, items, onChange){
+  const frag = document.createDocumentFragment();
+  items.forEach(({value, label}) => {
+    const lab = document.createElement('label');
+    lab.className = 'fm-opt';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = value;
+    cb.addEventListener('change', onChange);
+    lab.appendChild(cb);
+    lab.appendChild(document.createTextNode(label));
+    frag.appendChild(lab);
+  });
+  container.replaceChildren(frag);
+}
 
 // Corridors, derived from the exit field at startup — see lib/corridors.js for
 // why they are parsed rather than stored, and why only interstates are parsed.
@@ -1574,20 +1641,19 @@ const ROW_CORRIDORS = new Map(
 const CORRIDOR_INDEX = Corridors.corridorIndex(
   DATA.filter(r => r[11] !== 'term').map(r => [r[0], r[7]]));
 
-const corridorSel = document.getElementById('corridorSel');
-CORRIDOR_INDEX.forEach(({corridor, count}) => {
-  const o = document.createElement('option');
-  o.value = corridor;
-  // The stop count rides along: the distribution is long-tailed (I-40 has 13,
-  // twenty corridors have three or fewer), and without the number the driver
-  // cannot tell a main lane from a one-stop spur until after they pick it. It
-  // is the NETWORK total for that corridor, deliberately not recomputed
-  // against whatever else is filtered — a number that changed as you toggled
-  // states would be answering a different question than the one being asked
-  // at the moment the list is opened.
-  o.textContent = `${corridor} (${count})`;
-  corridorSel.appendChild(o);
-});
+// CORRIDOR_INDEX is already in the right order — numeric, so I-4 sorts before
+// I-10, with the hand-mapped non-interstates last. The list renders it as-is.
+//
+// The stop count rides along in the label: the distribution is long-tailed
+// (I-40 has 13, twenty corridors have three or fewer), and without the number
+// the driver cannot tell a main lane from a one-stop spur until after they
+// pick it. It is the NETWORK total for that corridor, deliberately not
+// recomputed against whatever else is filtered — a number that changed as you
+// toggled states would be answering a different question than the one being
+// asked at the moment the list is opened. That is also why the count is in the
+// LABEL and not the value: passes() tests the bare corridor.
+const CORRIDOR_ITEMS = CORRIDOR_INDEX.map(({corridor, count}) =>
+  ({ value: corridor, label: `${corridor} (${count})` }));
 
 // Map init — HERE Maps JS API
 const HERE_API_KEY = 'C7r-EHfOixmC3imxi1ATMEUnt_Fx9P7Cc1-0_UsJ0Uo';
@@ -2169,7 +2235,20 @@ map.addObject(markerGroup);
    misleads. */
 const SHOWERS_MANY  = 10;
 
-let state = {brand:'all', type:'all', st:'all', corridor:'all', q:'',
+// st and corridor are SETS, not single values — both went multi-select in
+// v1.32.0. An EMPTY set means no constraint, exactly as the old 'all' string
+// did, so the unfiltered path is unchanged and there is no sentinel value to
+// remember. Anything comparing these to 'all' is a bug that reads as always
+// true; updateFilterBadge in particular has to test .size.
+//
+// brand and type are gone (v1.32.0). They were not redundant with each other
+// and not unselective — 31 Petro and 31 Exclusive, only 5 overlapping, both at
+// 21.5% of the network, comfortably inside the 15-60% band the amenity filters
+// are judged on. They were removed because they are not questions a driver
+// asks, and both facts stay visible where they matter: brand on every pin and
+// list row, Exclusive on the station sheet and result cards. row[1] and row[11]
+// are untouched everywhere else.
+let state = {st:new Set(), corridor:new Set(), q:'',
              showers:false, gym:false, restaurant:false};
 
 // One DomIcon per distinct pin APPEARANCE, not per call. There are only a
@@ -2346,15 +2425,28 @@ document.getElementById('scrim').addEventListener('click', closeSheet);
 const hasAmenCode = (row, code) =>
   String(row[16] || '').split(',').some(c => c.trim() === code);
 
+// HOW THE DIMENSIONS COMBINE, since it is the thing a reader most wants
+// confirmed: WITHIN a dimension the selections are OR — pick TX and OK and you
+// get stops in either. ACROSS dimensions everything is AND, unchanged from
+// every release before this one — TX or OK, AND on I-40 or I-44, AND with
+// showers, AND matching the search text. Each check below is an early return,
+// which is what makes the across-dimension AND structural rather than
+// something to remember.
+//
+// An EMPTY set is no constraint. That is why each test is guarded on .size
+// rather than on the set being falsy: an empty Set is truthy.
 function passes(row){
-  if(state.brand!=='all' && row[1]!==state.brand) return false;
-  if(state.type!=='all' && row[11]!==state.type) return false;
-  if(state.st!=='all' && row[5]!==state.st) return false;
-  // Corridor membership, not equality: 25 stops sit on two or more interstates
-  // (TA Tuscaloosa is on both I-20 and I-59 and must be findable under either),
-  // so this is the same shape of test as the amenity codes. The list was
-  // derived once at startup — see ROW_CORRIDORS.
-  if(state.corridor!=='all' && !(ROW_CORRIDORS.get(row) || []).includes(state.corridor)) return false;
+  if(state.st.size && !state.st.has(row[5])) return false;
+  // Corridor is set-intersects-set. It was already a membership test rather
+  // than equality because 25 stops sit on two or more interstates (TA
+  // Tuscaloosa is on both I-20 and I-59 and must be findable under either);
+  // multi-select makes the other side a set too, so the row passes if ANY of
+  // its corridors is among the selected ones. Two corridors therefore return
+  // their union, and a stop on both appears once — it is one row either way,
+  // not one per matching corridor. The row's list was derived once at startup
+  // — see ROW_CORRIDORS.
+  if(state.corridor.size
+     && !(ROW_CORRIDORS.get(row) || []).some(c => state.corridor.has(c))) return false;
   if(state.q){
     const hay = (row[2]+' '+row[4]+' '+row[5]+' '+row[7]).toLowerCase();
     if(!hay.includes(state.q)) return false;
@@ -2613,29 +2705,84 @@ function render(){
   }
 }
 
-// Filters button badge — a dot when brand, type or state isn't 'all', so a
-// driver can tell filters are applied without opening the popover. Same
-// principle as the route panel's collapsed summary: don't lose context when
-// tucked away.
-function updateFilterBadge(){
-  // Amenity toggles count as active filters too — a driver who left Showers
-  // on must not later wonder why stops are missing.
-  const anyAmenity = state.showers || state.gym || state.restaurant;
-  document.getElementById('filterBadge').hidden =
-    state.brand==='all' && state.type==='all' && state.st==='all'
-    && state.corridor==='all' && !anyAmenity;
+// IS ANYTHING FILTERED? One function, because two things depend on the answer
+// — the badge on the Filters button and the visibility of Reset filters — and
+// two copies of this condition would eventually disagree, leaving either a
+// badge with nothing behind it or a Reset button that cannot be reached.
+//
+// Amenity toggles count: a driver who left Showers on must not later wonder
+// why stops are missing. Search deliberately does NOT count; see resetFilters.
+//
+// The .size tests are the whole reason this is a function and not an inlined
+// condition. st and corridor became Sets in v1.32.0, and `state.st === 'all'`
+// against a Set is silently ALWAYS FALSE — the badge would have been pinned on
+// forever, and Reset filters permanently visible.
+function filtersActive(){
+  return state.st.size > 0 || state.corridor.size > 0
+      || state.showers || state.gym || state.restaurant;
 }
 
-document.querySelectorAll('#brandSeg button').forEach(b=>b.addEventListener('click',()=>{
-  document.querySelectorAll('#brandSeg button').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active'); state.brand=b.dataset.v; render(); updateFilterBadge();
-}));
-document.querySelectorAll('#typeSeg button').forEach(b=>b.addEventListener('click',()=>{
-  document.querySelectorAll('#typeSeg button').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active'); state.type=b.dataset.v; render(); updateFilterBadge();
-}));
-stateSel.addEventListener('change', e=>{state.st=e.target.value; render(); updateFilterBadge();});
-corridorSel.addEventListener('change', e=>{state.corridor=e.target.value; render(); updateFilterBadge();});
+// Filters button badge — a dot whenever anything is applied, so a driver can
+// tell without opening the popover. Same principle as the route panel's
+// collapsed summary: don't lose context when tucked away. Reset filters rides
+// on the same answer.
+function updateFilterBadge(){
+  const active = filtersActive();
+  document.getElementById('filterBadge').hidden = !active;
+  document.getElementById('resetFiltersBtn').hidden = !active;
+}
+
+// The collapsed button has to say what is selected, or a driver who filtered
+// and scrolled on has no way to know. Two names then a count: long enough to
+// be useful, short enough not to wrap the button on a phone (the CSS
+// ellipsises anything that still overflows).
+const FM_SUMMARY_NAMES = 2;
+function filterSummary(sel, emptyLabel){
+  const v = [...sel];
+  if(!v.length) return emptyLabel;
+  if(v.length <= FM_SUMMARY_NAMES) return v.join(', ');
+  return `${v.slice(0, FM_SUMMARY_NAMES).join(', ')} +${v.length - FM_SUMMARY_NAMES}`;
+}
+
+// The two multi-selects, described once. Everything below drives off this
+// table rather than naming stateList/corridorList twice, so the two controls
+// cannot drift apart in behaviour.
+const FILTER_MULTIS = [
+  { key:'st',       list:'stateList',    toggle:'stateToggle',
+    summary:'stateSummary',    empty:'All states' },
+  { key:'corridor', list:'corridorList', toggle:'corridorToggle',
+    summary:'corridorSummary', empty:'All corridors' }
+];
+
+function refreshFilterSummary(m){
+  document.getElementById(m.summary).textContent = filterSummary(state[m.key], m.empty);
+}
+
+function setFilterListOpen(m, open){
+  document.getElementById(m.list).hidden = !open;
+  document.getElementById(m.toggle).setAttribute('aria-expanded', String(open));
+}
+
+FILTER_MULTIS.forEach(m => {
+  const items = m.key === 'st'
+    ? states.map(v => ({ value:v, label:v }))
+    : CORRIDOR_ITEMS;
+  // The checkbox IS the state: read it on change rather than tracking a
+  // parallel flag, so what passes() tests and what the driver sees checked
+  // are the same fact.
+  buildFilterList(document.getElementById(m.list), items, e => {
+    if(e.target.checked) state[m.key].add(e.target.value);
+    else state[m.key].delete(e.target.value);
+    refreshFilterSummary(m);
+    render();
+    updateFilterBadge();
+  });
+  document.getElementById(m.toggle).addEventListener('click', () => {
+    const el = document.getElementById(m.list);
+    setFilterListOpen(m, el.hidden);
+  });
+  refreshFilterSummary(m);
+});
 document.getElementById('searchInput').addEventListener('input', e=>{
   state.q=e.target.value.trim().toLowerCase();
   document.getElementById('searchClearBtn').hidden = !e.target.value.trim();
@@ -2652,28 +2799,40 @@ document.querySelectorAll('#amenWrap button').forEach(b=>{
   });
 });
 
-// Clears everything that can empty the map — the amenity toggles plus brand,
-// type and state — and drives the controls from state rather than the other
-// way round, so aria-pressed and .on can never drift from what passes() reads.
-// Search is deliberately left alone: it is visible in its own box with its own
-// clear button, so wiping it here would erase something the driver can see
-// they typed.
-document.getElementById('clearFiltersBtn').addEventListener('click', ()=>{
+// Clears everything that can empty the map — the amenity toggles plus both
+// multi-selects — and drives the controls from state rather than the other way
+// round, so aria-pressed, .checked and the summaries can never drift from what
+// passes() reads.
+//
+// ONE function, TWO buttons: the one in the filter card and the one in the
+// no-match panel. They are the same action and a second copy would drift, with
+// the no-match panel — the one a driver reaches when the map is already empty
+// — the more expensive one to get wrong.
+//
+// SEARCH IS DELIBERATELY LEFT ALONE. It is a separate control, visible in its
+// own box with its own clear button, and a driver who typed a city name and
+// then tapped Reset filters would not expect to lose it. That is also why
+// filtersActive() ignores state.q: the button that does not clear search must
+// not appear merely because search is set.
+function resetFilters(){
   state.showers = state.gym = state.restaurant = false;
-  state.brand = state.type = state.st = state.corridor = 'all';
   document.querySelectorAll('#amenWrap button').forEach(b=>{
     b.setAttribute('aria-pressed','false');
     b.classList.remove('on');
   });
-  document.querySelectorAll('#brandSeg button').forEach(x=>
-    x.classList.toggle('active', x.dataset.v==='all'));
-  document.querySelectorAll('#typeSeg button').forEach(x=>
-    x.classList.toggle('active', x.dataset.v==='all'));
-  document.getElementById('stateSel').value='all';
-  document.getElementById('corridorSel').value='all';
+  FILTER_MULTIS.forEach(m => {
+    state[m.key].clear();
+    document.querySelectorAll(`#${m.list} input`).forEach(cb => { cb.checked = false; });
+    // Collapse too — leaving a 40-row list open over a card the driver just
+    // reset is not "cleared".
+    setFilterListOpen(m, false);
+    refreshFilterSummary(m);
+  });
   updateFilterBadge();
   render();
-});
+}
+document.getElementById('clearFiltersBtn').addEventListener('click', resetFilters);
+document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
 
 document.getElementById('searchClearBtn').addEventListener('click', ()=>{
   const inp=document.getElementById('searchInput');
