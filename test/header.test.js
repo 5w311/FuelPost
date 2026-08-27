@@ -92,8 +92,14 @@ const htmlSansStamps = html.split(`?v=${APP_VERSION}`).join('?v=')
 ok(`version string "${APP_VERSION}" appears once in code, outside the ?v= stamps`,
    (htmlSansStamps.match(new RegExp(APP_VERSION.replace(/\./g, '\\.'), 'g')) || []).length === 1,
    String((htmlSansStamps.match(new RegExp(APP_VERSION.replace(/\./g, '\\.'), 'g')) || []).length));
-ok(`revision string "${FUEL_BOOK_REV}" appears once in index.html`,
-   (html.match(new RegExp(FUEL_BOOK_REV, 'g')) || []).length === 1);
+// Reads the comment-stripped source, exactly as the version guard above does.
+// It used raw html until v1.31.0, when a comment beside FUEL_BOOK_REV that
+// explains what edition DATA reproduces named the revision in prose and
+// tripped it. Same trap the version guard hit in v1.30.1: a guard that counts
+// literals will count the ones in the sentence describing them.
+ok(`revision string "${FUEL_BOOK_REV}" appears once in code, outside comments`,
+   (htmlSansStamps.match(new RegExp(FUEL_BOOK_REV, 'g')) || []).length === 1,
+   String((htmlSansStamps.match(new RegExp(FUEL_BOOK_REV, 'g')) || []).length));
 
 console.log('\n=== README tracks both ===');
 ok(`README has a v${APP_VERSION} version history entry`,

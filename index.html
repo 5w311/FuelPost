@@ -1204,33 +1204,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.30.3"></script>
+<script src="lib/fuelplan.js?v=1.31.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.30.3"></script>
+<script src="lib/triptext.js?v=1.31.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.30.3"></script>
+<script src="lib/location.js?v=1.31.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.30.3"></script>
+<script src="lib/gauge.js?v=1.31.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.30.3"></script>
+<script src="lib/corridors.js?v=1.31.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.30.3"></script>
+<script src="lib/nearme.js?v=1.31.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.30.3"></script>
+<script src="lib/extract-version.js?v=1.31.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.30.3"></script>
+<script src="lib/autosuggest.js?v=1.31.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.30.3"></script>
+<script src="lib/baselayer.js?v=1.31.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.30.3"></script>
+<script src="lib/memocache.js?v=1.31.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.30.3"></script>
+<script src="lib/routerank.js?v=1.31.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.30.3"></script>
+<script src="lib/vehicleprofile.js?v=1.31.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.30.3"></script>
+<script src="lib/escape.js?v=1.31.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.30.3"></script>
+<script src="lib/navlinks.js?v=1.31.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1246,7 +1246,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.30.3')
+fetch('lib/fuelplan-adaptive.js?v=1.31.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1263,7 +1263,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.30.3')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.30.3')
+fetch('lib/shorttrip.js?v=1.31.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1274,7 +1274,7 @@ fetch('lib/shorttrip.js?v=1.30.3')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.30.3"></script>
+<script src="lib/flexible-polyline.js?v=1.31.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1293,7 +1293,6 @@ const DATA = [
 ["CA2","TA","TA Ontario","4265 East Guasti Road","Ontario","CA","91761","I-10, Exit 57","(909) 390-2525",34.0645,-117.5600,"prim",549,1,17,6,"W,T,R","",1,1,"CVENTA162"],
 ["CA3","TA","TA Santa Nella","12310 California Hwy 33","Santa Nella","CA","95322","I-5, Exit 407","(209) 826-0741",37.1101,-121.0151,"prim",216,1,12,4,"W,T,R","",1,1,"CVENTA163"],
 ["CA4","Petro","Petro Corning","2151 South Avenue","Corning","CA","96021","I-5, Exit 630","(530) 824-4685",39.9061,-122.1962,"prim",120,1,14,6,"R","",1,1,"CVENPE309"],
-["CA5","TA","TA Corning","3524 South Highway 99 W","Corning","CA","96021","I-5, Exit 630","(530) 824-4646",39.8998,-122.1964,"prim",254,1,10,4,"W,T","",1,1,"CVENTA040"],
 ["CO1","TA","TA Commerce City","5101 Quebec Street","Commerce City","CO","80022","I-70/I-270, Exit 278","(303) 286-0123",39.7901,-104.9046,"prim",224,1,10,6,"W,T","",1,1,"CVENTA148"],
 ["CO2","TA","TA Wheat Ridge","12151 West 44th Avenue","Wheat Ridge","CO","80033","I-70, Exit 266","(303) 423-8250",39.7790,-105.1346,"prim",116,1,7,2,"W,T","M,T,P",1,1,"CVENTA174"],
 ["CT1","TA","TA New Haven","3 East Industrial Road","Branford","CT","06405","I-95, Exit 56","(203) 481-0301",41.2970,-72.7595,"prim",75,1,7,4,"F,W,T","",1,1,"CVENTA171"],
@@ -1396,7 +1395,6 @@ const DATA = [
 ["TN4","TA","TA Knoxville West","615 Watt Road","Knoxville","TN","37922","I-40 & I-75, Exit 369","(865) 531-7676",35.8733,-84.2375,"excl",176,1,12,5,"","",1,1,"CVENTA269"],
 ["TN5","Petro","Petro Knoxville","722 N. Watt Rd.","Knoxville","TN","37934","I-40/I-75, Exit 369","(865) 693-6542",35.8748,-84.2366,"excl",250,1,13,5,"W,H,T,R","",1,1,"CVENPE312"],
 ["TN6","Covenant","Covenant Logistics HQ","400 Birmingham Hwy","Chattanooga","TN","37419","","(800) 721-5202",35.0083,-85.3906,"term",150,0,30,0,"F","",0,1,""],
-["TN7","Covenant","Covenant Greenville Terminal","1 Landiar Way","Greenville","TN","37743","","",36.1558,-82.8510,"term",100,0,8,0,"","",0,0,""],
 ["TX1","TA","TA Amarillo","7000 E. Interstate 40","Amarillo","TX","79118","I-40, Exit 74","(806) 342-3080",35.1916,-101.7589,"prim",185,1,10,6,"W,T,R","",1,1,"CVENTA055"],
 ["TX2","Petro","Petro Amarillo","8500 E I-40 @ Lakeside Drive","Amarillo","TX","79118","I-40, Exit 75","(806) 372-4899",35.1332,-101.7425,"prim",280,1,22,5,"R","",1,1,"CVENPE307"],
 ["TX3","TA","TA Baytown","6800 Thompson Road","Baytown","TX","77521","I-10, Exit 789","(281) 424-7772",29.7966,-95.0315,"excl",173,1,10,6,"H,T,R","C,T,P",1,1,"CVENTA017"],
@@ -1431,10 +1429,24 @@ const DATA = [
 // Two different questions, deliberately two different constants.
 // APP_VERSION is the code: bumped for every shipped change, see README.md.
 // FUEL_BOOK_REV is the station data: which edition of the Covenant fuel book
-// the 146 rows in DATA came from. Stations join and leave the network when the
+// the 144 rows in DATA came from. Stations join and leave the network when the
 // book is reissued, and fueling at a station that has left it is a compliance
 // violation — so the driver has to be able to see this one in the header.
-const APP_VERSION = '1.30.3';
+//
+// v1.31.0 took DATA from 146 rows to 144, deleting TA Corning (CA5) and the
+// Covenant Greenville Terminal (TN7). Those two were NOT in Rev 01-2026 — they
+// entered DATA through an error in the original data collection, and the fleet
+// confirmed it. So this is a correction TOWARDS the book, not a departure from
+// it: DATA reproduces Rev 01-2026 more faithfully at 144 rows than it did at
+// 146, and the rule that rows are otherwise never deleted is intact.
+//
+// Worth being precise about, because the two look identical in a diff: a row
+// removed because the BOOK never had it is a data fix, and the row should go.
+// A row removed because the STATION closed is not — that one stays, goes into
+// CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
+// learns what happened to it. Deleting a closed row throws that away. See the
+// closure block further down for the live example of the second kind.
+const APP_VERSION = '1.31.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -1552,7 +1564,7 @@ states.forEach(s=>{const o=document.createElement('option');o.value=s;o.textCont
 // why they are parsed rather than stored, and why only interstates are parsed.
 //
 // ROW_CORRIDORS is keyed by row REFERENCE, the same way STOP_MARKERS is.
-// passes() runs over all 146 rows on every keystroke, and re-running a regex
+// passes() runs over all 144 rows on every keystroke, and re-running a regex
 // per row per keystroke would be pure waste; this derives each row's list once.
 const ROW_CORRIDORS = new Map(
   DATA.map(r => [r, Corridors.corridorsForRow(r[0], r[7])]));
@@ -2084,7 +2096,7 @@ function switchTheme(theme){
 //
 // INDEX 1 is load-bearing, and more so here than in the app this came from.
 // addLayer appends by default, and by the time anyone first taps Satellite
-// this map already carries the 146 station pins — plus, mid-trip, the route
+// this map already carries the 144 station pins — plus, mid-trip, the route
 // polyline, the numbered route markers and the faded available-stop pins.
 // An appended overlay would draw on top of all of it: the network would
 // vanish behind HERE's own street labels. Index 1 puts the overlay directly
@@ -2147,13 +2159,14 @@ map.addObject(markerGroup);
    if it proves wrong in practice — and each was set against the real DATA
    spread rather than guessed, because a filter that matches everything is a
    control that looks broken:
-     parking  45-725 spaces, median 156 -> 100+ keeps 116/146 ("likely room late")
+     parking  45-725 spaces, median 156 -> 100+ keeps 114/144 ("likely room late")
      showers  every stop has 4+, median 10 -> a has-showers filter would be a
               no-op, so this is "10+", which splits the network roughly in half
      bays     95% have at least one -> "4+" is the line between one bay and a
-              real service shop, keeping 102/146
-   CAT scale is genuinely binary and near-universal here (only the two
-   Covenant terminals lack one); it filters little but never misleads. */
+              real service shop, keeping 101/144
+   CAT scale is genuinely binary and near-universal here (since v1.31.0 only
+   the one remaining Covenant terminal lacks one); it filters little but never
+   misleads. */
 const SHOWERS_MANY  = 10;
 
 let state = {brand:'all', type:'all', st:'all', corridor:'all', q:'',
@@ -2369,28 +2382,23 @@ function passes(row){
 let listDirty = true;          // list rows are stale relative to the filters
 let currentFiltered = [];      // what the last render() resolved to
 
-// Stations a driver CANNOT FUEL AT, though every row stays in DATA. Two of
-// them, and they are shut in two different senses — which is why the wording
-// below is a per-station table and not one hardcoded banner:
-//
-//   CA5  TA Corning — permanently closed. Source: TA's own location master
-//        dated 08-2026, in which neither its address (3524 South Highway
-//        99 W) nor its phone (530-824-4646) appears.
+// Stations a driver CANNOT FUEL AT, though the row stays in DATA. One now:
 //
 //   IN1  TA Gary — TEMPORARILY closed, parking still open. The lot takes
 //        trucks; the fuel island and the building do not. Source: reported
 //        by the fleet, 08-2026. That is an OPERATIONAL STATUS, not a
-//        master-list lookup — a different kind of evidence from CA5's, and
-//        worth naming as such rather than dressing up as a citation. It was
-//        not confirmable against TA's public site from the build
-//        environment. Being temporary it expires on its own terms: when the
-//        stop reopens, delete the id here and its entry in
-//        CLOSED_STOP_INFO, and nothing else has to change.
+//        master-list lookup, and it is worth naming as such rather than
+//        dressing it up as a citation. It was not confirmable against TA's
+//        public site from the build environment. Being temporary it expires
+//        on its own terms: when the stop reopens, delete the id here and its
+//        entry in CLOSED_STOP_INFO, and nothing else has to change.
 //
-// Both are excluded from FUEL_STOPS by the same filter, because "parking
-// only" is still "no fuel here" and the planner has exactly one question to
-// ask. The difference between them is something a driver reads, not
-// something the router branches on.
+// "Parking only" is still "no fuel here", so the exclusion from FUEL_STOPS is
+// the same one a permanent closure would get — the planner has exactly one
+// question to ask. What differs is what a driver READS, which is why the
+// wording below is a per-station table and not a hardcoded banner. The table
+// keeps its shape at one entry on purpose: it was built for two, and the next
+// closure should be a row added to it rather than a renderer rewritten.
 //
 // ===> BEFORE YOU ADD AN ID HERE: absence under a station's old name is NOT
 // evidence of closure. TA renames stations, and the fuel book keeps the old
@@ -2400,43 +2408,42 @@ let currentFiltered = [];      // what the last render() resolved to
 // unplannable in production for a whole release. Match on ADDRESS, PHONE and
 // COORDINATES before concluding anything, never on name.
 //
-// The row is deliberately NOT deleted. DATA's station list is sourced from
-// the Covenant fuel book edition named in FUEL_BOOK_REV (stated there and
-// nowhere else, by design), and dropping rows would put DATA out of agreement
-// with the book it claims to come from. It keeps its marker, its list entry
-// and its station sheet — a driver who knows the stop and goes looking for it
-// should find it and learn why it is gone, rather than wonder whether the app
-// lost it — and the sheet says plainly that it is closed. It is simply never
-// selected for a plan.
+// Deleting a row is a DIFFERENT decision from closing one, and the two must
+// not be confused just because both make a station stop being planned. A row
+// is deleted only when the fuel book never had it — v1.31.0 removed TA Corning
+// (CA5) and the Covenant Greenville Terminal (TN7), which had entered DATA
+// through a data-collection error and were never in Rev 01-2026. That is a
+// correction toward the book (see the FUEL_BOOK_REV note above).
 //
-// TEMPORARY BY DESIGN: entries are deleted when the fuel book revs, or (for
-// IN1) when the stop reopens. That expiry is why this is a two-id set here
-// and not a column on DATA, which would drag FIELD_COUNT, tools/geocode.js
-// and the data tests along with it for markers with known end dates.
+// A row is CLOSED, and kept, when the book has it but the station is shut. It
+// keeps its marker, its list entry and its sheet — a driver who knows the stop
+// and goes looking should find it and learn what happened, rather than wonder
+// whether the app lost it — and it is simply never selected for a plan.
+// Deleting such a row throws that explanation away, so "it's closed anyway"
+// is not a reason to delete it.
 //
-// A CLOSED ROW IS NOT ITS NEIGHBOUR. Both entries have a same-city sibling a
-// couple of miles off, and in both cases exactly one of the pair is shut:
-// TA Corning is NOT a rename of Petro Corning — two separate rows at the same
-// I-5 exit 630, different addresses, different phones; Petro Corning (CA4) at
-// 2151 South Avenue IS in TA's master and stays plannable. Likewise TA Gary
-// (IN1, 2510 Burr St., I-80/I-94 exit 6) and Petro Gary (IN2, 3001 Grant
-// Street, exit 9) are two stations 2.5 mi apart, and Petro Gary is open and
-// stays plannable. Closing one of a pair must never quietly take the other.
-const CLOSED_STOP_IDS = new Set(['CA5', 'IN1']);
+// TEMPORARY BY DESIGN: this entry goes when TA Gary reopens, or when the fuel
+// book revs and the row is restated. That expiry is why it is a set here and
+// not a column on DATA, which would drag FIELD_COUNT, tools/geocode.js and the
+// data tests along with it for a marker with a known end date.
+//
+// A CLOSED ROW IS NOT ITS NEIGHBOUR. TA Gary (IN1, 2510 Burr St., I-80/I-94
+// exit 6) and Petro Gary (IN2, 3001 Grant Street, exit 9) are two stations
+// 2.5 mi apart with different addresses, phones and nav codes. Petro Gary is
+// open, stays plannable, and is what TA Gary's sheet points at. Closing one of
+// a same-city pair must never quietly take the other — the mistake that cost
+// TA Saginaw a release, in the other direction.
+const CLOSED_STOP_IDS = new Set(['IN1']);
 // What the list row and the sheet SAY, per station. The two closures do not
 // read alike, so the copy is data rather than an if-chain in the renderer:
 // `tag` is the chip in the list, `title` the banner headline, `body` the
 // sentence under it, `alt` the id of a real alternative and `altNote` how
-// that alternative relates to this stop — only one of the two is at the same
-// exit, so "same exit" cannot be hardcoded into the sentence. A closed row
-// with no `alt` names none; nothing is invented to fill the slot.
+// that alternative relates to this stop. That last field is not decoration:
+// the sentence used to end with a hardcoded "— same exit", which was true of
+// the entry this table has since lost and FALSE of Petro Gary, 2.5 mi east at
+// exit 9 against TA Gary's exit 6. A closed row with no `alt` names none;
+// nothing is invented to fill the slot.
 const CLOSED_STOP_INFO = {
-  CA5: {
-    tag: 'Closed',
-    title: 'Permanently closed',
-    body: "This stop is not in TA's location master (08-2026) and appears to have closed.",
-    alt: 'CA4', altNote: 'same exit'
-  },
   IN1: {
     tag: 'Parking only',
     title: 'Temporarily closed — parking only',
@@ -2454,7 +2461,7 @@ const CLOSED_STOP_INFO = {
 // explicit z-index rather than add order.
 const CLOSED_PIN_Z = -1;
 
-// Every station marker is built exactly ONCE, here. The 146 rows never
+// Every station marker is built exactly ONCE, here. The 144 rows never
 // change within a session, yet the old render path tore down and rebuilt
 // the whole marker layer on every filter interaction — including every
 // keystroke in the search box: typing "memphis" was seven full
@@ -2467,9 +2474,15 @@ const CLOSED_PIN_Z = -1;
 //
 // Closed stations are pushed behind everything with an explicit z-index (see
 // the setZIndex call below), so a closed pin can never hide an open one it
-// overlaps. Petro Corning and TA Corning sit 0.43 mi apart on I-5 exit 630;
-// before this, the driver saw a blue TA pin for a stop that no longer exists
-// with the Petro that is actually there hidden underneath it.
+// overlaps. The case that established this was Petro Corning and TA Corning,
+// 0.43 mi apart on I-5 exit 630: the driver saw a blue TA pin for a stop that
+// no longer existed with the Petro that was actually there hidden underneath.
+// TA Corning was deleted outright in v1.31.0, so that pair no longer exists —
+// the rule stays because the next closure will land somewhere just as tight.
+// Measured over the current 144 rows, the closest pairs left are TA Knoxville
+// West / Petro Knoxville at 0.12 mi and Petro / TA Oak Grove at 0.22 mi, both
+// open; the one closed row, TA Gary, is 2.51 mi from Petro Gary and so only
+// overlaps it when zoomed far enough out that both pins are tiny.
 //
 // That ONLY decides which pin wins the overlap. It does NOT fix pin overlap:
 // at the zoom where both are on screen there is still one visible pin, not
@@ -2499,10 +2512,13 @@ const STOP_MARKERS = new Map();   // DATA row -> its DomMarker
     // order: the engine writes its own inline z-index on every marker,
     // assigned by screen Y so that lower-on-screen pins paint in front, and
     // it recomputes them on each view change. Add order does not survive
-    // that. Measured at Corning: TA Corning is 0.006 deg SOUTH of Petro
-    // Corning, so it lands lower on screen and the engine gave it z-index 1
-    // against Petro's 0 — the closed pin on top — no matter which was added
-    // first. An explicit setZIndex overrides it and survives pan and zoom.
+    // that. Measured at Corning, before that pair was deleted in v1.31.0: TA
+    // Corning was 0.006 deg SOUTH of Petro Corning, so it landed lower on
+    // screen and the engine gave it z-index 1 against Petro's 0 — the closed
+    // pin on top — no matter which was added first. An explicit setZIndex
+    // overrides it and survives pan and zoom. The measurement is kept because
+    // it is the whole reason this line is a setZIndex and not an add-order
+    // trick; nothing about it depended on those two rows still existing.
     if(CLOSED_STOP_IDS.has(row[0])) marker.setZIndex(CLOSED_PIN_Z);
     marker.addEventListener('tap', ()=>openSheet(row));
     STOP_MARKERS.set(row, marker);
@@ -2513,7 +2529,7 @@ const STOP_MARKERS = new Map();   // DATA row -> its DomMarker
 
   // Fit the first view to the whole network, once. The constructor's
   // center/zoom shows a few states on a phone; the app exists to show a
-  // 146-station national network, and a bounds fit frames it correctly on
+  // 144-station national network, and a bounds fit frames it correctly on
   // every screen shape where a hardcoded zoom cannot — and self-corrects
   // if edge stations ever come or go in a data revision. Runs in this same
   // script task as map construction, before the browser paints a frame, so
@@ -2541,7 +2557,7 @@ function renderMarkers(filtered){
 
 function renderList(filtered){
   const listEl = document.getElementById('listview');
-  // Built into a fragment and attached once — 146 separate appends each
+  // Built into a fragment and attached once — 144 separate appends each
   // touch the live document; this touches it a single time. replaceChildren
   // also subsumes the old innerHTML='' clear.
   const frag = document.createDocumentFragment();
@@ -2587,7 +2603,7 @@ function render(){
   const chip = document.getElementById('noMatch');
   if(chip) chip.hidden = filtered.length !== 0;
 
-  // #listview starts display:none and may never be opened. Rebuilding 146
+  // #listview starts display:none and may never be opened. Rebuilding 144
   // rows behind it on every keystroke of an invisible search is pure waste;
   // mark it stale instead and let the toggle catch up.
   if(document.getElementById('listview').classList.contains('show')){
@@ -3006,7 +3022,10 @@ renderLocateOffState();
 // and a dead app, verified. See the block above the marker build.
 
 
-// Terminals are not fuel stops — exclude them from planning. Closed stations
+// Terminals are not fuel stops — exclude them from planning. (One terminal
+// remains, TN6 Covenant Logistics HQ; the Greenville terminal was deleted in
+// v1.31.0. This stays a `tier` filter and not an id check for the obvious
+// reason: the next book may add terminals back.) Closed stations
 // are excluded here too, at the source rather than as a ranking penalty: a
 // closed stop must never be selected, not even as a last resort when nothing
 // else is in range. That case — the only stop in range is closed — is exactly

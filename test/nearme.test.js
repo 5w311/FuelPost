@@ -85,17 +85,23 @@ console.log('\n=== ordering is strictly by distance ===');
 
 console.log('\n=== closed stops and terminals never appear ===');
 {
-  // TN6 is the Covenant HQ terminal; CA5 is the closed TA Corning. Stand next
-  // to each and confirm neither is ever the answer.
+  // TN6 is the Covenant HQ terminal; IN1 is TA Gary, closed for fuel with only
+  // its parking open. Stand next to each and confirm neither is ever the
+  // answer. (This used to stand at TA Corning, which v1.31.0 deleted from DATA
+  // as a data-collection error — so the fixture moved to the row that is
+  // actually closed rather than being dropped.)
   const atTerminal = near(35.0083, -85.3906, 4);
   ok('>>> the HQ terminal is not offered as fuel',
      !atTerminal.some(x => x.stop.id === 'TN6'), JSON.stringify(atTerminal.map(x => x.stop.id)));
-  const ca5 = DATA.find(r => r[0] === 'CA5');
-  const atClosed = near(ca5[9], ca5[10], 4);
+  const in1 = DATA.find(r => r[0] === 'IN1');
+  ok('  fixture: the closed row is still in DATA to stand on', !!in1);
+  const atClosed = near(in1[9], in1[10], 4);
   ok('>>> the closed stop is not offered either',
-     !atClosed.some(x => x.stop.id === 'CA5'), JSON.stringify(atClosed.map(x => x.stop.id)));
+     !atClosed.some(x => x.stop.id === 'IN1'), JSON.stringify(atClosed.map(x => x.stop.id)));
+  // Petro Gary, 2.5 mi east — the same stop TA Gary's own sheet points at, so
+  // the footer and the banner cannot disagree about the alternative.
   ok('  and standing on it, the nearest OPEN stop is offered instead',
-     atClosed[0].stop.id === 'CA4', atClosed[0].stop.id);
+     atClosed[0].stop.id === 'IN2', atClosed[0].stop.id);
   ok('no closed id appears anywhere in the ranked network',
      !FUEL_STOPS.some(s => CLOSED.has(s.id)));
   ok('no terminal appears either', !FUEL_STOPS.some(s => s.tier === 'term'));

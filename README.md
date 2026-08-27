@@ -5,7 +5,7 @@ deployed to GitHub Pages.
 
 Two modes:
 
-- **Stops** — map and list of all 146 Covenant network locations, filterable by
+- **Stops** — map and list of all 144 Covenant network locations, filterable by
   brand, tier, state and free text search. Works with no signal once loaded.
 - **Route** — enter the pickup and delivery addresses off a dispatch, get a truck
   route from HERE and a fuel plan: which network stops to fuel at, at what mile
@@ -32,7 +32,7 @@ lib/extract-version.js      pulls APP_VERSION out of fetched page source for the
 lib/flexible-polyline.js    HERE's reference polyline decoder, vendored unmodified (MIT)
 test/*.test.js              plain-node tests, no framework
 test/run.js                 runs every test file and reports a combined total
-tools/geocode.js            one-off script that geocoded the 146 station coordinates
+tools/geocode.js            one-off script that geocoded the station coordinates
 tools/geocode-report.txt    output of that run
 ```
 
@@ -194,7 +194,7 @@ No dependencies, no install step.
 They answer different questions and must not be conflated:
 
 - **`FUEL_BOOK_REV`** (`Rev 01-2026`) — which edition of the Covenant fuel book
-  the 146 stations in `DATA` came from. Shown in the **header**, because when the
+  the 144 stations in `DATA` came from. Shown in the **header**, because when the
   book is reissued stations join and leave the network, and fueling at a station
   that has left it is a compliance violation. A driver cannot tell stale station
   data from current station data without it. Bump this only when the station data
@@ -202,36 +202,33 @@ They answer different questions and must not be conflated:
 - **`APP_VERSION`** (`1.3.0`) — the code. Shown in the **legend card** as a
   support detail. Bumped for every shipped change.
 
-### Two stations are marked closed, pending the next fuel book
+### One station is marked closed, pending the next fuel book
 
-`DATA` holds **146 rows**, but only **142** are plannable: two Covenant
-terminals, plus two stations that are shut — in two different senses.
+`DATA` holds **144 rows**, and **142** are plannable: one Covenant terminal,
+plus one station that is shut.
 
-- **TA Corning** (`CA5`, nav `CVENTA040`) — 3524 South Highway 99 W, Corning CA.
-  **Permanently closed.** Neither its address nor its phone (530-824-4646)
-  appears in TA's own location master dated **08-2026**.
 - **TA Gary** (`IN1`, nav `CVENTA010`) — 2510 Burr St., Gary IN.
   **Temporarily closed, parking only.** The lot is open and taking trucks;
   fuel, showers and the service bays are not available. Reported by the fleet,
-  08-2026 — an *operational status*, which is a different kind of evidence from
-  CA5's absence-from-master and is labelled as such in the source rather than
-  dressed up as a citation. It was not confirmable against TA's public site
-  from the build environment.
+  08-2026 — an *operational status* rather than a master-list lookup, and
+  labelled as such in the source rather than dressed up as a citation. It was
+  not confirmable against TA's public site from the build environment.
 
-Both are listed in `CLOSED_STOP_IDS` in `index.html` and filtered out of
-planning by the same `FUEL_STOPS` filter. **"Parking only" is excluded exactly
-as hard as "permanently closed"** — the tempting half-measure, leaving it
-plannable because the gate is open, routes a driver to an island that cannot
-sell them fuel, which is the whole failure this set exists to prevent. The
-difference between the two is something a driver *reads*, never something the
-router branches on.
+It is listed in `CLOSED_STOP_IDS` in `index.html` and dropped by the
+`FUEL_STOPS` filter. **"Parking only" is excluded exactly as hard as a
+permanent closure would be** — the tempting half-measure, leaving it plannable
+because the gate is open, routes a driver to an island that cannot sell them
+fuel, which is the whole failure this set exists to prevent. What differs is
+what a driver *reads*, never what the router branches on.
 
-The wording lives in `CLOSED_STOP_INFO`, keyed by id: the list chip (`Closed`
-vs `Parking only`), the banner headline, the sentence under it, and the id of a
-real alternative plus how it relates to this stop. That last field is why the
-table exists rather than one hardcoded banner — Petro Corning is at TA
-Corning's own exit, while Petro Gary is **2.5 mi east at exit 9** against TA
-Gary's exit 6, so "same exit" cannot be a constant in the sentence.
+The wording lives in `CLOSED_STOP_INFO`, keyed by id: the list chip, the banner
+headline, the sentence under it, the id of a real alternative, and **how that
+alternative relates to this stop**. That last field is not decoration — the
+sentence used to end with a hardcoded *"— same exit"*, which was true of the
+entry this table has since lost and **false** of Petro Gary, 2.5 mi east at
+exit 9 against TA Gary's exit 6. The table keeps its per-station shape at one
+entry on purpose: the next closure should be a row added to it, not a renderer
+rewritten.
 
 TA Gary's banner also names the amenity rows below it. Those rows are the fuel
 book's record of the site and still read *14 showers, 6 bays*; without the
@@ -252,33 +249,63 @@ the id and its `CLOSED_STOP_INFO` entry, and nothing else has to change.
 > renames stations and the fuel book keeps the old name. Match on address,
 > phone and coordinates before adding an id to `CLOSED_STOP_IDS`.
 
-> **A closed row is not its neighbour.** Both closed entries have a same-city
-> sibling a couple of miles off, and in both cases exactly one of the pair is
-> shut. TA Corning is not a rename of **Petro Corning** (`CA4`) — two separate
-> rows at the same I-5 exit 630 with different addresses and phones. TA Gary is
-> not **Petro Gary** (`IN2`) — two stations 2.5 mi apart on I-80/I-94, at exits
-> 6 and 9, with different addresses, phones and nav codes. Both siblings are
-> open and stay plannable, and `datastops.test.js` asserts it for each pair.
+> **A closed row is not its neighbour.** TA Gary is not **Petro Gary** (`IN2`) —
+> two stations 2.5 mi apart on I-80/I-94, at exits 6 and 9, with different
+> addresses, phones and nav codes. Petro Gary is open, stays plannable, and is
+> what TA Gary's sheet points at. `datastops.test.js` asserts the separation, so
+> a future over-broad exclusion cannot quietly take the sibling.
 
-**The row is deliberately not deleted.** `DATA`'s station list is sourced
-from the fuel book edition in `FUEL_BOOK_REV`, and dropping rows would put
-`DATA` out of agreement with the book it claims to come from. The row goes when
-the book revs — and `CLOSED_STOP_IDS` gets deleted with it. That expiry is
-why the marker is a two-id set rather than a column on `DATA`, which would drag
-`FIELD_COUNT`, `tools/geocode.js` and the data tests along with it.
+### Closed is not deleted
 
-Both stay visible on the map, in the list (behind a `Closed` or `Parking only`
-chip), and in a station sheet whose banner says which kind of shut it is and
-that it is not used for planning. A driver who knows the stop and goes looking
-for it should find it and learn what happened to it, rather than wonder whether
-the app lost it. TA Gary keeps its **Call** and **Navigate** buttons for the
-same reason: a driver can still go park there.
+These are two different decisions and v1.31.0 made the difference explicit,
+because in a diff they look identical:
+
+- A row is **deleted** only when the fuel book never had it. v1.31.0 removed
+  **TA Corning** (`CA5`) and the **Covenant Greenville Terminal** (`TN7`), which
+  had entered `DATA` through an error in the original data collection and were
+  never in Rev 01-2026. `DATA` went 146 → 144, and it now reproduces the book
+  *more* faithfully than before — the count going down is the data agreeing with
+  the book, not departing from it.
+- A row is **closed, and kept**, when the book has it but the station is shut.
+  It keeps its marker, its list entry and its station sheet — a driver who knows
+  the stop and goes looking should find it and learn what happened, rather than
+  wonder whether the app lost it — and it is simply never selected for a plan.
+
+Deleting a closed row throws that explanation away, so *"it's closed anyway"* is
+not a reason to delete it. `CLOSED_STOP_IDS` stays a set rather than a column on
+`DATA` for the same reason it always did: entries expire, and a column would
+drag `FIELD_COUNT`, `tools/geocode.js` and the data tests along for a marker
+with a known end date.
+
+TA Gary stays visible on the map, in the list behind a `Parking only` chip, and
+in a station sheet whose banner says which kind of shut it is and that it is not
+used for planning. It keeps its **Call** and **Navigate** buttons on purpose: a
+driver can still go park there.
 
 TA Saginaw keeps the name the fuel book gives it, not TA's current one — that
 is the name a Covenant driver recognises — and keeps nav code `CVENTA198`.
 
-The header still reads **146 stops** — it counts stations in the book, and the
-book has not revved.
+The header reads **144 stops**, derived from the filtered row count rather than
+written down anywhere, so it followed the deletion on its own.
+
+### Covenant Logistics HQ is never a fuel stop
+
+`TN6` is a yard, not a truck stop, and routing a driver there expecting diesel
+is the failure the `tier === 'term'` filter exists to prevent. It is excluded
+in exactly one place — the `FUEL_STOPS` filter — and every path that can select
+a stop is fed `FUEL_STOPS`, so that one filter is the whole story.
+
+That is asserted rather than assumed. `datastops.test.js` builds a synthetic
+route straight through the HQ's coordinates and confirms `TN6` is absent from
+**every** entry point: `planFuel`, `planAdaptive`, `stopsNearPickup` (standing
+in the yard), `planBeyondGap`, the short-trip list *with the delivery set to the
+terminal itself*, and Near Me. Each negative is paired with a positive check so
+a path that silently returns nothing cannot pass by being empty — the 50-mile
+`stopsNearPickup` radius did exactly that at first, since the nearest fuel stop
+to the HQ is TA Cartersville at **60.7 mi**. A final assertion greps the
+call sites in `index.html` and requires every one of them to be handed
+`FUEL_STOPS`, since a future edit passing `DATA` would defeat all of the above
+at once.
 
 ## Amenity codes
 
@@ -309,12 +336,12 @@ storing them needs a column.
 
 ### What is trustworthy here, and what isn't
 
-- **`R` is complete and current** for all 143 stops that matched TA's master,
-  straight from it. (That is the *matched* count, not the plannable one:
-  `IN1` matched and is still in TA's data — it is closed for business, not
-  delisted — but is excluded from the 142 plannable stops.) `CA5`
-  (TA Corning) has none — it is the one stop with no match in TA's current
-  data, consistent with it being closed.
+- **`R` is complete and current** for every stop that matched TA's master,
+  straight from it. `IN1` matched and is still in TA's data — it is closed for
+  business, not delisted — but is excluded from the 142 plannable stops. The
+  one row that had *no* match, `CA5` (TA Corning), was deleted outright in
+  v1.31.0: it was never in the fuel book to begin with, which is consistent with
+  it having no match in TA's data either.
 - **`F` is good but not complete.** Of 34 claimed fitness rooms, 32 were
   confirmed and one contradicted — so what is recorded is largely right. But
   only ~20 of the 110 non-fitness stops were sampled, and two of those turned
@@ -340,7 +367,7 @@ them as unexplained drift:
 | `CT1` TA New Haven | **unchanged** | could be neither confirmed nor refuted — an amenity is not removed on absence of evidence |
 
 Note that `TN6`, the Covenant HQ terminal, also carries `F`. Fitness counts over
-*stops* therefore run one lower than counts over all 146 `DATA` rows.
+*stops* therefore run one lower than counts over all 144 `DATA` rows.
 
 ## Near Me (STOPS tab footer)
 
@@ -378,7 +405,7 @@ This will look like a bug to a future reader — it is commented as such in both
 `lib/nearme.js` and at the call site, and `nearestStops()` takes no filter
 argument at all so there is nothing to wire in by accident.
 
-It does exclude closed stops and the two Covenant terminals, because it is fed
+It does exclude closed stops and the Covenant terminal, because it is fed
 `FUEL_STOPS`, which already handles both — one exclusion rule shared with the
 planner rather than a second one to drift.
 
@@ -500,7 +527,7 @@ the one being asked when the list is opened.
 Membership, not equality: **25 stops sit on two or more corridors**, so TA
 Tuscaloosa is found under both I-20 and I-59. Each row's list is derived once at
 startup into a `Map` keyed by row reference (the same way `STOP_MARKERS` is
-keyed) — `passes()` runs over all 146 rows on every keystroke, and a regex per
+keyed) — `passes()` runs over all 144 rows on every keystroke, and a regex per
 row per keystroke would be waste.
 
 ### The LA7 exit correction (v1.28.0)
@@ -526,7 +553,7 @@ corridor and search:
 
 | Filter | Matches | Keeps |
 |---|---|---|
-| **10+ showers** | `showers >= SHOWERS_MANY` | 76 of 146 rows (52%) |
+| **10+ showers** | `showers >= SHOWERS_MANY` | 75 of 144 rows (52%) |
 | **Fitness room** | amenity codes contain `F` **or** `O` | 38 (26%) |
 | **Sit-down restaurant** | amenity codes contain `R` | 70 (48%) |
 
@@ -557,9 +584,9 @@ its CAT scale. Only the filters went.
   a substring of another today, but that is luck rather than design.
   `row[16].includes('R')` would match a future multi-letter code containing
   `R`, and fail silently.
-- **Counts depend on the population.** `passes()` runs over all **146** `DATA`
+- **Counts depend on the population.** `passes()` runs over all **144** `DATA`
   rows, terminals included, so that is what the on-screen count reflects. Over
-  the 144 non-terminal stops, showers is 75 and gym 37 — the difference is
+  the 143 non-terminal stops, showers is 74 and gym 37 — the difference is
   `TN6`, the Covenant HQ terminal, which has a fitness room and 30 showers.
 - **Zero results are reachable** by design — gym + sit-down + 10 showers inside
   one state returns nothing in, for example, Alabama. The empty state says so
@@ -678,6 +705,98 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.31.0
+
+**Two rows deleted from `DATA`: TA Corning (`CA5`) and the Covenant Greenville
+Terminal (`TN7`).** 146 rows → **144**.
+
+Neither was in Rev 01-2026. They entered `DATA` through an error in the original
+data collection, and the fleet confirmed it — so this count going *down* is the
+data agreeing with the fuel book more closely, not departing from it. The
+long-standing rule that rows are never deleted is intact; it was always a rule
+about **closed** stations, and these two were never in the book at all.
+
+That distinction is now written down where someone will hit it, because in a
+diff the two look identical:
+
+- **Deleted** is for a row the book never had. It goes, completely.
+- **Closed** is for a row the book has whose station is shut. It *stays* —
+  keeping its marker, its list entry and its sheet — and is simply never
+  planned. A driver who knows the stop and goes looking should learn what
+  happened to it rather than wonder whether the app lost it. Deleting such a row
+  throws that explanation away, so *"it's closed anyway"* is not a reason to.
+
+**`CLOSED_STOP_IDS` is back to one entry** (`IN1`, TA Gary), and
+`CLOSED_STOP_INFO` loses the `CA5` record. The table keeps its per-station shape
+on purpose: it was built for two, and the next closure should be a row added to
+it rather than a renderer rewritten — which is what the lookup assertions pin.
+
+**`FUEL_STOPS` is still 142.** One terminal and one closed row went, so
+144 − 1 − 1 lands exactly where 146 − 2 − 2 did. The header is derived from the
+filtered row count rather than written down anywhere, so it followed on its own
+and reads **144 stops**.
+
+#### Covenant Logistics HQ, verified unplannable on every path
+
+`TN6` was already excluded by the `tier === 'term'` filter, but "already fine"
+is worth proving rather than asserting. `datastops.test.js` now builds a
+synthetic route straight through the HQ's coordinates and confirms `TN6` is
+absent from **every** entry point that can select a stop: `planFuel`,
+`planAdaptive`, `stopsNearPickup` *standing in the yard*, `planBeyondGap`, the
+short-trip list *with the delivery set to the terminal itself*, and Near Me.
+
+Every negative is paired with a positive check, so a path that silently returns
+nothing cannot pass by being empty — and that guard earned its place
+immediately: at the app's usual 50-mile radius `stopsNearPickup` returned an
+**empty list** from the HQ, because the nearest fuel stop is TA Cartersville at
+60.7 mi. "TN6 is not in it" was passing over nothing. The radius is now 100 mi,
+with the measurement in the comment.
+
+A final assertion greps the call sites in `index.html` and requires every one to
+be handed `FUEL_STOPS`, since a future edit passing `DATA` would defeat all of
+the above at once.
+
+#### Counts that moved, and one that pointedly did not
+
+`DATA` 146 → 144, non-terminal stops 144 → 143, terminals 2 → 1, 10+ showers
+75 of 144 (74 over stops), 100+ parking 114/144, 4+ bays 101/144. `R` stays at
+**70** and `F` at **36** — neither deleted row carried either, so those two
+moved denominator only. That is stated in the test rather than left alone,
+because an unchanged number across a data deletion reads like a stale assertion.
+
+#### Comments that broke guards, for the third time
+
+Two assertions matched **prose** rather than code and had to be fixed the same
+way the version guard was in v1.30.1:
+
+- `header.test.js` counted `Rev 01-2026` in raw HTML; a new comment beside
+  `FUEL_BOOK_REV` explaining which edition `DATA` reproduces named the revision
+  in a sentence and tripped it. It now reads the comment-stripped source, as the
+  version guard beside it already did.
+- The new call-site check matched the sentence *"nearPickup is
+  `stopsNearPickup(pickup, NEAR_PICKUP_RADIUS_GAP)`"* in a comment and reported
+  a call site that does not exist. Also comment-stripped now.
+
+Three times in three releases, so it is worth naming as a pattern: **a matcher
+looking for code will find the sentence describing it.**
+
+#### Corning's absence from the code
+
+The Corning pair was the case that established the closed-pin z-index rule
+(0.43 mi apart on I-5 exit 630, the closed TA pin winning the overlap and hiding
+the Petro that was actually there). Deleting it removes the fixture but not the
+reason, so the measurement is kept in the comments, marked as historical, and
+the wiring is pinned harder in its place. Measured over the current 144 rows,
+the tightest pairs left are TA Knoxville West / Petro Knoxville at **0.12 mi**
+and Petro / TA Oak Grove at **0.22 mi** — both open — while TA Gary is 2.51 mi
+from Petro Gary. **Nothing in `DATA` today would fail if the rule were dropped;
+the next closure in a tight pair would.**
+
+The `nearme` fixture that stood at TA Corning moved to TA Gary rather than being
+deleted, so it still stands on a genuinely closed row and now confirms the
+footer offers Petro Gary — the same stop TA Gary's own sheet names, so the two
+surfaces cannot disagree about the alternative.
 
 ### v1.30.3
 
