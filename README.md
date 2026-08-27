@@ -693,6 +693,33 @@ The Covenant HQ terminal has no code, and its exit line already falls back to
 `Terminal · ` — a dangling middot would look like missing data rather than data
 that does not exist.
 
+### In the Near Me footer
+
+Beside the exit on each row, the same fact the list row carries — this panel is
+the other place a driver picks a stop without opening it, so it should not be
+the one place the code is missing.
+
+The split here is **not** the one the list row makes. There the line wraps and
+the exit stays whole, because the list is a full-width view that can grow. This
+panel sits over the map at a height the map layout is built around (`--nm-h`
+lifts the recenter button and the HERE controls above it), so the line has to
+fit rather than grow. The code therefore gets a slot that never shrinks
+(`flex:0 0 auto`) and the **exit** is what ellipsises — losing the code on
+exactly the stops whose exit text is longest would drop the thing the row is
+there to show, and the full exit is one tap away on the sheet while the code
+would not be.
+
+Measured over all 142 fuel stops in that layout: **nothing clips at 360px, 390px
+or 430px.** Only at 320px does one row give anything up — Petro Oklahoma City,
+the longest exit in the network — and even there the code survives, which is the
+split working as intended.
+
+The exit is `flex:0 1 auto`, not `1 1 auto`: allowed to *shrink* but not to
+*grow*. Letting it grow swallowed the free space and shoved the code against the
+right edge, where it read as a separate right-aligned column instead of
+something sitting next to the exit.
+
+
 ### In search
 
 `row[20]` joined the haystack alongside name, city, state and exit.
@@ -889,6 +916,54 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.34.0
+
+**The nav code now rides beside the exit in the Near Me footer too.** That panel
+is the other place a driver picks a stop without opening it, and it was the one
+surface still missing the code.
+
+The split is deliberately **not** the list row's. The list wraps and keeps the
+exit whole because it is a full-width view that can grow; this panel sits over
+the map at a height the map layout is built around, so the line must fit. The
+code gets a slot that never shrinks and the **exit** ellipsises — losing the
+code on the stops with the longest exit text would drop the thing the row exists
+to show, and the full exit is one tap away on the sheet while the code would not
+be.
+
+#### Two things measurement corrected
+
+**The overflow estimate was wrong.** A first pass measured `exit · code` as one
+proportional span and concluded 3 of 142 rows would overflow at 390px — Petro
+Bordentown, the stop in the report, by 2px. The shipped layout is a flex exit
+plus a short *monospace* code, which is narrower. Measured over all 142 stops in
+the real layout: **nothing clips at 360px, 390px or 430px.** Only at 320px does
+one row give anything up (Petro Oklahoma City), and the code still survives. The
+comment and the tests now state that, and the 320px case is where the
+never-shrink rule is actually asserted — without it the rule would be pinned
+nowhere.
+
+**The first layout put the code in the wrong place.** With the exit at
+`flex:1 1 auto` it swallowed the free space and pushed the code hard against the
+right edge, reading as a separate right-aligned column rather than as something
+next to the exit. `flex:0 1 auto` — shrink but do not grow — packs them
+together. Caught on screen, not in review.
+
+#### Testing
+
+**1035 assertions.** `navcode.test.js` now asserts all **four** surfaces
+together, so dropping any one is a deliberate act. The Near Me browser suite
+gained a section at the reported location (Perth Amboy NJ) checking every row
+carries a whole, monospaced code, that rows did not grow, and that `--nm-h` is
+still published — plus a 320px case proving the exit gives way and the code does
+not.
+
+Three assertions in that new section were wrong before they were right: the
+natural-width helper cloned nodes into `document.body`, outside `.nm-row`, so
+none of the CSS applied and it reported every code clipped and every exit
+fitting — wrong in opposite directions, which is what gave it away. And
+`--nm-h` was read off `documentElement` when `setNearMeHeight` publishes it on
+`#mapwrap`.
 
 ### v1.33.1
 
