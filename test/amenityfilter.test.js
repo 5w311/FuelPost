@@ -181,13 +181,21 @@ ok('there is a clear-filters control in the no-match chip',
    /id="noMatch"[^>]*>[^<]*<button type="button" id="clearFiltersBtn">Clear filters<\/button>/.test(html));
 ok('it resets all three amenity toggles',
    /state\.showers = state\.gym = state\.restaurant = false;/.test(html));
-// Corridor joined the list in v1.28.0. Every dimension that can empty the map
-// has to be reset here, or the driver is left with a filter they cannot see
-// and cannot clear.
-ok('  and brand, type, state and corridor too',
-   /state\.brand = state\.type = state\.st = state\.corridor = 'all';/.test(html));
-ok('  the corridor SELECT is reset as well, not just the state behind it',
-   /document\.getElementById\('corridorSel'\)\.value='all';/.test(html));
+// Corridor joined the list in v1.28.0; brand and tier left it in v1.32.0.
+// Every dimension that can empty the map has to be reset, or the driver is
+// left with a filter they cannot see and cannot clear.
+ok('  and both multi-selects too',
+   /state\[m\.key\]\.clear\(\);/.test(html) && /const FILTER_MULTIS = \[/.test(html));
+ok('  the CHECKBOXES are reset as well, not just the sets behind them',
+   /cb\.checked = false;/.test(html));
+// v1.32.0: one function, two buttons. The no-match panel's button is the one a
+// driver reaches when the map is already empty, so a second drifting copy of
+// the reset logic would be expensive exactly where it hurts most.
+ok('>>> BOTH reset buttons call the same named function',
+   /getElementById\('clearFiltersBtn'\)\.addEventListener\('click', resetFilters\);/.test(html)
+   && /getElementById\('resetFiltersBtn'\)\.addEventListener\('click', resetFilters\);/.test(html));
+ok('  and there is exactly one copy of the clearing logic',
+   (html.match(/state\.showers = state\.gym = state\.restaurant = false;/g) || []).length === 1);
 // Nothing may quietly relax a filter to avoid an empty result. Checked on
 // CODE, not prose: filter state is only ever written by the toggle handler
 // and the explicit clear button — never from render() or passes(), which is

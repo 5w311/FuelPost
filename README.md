@@ -546,10 +546,120 @@ places *Exit 209/US-51* 479–819 m from this row's stored coordinates and
 `4301 Main St., Laplace, LA 70068` exactly as stored. The correction moves real
 counts: I-10 goes from 12 stops to 13, and I-55 from 3 to 4.
 
+## The filter card
+
+Behind the funnel button on the STOPS tab. Since **v1.32.0** it holds two
+multi-selects, the amenity row, and a reset control.
+
+### Brand and tier filters were removed (v1.32.0)
+
+They are gone because they are **not questions a driver asks** — not because
+they failed the selectivity bar the amenity filters are judged on. That
+distinction is recorded here, and asserted in `filtermulti.test.js`, so nobody
+restores them on the theory that they were merely unselective:
+
+| | Rows | Share of network |
+|---|---|---|
+| **Petro** | 31 | 21.5% |
+| **Exclusive** | 31 | 21.5% |
+| *carrying both* | **5** | — |
+
+Both sat comfortably inside the 15–60% band, and with only 5 rows overlapping
+they were not redundant with each other either. They were simply the two
+least-touched controls in the card.
+
+**Both facts stay visible where they matter.** Brand is on every pin and every
+list row; the Exclusive badge is on the station sheet and the route result
+cards. `row[1]` and `row[11]` are untouched everywhere else — the columns did
+not go with the filters, and `filtermulti.test.js` pins that they are still
+read.
+
+### State and corridor are multi-select
+
+A driver running I-40 *and* I-44, or planning across TX *and* OK, previously had
+to filter twice or not at all.
+
+**Within a dimension the selections are OR. Across dimensions everything is
+AND** — TX or OK, *and* on I-40 or I-44, *and* with showers, *and* matching the
+search text. The across-dimension AND is structural: each check in `passes()` is
+an early return, so it is not something to remember.
+
+`state.st` and `state.corridor` are **`Set`s**. An empty set means no
+constraint, exactly as the old `'all'` string did, so the unfiltered path is
+unchanged and there is no sentinel to remember. Every test guards on `.size` —
+**an empty `Set` is truthy**, and comparing one to `'all'` is silently always
+false, which would have pinned the filter badge on forever.
+
+Corridor was already a membership test, because **25 stops sit on two or more
+interstates** (TA Tuscaloosa is on I-20 and I-59 and must be findable under
+either). Multi-select makes the other side a set too, so it is now
+set-intersects-set: a row passes if **any** of its corridors is selected. Two
+corridors therefore return their union, and a stop on both appears **once** —
+it is one row either way, not one per matching corridor.
+
+### Not a `<select multiple>`, deliberately
+
+The two mobile platforms render that element as different controls entirely.
+iOS Safari gives an inline scrolling listbox — hard to use one-handed, and it
+eats the card's vertical space. Android gives a checkbox dialog. The two
+behaviours would have nothing in common.
+
+Instead: a **disclosure button over a checkbox list**, the same pattern
+`arrivalToggle` and `pickupRangeToggle` already establish on the Route tab —
+`aria-expanded`, `aria-controls`, and a body wrapper it owns. The checkboxes are
+real `<input type="checkbox">` elements inside their `<label>`, so the checked
+state is native and a screen reader announces it without an `aria-*` mirror that
+could drift from what `passes()` reads.
+
+Both lists are built from `DATA` at startup, never hardcoded — 40 states and 39
+corridors. Corridor order stays numeric (I-4 before I-10) with the hand-mapped
+non-interstates last, straight from `CORRIDOR_INDEX`. The stop count rides in
+the **label**, not the value, so `passes()` still tests the bare corridor.
+
+The expanded list scrolls **inside the card** (`max-height`). Forty states at
+~30px each would otherwise push the card past the viewport and take the amenity
+row and the reset button off screen with it.
+
+**The collapsed button summarises the selection** — *All states*, *TX*,
+*TX, OK*, then *TX, OK +2*. Two names then a count: enough to be useful, short
+enough not to wrap on a phone, with an ellipsis rule for anything that still
+overflows.
+
+### Reset filters
+
+There is a reset control **in the card**, below the amenity row. The only other
+one lives inside the no-match panel, which by definition appears *after* a
+driver has already filtered everything away — too late to be the way out of a
+filter they merely regret.
+
+**One function, two buttons.** `resetFilters()` is named and both buttons are
+wired to it; a second copy would drift, and the no-match panel's button — the
+one reached when the map is already empty — is the expensive one to get wrong.
+
+It is **hidden until there is something to clear**, the same rule `clearTripBtn`
+and the per-field clear buttons follow. Its visibility and the filter badge are
+both derived from a single `filtersActive()`, so the two can never disagree.
+
+Reset clears the amenity toggles, both sets, every checkbox, and **collapses the
+disclosures** — leaving a 40-row list open over a card you just reset is not
+"cleared".
+
+**Reset does NOT clear the search box.** Search is a separate control, visible
+in its own box with its own clear button, and a driver who typed a city name and
+then tapped *Reset filters* would not expect to lose it. That is also why
+`filtersActive()` ignores `state.q`: the button that does not clear search must
+not appear merely because search is set.
+
+> **One measured consequence.** With a list expanded the card is tall enough to
+> sit over the no-match panel, so that panel's button cannot be tapped while the
+> card is open. That is not a driver stranded — the card's own **Reset filters**
+> is on screen at that moment, which is exactly why it exists — and closing the
+> card reaches the other one. Both halves are asserted.
+
 ## Amenity filters
 
-Three, under *What do you need tonight?*, AND-combined with brand, type, state,
-corridor and search:
+Three, under *What do you need tonight?*, AND-combined with state, corridor
+and search:
 
 | Filter | Matches | Keeps |
 |---|---|---|
@@ -705,6 +815,97 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.32.0
+
+**Filter row rework.** Four changes to the STOPS filter card.
+
+#### Brand and tier filters removed
+
+Not because they failed the selectivity bar — **31 Petro and 31 Exclusive, only
+5 rows carrying both, each 21.5% of the network**, comfortably inside the 15–60%
+band the amenity filters are judged on, and not redundant with one another
+either. They went because they are not questions a driver asks. That reasoning
+is recorded in `filtermulti.test.js` alongside the numbers, so nobody restores
+them on the theory that they were unselective.
+
+Both facts stay visible where they matter: brand on every pin and list row, the
+Exclusive badge on the station sheet and result cards. `row[1]` and `row[11]`
+are untouched, and tests pin that they are still read — the columns did not go
+with the filters.
+
+#### State and corridor are multi-select
+
+**Within a dimension OR, across dimensions AND.** `state.st` and
+`state.corridor` become `Set`s; an empty set is no constraint, exactly as the
+old `'all'` string was.
+
+Corridor was already a membership test (25 stops sit on two or more
+interstates); it is now **set-intersects-set**, so two corridors return their
+union and a stop on both appears **once**, not once per matching corridor.
+
+Every guard tests `.size`. **An empty `Set` is truthy, and a `Set` is never
+equal to `'all'`** — the old condition would have pinned the filter badge on
+permanently and left *Reset filters* visible with nothing to reset. There is a
+test asserting no comparison to the old sentinel survives anywhere.
+
+#### Not a `<select multiple>`
+
+iOS Safari renders it as an inline scrolling listbox (hard one-handed, eats the
+card's height); Android renders it as a checkbox dialog. Instead: a **disclosure
+over a checkbox list**, matching `arrivalToggle`/`pickupRangeToggle` —
+`aria-expanded`, `aria-controls`, a body wrapper. Real checkboxes inside their
+labels, so the checked state is native rather than an `aria-*` mirror that could
+drift from `passes()`.
+
+Lists stay built from `DATA` (40 states, 39 corridors), corridor order stays
+numeric with non-interstates last, and the stop count rides in the **label** so
+the value remains the bare corridor. The list scrolls inside the card. The
+collapsed button summarises: *All states* → *TX* → *TX, OK* → *TX, OK +2*.
+
+#### Reset filters, in the card
+
+`resetFilters()` is a named function and **both** buttons — the new one and the
+no-match panel's — are wired to it. Hidden until there is something to clear,
+with its visibility and the badge both derived from one `filtersActive()` so
+they cannot disagree.
+
+It clears the toggles, both sets, every checkbox, and collapses the disclosures.
+**It does not clear the search box** — a separate control with its own clear
+button, which is also why `filtersActive()` ignores `state.q`.
+
+#### One measured consequence, asserted rather than left to chance
+
+With a list expanded the card is tall enough to cover the no-match panel, so
+that panel's button cannot be tapped while the card is open. Not a driver
+stranded: the card's own Reset is on screen at that moment — the reason the
+brief put one there — and closing the card reaches the other. Both halves are
+asserted, so neither can quietly stop being true.
+
+#### Testing
+
+**975 assertions, up from 885**, with a new `test/filtermulti.test.js` (88) and
+the removed filters' tests deleted rather than skipped.
+
+That file mirrors `passes()` — it lives in `index.html` and cannot be required —
+and then **pins the mirror against the real source**, because a mirror that has
+drifted proves things about itself rather than about the app. The semantics are
+independently verified against the running app by a browser suite covering the
+disclosures, the union counts as the driver sees them (count, map and list all
+three), the four-way intersection, both resets, and the a11y wiring.
+
+Five mutations were checked against the unit tests and one against the browser:
+corridor OR→AND is caught **five ways in a real browser**, including TA
+Tuscaloosa vanishing from both of its own corridors.
+
+Two fixtures caught lying before they shipped: a browser helper that silently
+no-opped on a value not in the list, so a zero-results fixture "filtered" by
+`ME` — not a Covenant state — and actually measured I-10 alone (13, not 0); it
+throws now. And **for the fourth time this month, an assertion matched the
+sentence describing the code rather than the code** — here, `!/select multiple/`
+tripping on the comment explaining why there is no `<select multiple>`. The
+file now builds a comment-stripped view of both the script and the markup up
+front.
 
 ### v1.31.0
 
