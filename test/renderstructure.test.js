@@ -148,22 +148,16 @@ ok('it renders a labelled, mono code at the existing meta weight',
    /class="rr-meta rr-nav">Nav code <span class="mono">\$\{row\[20\]\}<\/span>/.test(html));
 ok('it is unconditional — every stop reaching a card has a code',
    !/const navLine = row =>[^\n]*\?/.test(html), 'no empty-string branch on the result path');
-// v1.33.0 removed the sheet's Nav code row entirely. The driver no longer has
-// to tap in for it: the list row carries it on the exit line, and these cards
-// carry it during planning — the one flow where the list is never on screen,
-// which is exactly why navLine stays.
-ok('>>> the station sheet no longer renders a Nav code row',
-   !/<div class="k">Nav code<\/div>/.test(html));
-ok('  and nothing else in openSheet reads the column',
-   (() => { const f = html.slice(html.indexOf('function openSheet(row){'));
-     const body = f.slice(0, f.indexOf('\n}\n') + 3);
-     const after = body.slice(body.indexOf('] = row;') + 8)
-       .split('\n').map(l => l.replace(/^\s*\/\/.*$/, '')).join('\n');
-     return !/\bnav\b/.test(after) && !/row\[20\]/.test(after); })(),
-   'a leftover read of the nav column in openSheet');
-ok('  so it is no longer destructured either — the shape is documented at DATA',
-   /,scale,ulsd\] = row;/.test(html) && !/,ulsd,nav\] = row;/.test(html));
-ok('>>> but the RESULT CARDS still render theirs (the planning flow keeps it)',
+// v1.33.0 removed the sheet's Nav code row; v1.33.1 put it back. The code now
+// appears on the sheet, on the list row's exit line, and on the result cards —
+// three different moments, deliberately, and navcode.test.js asserts all three
+// together so removing any one is a deliberate act rather than a side effect.
+ok('>>> the station sheet renders a Nav code row',
+   /<div class="k">Nav code<\/div>/.test(html));
+ok('  conditionally, because the HQ terminal has no code',
+   /if\(nav\) html \+= `<div class="row"><div class="k">Nav code<\/div>/.test(html));
+ok('  from the destructured column', /,scale,ulsd,nav\] = row;/.test(html));
+ok('>>> and the RESULT CARDS still render theirs (the planning flow keeps it)',
    /class="rr-meta rr-nav">Nav code <span class="mono">\$\{row\[20\]\}<\/span>/.test(html));
 
 console.log('\n=== the share text carries the codes without coupling to DATA ===');
