@@ -191,16 +191,36 @@ console.log('\n=== line lengths, measured rather than hoped for ===');
      !/\.list-item \.meta\{[^}]*white-space:nowrap/.test(html));
 }
 
-console.log('\n=== the station sheet gave the row up; the result cards kept theirs ===');
+console.log('\n=== the code appears in all THREE places (v1.33.1) ===');
+// v1.33.0 removed the sheet's row on the reasoning that the list and the
+// result cards already carried it. v1.33.1 put it back: the sheet is where a
+// driver goes for everything ELSE about a stop, and the code belongs with the
+// phone number and the address, not only alongside the exit.
+//
+// Three places is the intent, not duplication that escaped notice — they are
+// three different moments (looking a stop up, scanning the network, working a
+// plan) and the code is what gets typed at the fuel desk in all of them. All
+// three are asserted together so removing any one is a deliberate act.
 {
-  ok('>>> no Nav code row anywhere in the sheet', !/<div class="k">Nav code<\/div>/.test(markup));
   const of_ = code.slice(code.indexOf('function openSheet(row){'));
   const ob = of_.slice(0, of_.indexOf('\n}\n') + 3);
-  const after = ob.slice(ob.indexOf('] = row;') + 8);
-  ok('  and openSheet reads the column nowhere at all',
-     !/\bnav\b/.test(after) && !/row\[20\]/.test(after), after.slice(0, 300));
-  ok('  so it is no longer destructured — the 21-column shape is documented at DATA',
-     /,scale,ulsd\] = row;/.test(code));
+  ok('>>> 1. the station sheet renders a Nav code row again',
+     /if\(nav\) html \+= `<div class="row"><div class="k">Nav code<\/div><div class="v mono">\$\{nav\}<\/div><\/div>`;/.test(ob),
+     ob.slice(ob.indexOf('ULSD'), ob.indexOf('ULSD') + 400));
+  ok('  reading it from the destructured column, like every other row does',
+     /,scale,ulsd,nav\] = row;/.test(code));
+  ok('  mono, matching the phone number and every other code in the app',
+     /<div class="v mono">\$\{nav\}<\/div>/.test(ob));
+  // THE TERMINAL. It reaches this sheet like any other row and has no code; a
+  // "Nav code" label with an empty value beside it reads as a data error.
+  ok('>>> it is CONDITIONAL, so the codeless terminal gets no empty row',
+     /if\(nav\) html \+=/.test(ob));
+  ok('  and exactly one row in DATA would hit that branch',
+     DATA.filter(r => !r[20]).length === 1
+     && DATA.filter(r => !r[20])[0][0] === 'TN6');
+  ok('  it sits between ULSD and the amenities, where it always did',
+     ob.indexOf('>ULSD<') < ob.indexOf('>Nav code<')
+     && ob.indexOf('>Nav code<') < ob.indexOf('class="amenities"'));
   // What was checked before deleting, and is recorded here so the next reader
   // does not have to check again: the navblock is the hand-off to the driver's
   // MAP app, and its copy button copies the ADDRESS. Neither touches the code.
@@ -208,10 +228,16 @@ console.log('\n=== the station sheet gave the row up; the result cards kept thei
      /class="navblock"/.test(code) && /Apple Maps/.test(code) && /Google Maps/.test(code));
   ok('  and its copy control copies the ADDRESS, which is why it was left alone',
      /id="copyAddrBtn"/.test(code) && !/copyNavBtn|copyCodeBtn/.test(code));
-  ok('>>> the route result cards STILL render the code — the one flow with no list',
+  ok('>>> 2. the route result cards still render it — the flow with no list',
      /const navLine = row =>/.test(code)
      && /class="rr-meta rr-nav">Nav code <span class="mono">\$\{row\[20\]\}<\/span>/.test(code));
+  ok('>>> 3. and the list row still carries it on the exit line',
+     /\$\{row\[7\]\|\|'Terminal'\}\$\{row\[20\]\?' &middot; '\+row\[20\]:''\}/.test(code));
   ok('  and the share text still carries it', /nav: s\.row\[20\]/.test(code));
+  // Each surface formats it its own way and that is fine; what must not drift
+  // is WHICH column they read.
+  ok('  all three read row[20], never a copy or a cached string',
+     (code.match(/row\[20\]/g) || []).length >= 3 && /\$\{nav\}/.test(ob));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -659,8 +659,11 @@ not appear merely because search is set.
 
 ## The nav code
 
-The Covenant nav code is what a driver types into the fuel desk. Since
-**v1.33.0** it lives in two places, and deliberately not in a third.
+The Covenant nav code is what a driver types into the fuel desk. It appears in
+**three** places, deliberately — the station sheet, the list row and the route
+result cards — because those are three different moments: looking a stop up,
+scanning the network, and working a plan. It is also **searchable**, including
+by its trailing digits alone.
 
 ### On the list row
 
@@ -709,17 +712,23 @@ matched every I-20 stop through the exit field; it now also matches codes
 containing 20. That is inherent to substring search, is not new, and is
 deliberately not special-cased — no prefix anchoring, no field-scoped syntax.
 
-### Not in the station sheet
+### On the station sheet
 
-The **Nav code** detail row, which sat between ULSD and Amenities, is gone. The
-driver no longer has to tap into a stop and back out to read a code: the list
-carries it beforehand, and the result cards carry it during planning — the one
-flow where the list is never on screen, which is why `navLine` stays.
+A **Nav code** detail row between ULSD and Amenities, mono, alongside the phone
+number and the address.
 
-Nothing else in the sheet referenced the code. The `navblock` below it is the
-hand-off to the driver's **map** app, and its *Copy address* button copies the
-address; neither touches the nav code. `row[20]` is no longer destructured in
-`openSheet` either, so there is no unused binding inviting a later cleanup.
+v1.33.0 removed it, on the reasoning that the list row and the result cards
+already carried the code. **v1.33.1 put it back**: the sheet is where a driver
+goes for everything *else* about a stop, and the code belongs with the other
+facts about it rather than only alongside the exit.
+
+It is **conditional**. The HQ terminal has no code and reaches this sheet like
+any other row; a *Nav code* label with an empty value beside it would read as a
+data error rather than as a yard that was never assigned one.
+
+The `navblock` further down is a different thing entirely — the hand-off to the
+driver's **map** app — and its *Copy address* button copies the address, not the
+code.
 
 ## Amenity filters
 
@@ -880,6 +889,32 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.33.1
+
+**The nav code is back on the station sheet.**
+
+v1.33.0 removed that row on the reasoning that the list row and the result cards
+already carried the code, so a driver never needed to tap in for it. That
+reasoning held for *finding* a code; it did not hold for the sheet's job. The
+sheet is where a driver goes for everything else about a stop — phone, parking,
+showers, scale — and the code belongs with those, not only alongside the exit.
+
+The row is restored exactly where it was, between ULSD and Amenities, mono, and
+**conditional** on the column being non-empty: the HQ terminal reaches this
+sheet like any other row and has no code, and a *Nav code* label with nothing
+beside it reads as a data error rather than as a yard that never had one.
+`row[20]` is destructured in `openSheet` again.
+
+**Everything else from v1.33.0 stays.** The list row still carries the code on
+its exit line and search still matches it, digits included — those were the
+parts that fixed a driver having no way to look a code up at all.
+
+So the code is now in three places on purpose: the sheet, the list row, and the
+result cards. Those are three different moments — looking a stop up, scanning
+the network, working a plan — and it is what gets typed at the fuel desk in all
+three. `navcode.test.js` asserts all three **together**, so dropping any one is
+a deliberate act rather than a side effect of editing one surface.
 
 ### v1.33.0
 

@@ -1251,33 +1251,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.33.0"></script>
+<script src="lib/fuelplan.js?v=1.33.1"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.33.0"></script>
+<script src="lib/triptext.js?v=1.33.1"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.33.0"></script>
+<script src="lib/location.js?v=1.33.1"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.33.0"></script>
+<script src="lib/gauge.js?v=1.33.1"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.33.0"></script>
+<script src="lib/corridors.js?v=1.33.1"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.33.0"></script>
+<script src="lib/nearme.js?v=1.33.1"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.33.0"></script>
+<script src="lib/extract-version.js?v=1.33.1"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.33.0"></script>
+<script src="lib/autosuggest.js?v=1.33.1"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.33.0"></script>
+<script src="lib/baselayer.js?v=1.33.1"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.33.0"></script>
+<script src="lib/memocache.js?v=1.33.1"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.33.0"></script>
+<script src="lib/routerank.js?v=1.33.1"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.33.0"></script>
+<script src="lib/vehicleprofile.js?v=1.33.1"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.33.0"></script>
+<script src="lib/escape.js?v=1.33.1"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.33.0"></script>
+<script src="lib/navlinks.js?v=1.33.1"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1293,7 +1293,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.33.0')
+fetch('lib/fuelplan-adaptive.js?v=1.33.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1310,7 +1310,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.33.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.33.0')
+fetch('lib/shorttrip.js?v=1.33.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1321,7 +1321,7 @@ fetch('lib/shorttrip.js?v=1.33.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.33.0"></script>
+<script src="lib/flexible-polyline.js?v=1.33.1"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1493,7 +1493,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.33.0';
+const APP_VERSION = '1.33.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2301,10 +2301,7 @@ function amenChips(str, labelMap){
 }
 
 function openSheet(row){
-  // Stops at `ulsd` on purpose: row[20] (nav) was the last column this sheet
-  // read, and it stopped reading it in v1.33.0. The full 21-column shape is
-  // documented above DATA, not here.
-  const [id,brand,name,addr,city,st,zip,exit,phone,lat,lng,type,park,resIt,showers,bays,amen,clin,scale,ulsd] = row;
+  const [id,brand,name,addr,city,st,zip,exit,phone,lat,lng,type,park,resIt,showers,bays,amen,clin,scale,ulsd,nav] = row;
   const dotColor = brand==='TA' ? 'var(--ta)' : (brand==='Petro' ? 'var(--petro)' : 'var(--navy)');
   const typeBadge = type==='excl' ? '<span class="badge-pill b-excl">★ Exclusive</span>' : (type==='term' ? '<span class="badge-pill b-term">Terminal</span>' : '<span class="badge-pill b-prim">Primary</span>');
   const brandBadge = brand==='TA' ? '<span class="badge-pill b-ta">TA</span>' : (brand==='Petro' ? '<span class="badge-pill b-petro">Petro</span>' : '');
@@ -2356,12 +2353,21 @@ function openSheet(row){
   if(bays) html += `<div class="row"><div class="k">Truck service bays</div><div class="v">${bays}</div></div>`;
   if(scale) html += `<div class="row"><div class="k">CAT scale</div><div class="v">Yes</div></div>`;
   if(ulsd) html += `<div class="row"><div class="k">ULSD</div><div class="v">Yes</div></div>`;
-  // The Nav code row lived here until v1.33.0. It is gone because the driver
-  // no longer has to tap in to find the code: the list row now carries it on
-  // the exit line, and the route result cards carry it during planning, which
-  // is the one flow where the list is never on screen. Nothing else in this
-  // sheet referenced it — the navblock below is the hand-off to the driver's
-  // MAP app, and its Copy address button copies the address, not the code.
+  // The nav code. Removed from this sheet in v1.33.0 on the reasoning that the
+  // list row and the result cards already carried it — and put back in v1.33.1,
+  // because the sheet is where a driver goes for everything ELSE about a stop
+  // and the code belongs with the phone number and the address rather than
+  // only alongside the exit.
+  //
+  // It appears in three places now, deliberately: this sheet, the list row's
+  // exit line, and the route result cards. Those are three different moments —
+  // looking a stop up, scanning the network, and working a plan — and the code
+  // is what the driver types at the fuel desk in all three.
+  //
+  // Conditional because the HQ terminal has no code; it reaches this sheet like
+  // any other row, and a "Nav code" label with an empty value beside it reads
+  // as a data error rather than as a yard that was never assigned one.
+  if(nav) html += `<div class="row"><div class="k">Nav code</div><div class="v mono">${nav}</div></div>`;
   if(amen){
     html += `<div class="amenities"><h4>Amenities</h4><div class="chip-wrap">${amenChips(amen,AMEN_LABEL)}</div></div>`;
   }
