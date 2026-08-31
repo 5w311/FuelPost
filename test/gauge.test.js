@@ -103,10 +103,10 @@ console.log('\n=== arrival reserve: a TOGGLE since v1.35.0 ===');
      G.ARRIVAL_TOGGLE_TICK !== G.RESERVE_TICKS
      && G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) > 0);
   // THE CEILING REASONING, pinned so "or higher" stays a decision: at 5/8 the
-  // reserve alone (500 mi) eats most of a Long tier's 675 and gaps most
+  // reserve alone (500 mi) eats most of a Long tier's 700 and gaps most
   // plans. If the fleet raises the toggle past 1/2, this line is the one to
   // change knowingly.
-  ok('  one tick higher would already hold back 500 of Long\'s 675 mi',
+  ok('  one tick higher would already hold back 500 of Long\'s 700 mi',
      G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK + 1) === 500);
   ok('  the old choices array is gone from the module',
      !('ARRIVAL_TICK_CHOICES' in G));
@@ -134,21 +134,38 @@ console.log('\n=== arrival reserve: a TOGGLE since v1.35.0 ===');
   ok('clamped above at the full tank minus the floor', G.arrivalReserveMiles(99) === 875);
 }
 
-console.log('\n=== the range tiers land on the tank scale ===');
-// Two of the three tiers are exact tick multiples, and the comments in
-// index.html say so; this is what keeps that claim honest. Regular is
-// deliberately NOT one, and that is asserted too so nobody "corrects" it.
+console.log('\n=== the range tiers against the tank scale ===');
+// READ FROM index.html, not restated as literals. The old version of this
+// block asserted arithmetic about the numbers 875 and 675 directly — claims
+// that stay true forever no matter what RANGE_TIERS actually says — and when
+// v1.35.0 moved the tiers to 500/700/900 it went on passing without a
+// murmur, silent about exactly the drift it existed to catch. Its own
+// comment warned that the tick-scale claim "silently stops being true";
+// the assertion had the same disease.
 {
-
-  ok('Max 875 is exactly 7 ticks — a full tank minus the held-back eighth',
-     875 === (G.TICKS - G.RESERVE_TICKS) * G.MILES_PER_TICK);
-  ok('Regular 500 is exactly 4 ticks — half a tank', 500 === 4 * G.MILES_PER_TICK);
-  // v1.30.0 moved the values from 400/625 to 500/675, and in doing so SWAPPED
-  // which tier falls off the tick scale: it used to be Regular at 3.2 ticks
-  // with Long landing exactly on 5. Asserting the odd one out by name is what
-  // catches the comment in index.html drifting away from the numbers.
-  ok('Long 675 is NOT a whole tick (5.4) — a road-practice number, as documented',
-     675 % G.MILES_PER_TICK !== 0 && 675 / G.MILES_PER_TICK === 5.4);
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const tier = k => Number((html.match(new RegExp(k + ":\\s*\\{ miles: (\\d+)")) || [])[1]);
+  const T = { regular: tier('regular'), long: tier('long'), max: tier('max') };
+  ok('the tier table was actually parsed', T.regular > 0 && T.long > 0 && T.max > 0,
+     JSON.stringify(T));
+  ok('>>> the tiers are 500 / 700 / 900 (v1.35.0)',
+     T.regular === 500 && T.long === 700 && T.max === 900, JSON.stringify(T));
+  // The tick-scale claim, third revision: only REGULAR is on the scale now.
+  ok('Regular is exactly 4 ticks — half a tank', T.regular === 4 * G.MILES_PER_TICK);
+  ok('Long is NOT a whole tick (5.6) — a road-practice number, as documented',
+     T.long % G.MILES_PER_TICK !== 0 && T.long / G.MILES_PER_TICK === 5.6);
+  ok('Max is NOT a whole tick either (7.2)',
+     T.max % G.MILES_PER_TICK !== 0 && T.max / G.MILES_PER_TICK === 7.2);
+  // Max exceeds the plannable full tank, knowingly: a full gauge on Max reads
+  // as startBurned 25 through computeStartBurned, capping the FIRST leg at
+  // what is actually in the tank while post-fuel legs plan the full 900. The
+  // pair below is that whole mechanism.
+  ok('>>> Max 900 exceeds plannable-full (875) by 25 mi',
+     T.max - G.plannableMilesForTick(G.TICKS) === 25, String(T.max - G.plannableMilesForTick(G.TICKS)));
+  ok('  and computeStartBurned turns that into a 25 mi first-leg debit',
+     G.computeStartBurned(T.max, G.plannableMilesForTick(G.TICKS)) === 25);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

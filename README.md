@@ -63,7 +63,8 @@ Three inputs shape the plan:
 
 ### Range tiers, and the default that moved (v1.27.0)
 
-> **The default range is 675 mi** (875 before v1.27.0, 625 in v1.27.0–v1.29.x).
+> **The default range is 700 mi** (675 in v1.30.0–v1.34.x, 625 in
+> v1.27.0–v1.29.x, 875 before v1.27.0).
 > A familiar route plans **more stops** than it did before v1.27.0. That is the
 > intended improvement, not a bug — but if a plan looks busier than you
 > remember, this is why.
@@ -78,19 +79,28 @@ fewest-stops setting.
 | Tier | Miles | On the tank scale | Stop frequency |
 |---|---|---|---|
 | Regular | 500 | exactly 4 ticks — half a tank | Most stops |
-| **Long** (default) | **675** | 5.4 ticks — *not* a whole tick | Fewer stops |
-| Max | 875 | exactly 7 ticks — a full tank minus the held-back 1/8 | Fewest stops |
+| **Long** (default) | **700** | 5.6 ticks — *not* a whole tick | Fewer stops |
+| Max | 900 | 7.2 ticks — past the plannable full tank, knowingly | Fewest stops |
 | Custom | 300–1200 | whatever you type | — |
 
-Two of the three sit exactly on the fuel gauge's own scale: with
-`FULL_TANK_MILES` 1000 over `TICKS` 8, a tick is 125 mi. Long's 675 is
-deliberately *not* a whole tick — it is a road-practice number, and
-`gauge.test.js` asserts that it isn't one so nobody "corrects" it later.
+Only Regular still sits on the fuel gauge's own scale: with `FULL_TANK_MILES`
+1000 over `TICKS` 8, a tick is 125 mi, and 500 is exactly four of them. Long
+700 and Max 900 are road-practice numbers set by the fleet in v1.35.0, and
+`gauge.test.js` asserts they are *not* whole ticks so nobody "corrects" them.
 
-**Which tier is the odd one out changed at v1.30.0**, when the values moved from
-400/625 to 500/675: before that it was Regular that fell off the tick scale and
-Long that landed on it. Both the code comment and the test said so, and both had
-to be corrected rather than left describing the old numbers.
+**Max 900 exceeds the plannable full tank** (875 above the always-held-back
+eighth), knowingly: Custom has allowed up to 1200 since v1.27.0, and the gauge
+interaction already handles it — a full tank on Max reads as `startBurned` 25,
+capping the *first* leg at what is actually in the tank while post-fuel legs
+plan the full 900.
+
+**The tick-scale claim has now changed three times** — 400/625 had Long on the
+scale, 500/675 had Max on it, 500/700/900 leaves Regular alone there — and each
+move had to correct the comment and the test together. Since v1.35.0 the test
+reads `RANGE_TIERS` out of `index.html` instead of restating the numbers: its
+previous form asserted arithmetic about the literals 875 and 675, claims that
+stay true forever no matter what the tiers say, and it sailed through the
+v1.35.0 change silently — the exact drift it existed to catch.
 
 The tier names the tradeoff the driver is actually making — how often they stop
 — while each button still shows its mile figure, because that number is what
@@ -925,8 +935,29 @@ overlay unmount it.
 
 ### v1.35.0
 
-**The arrival reserve is a switch.** Off is the standard reserve; on plans your
-stops so you arrive with about **half a tank** (375 mi of range).
+**Two changes to the Route tab's fuel settings: the arrival reserve becomes a
+switch, and the range tiers move to 500 / 700 / 900.**
+
+#### Range tiers: Long 675 → 700, Max 875 → 900, Regular stays 500
+
+Fleet-set numbers. The default (Long) therefore moves 675 → 700, derived from
+the tier table as always. Two consequences worth knowing:
+
+- **Max 900 exceeds the plannable full tank** (875 above the held-back eighth).
+  Accepted knowingly — Custom has allowed up to 1200 since v1.27.0 and the
+  gauge interaction already copes: a full tank on Max reads as `startBurned`
+  25, so the first leg plans at 875 and post-fuel legs at 900. The comment,
+  the README and a test pin state it so it reads as a decision.
+- **Only Regular sits on the tick scale now.** And the test guarding that
+  claim was rewritten to read `RANGE_TIERS` out of `index.html`: its old form
+  asserted arithmetic about the literals (875 = 7 ticks), which stays true
+  forever no matter what the tiers say — it sailed through this change
+  silently, the exact drift it existed to catch.
+
+#### The arrival reserve is a switch
+
+Off is the standard reserve; on plans your stops so you arrive with about
+**half a tank** (375 mi of range).
 
 The control has narrowed release by release as the real choice got clearer —
 v1.27.0's 1/8–1/2 dial, v1.30.1 dropping 1/8, and now the fleet's read that a

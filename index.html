@@ -1008,12 +1008,12 @@
       <label id="rangeLabel">How far do you run between fuel stops?</label>
       <div class="seg range-seg" id="rangeSeg" role="group" aria-labelledby="rangeLabel">
         <button type="button" data-tier="regular"><b>Regular</b><span>500 mi</span><em>Most stops</em></button>
-        <button type="button" data-tier="long" class="active"><b>Long</b><span>675 mi</span><em>Fewer stops</em></button>
-        <button type="button" data-tier="max"><b>Max</b><span>875 mi</span><em>Fewest stops</em></button>
+        <button type="button" data-tier="long" class="active"><b>Long</b><span>700 mi</span><em>Fewer stops</em></button>
+        <button type="button" data-tier="max"><b>Max</b><span>900 mi</span><em>Fewest stops</em></button>
         <button type="button" data-tier="custom"><b>Custom</b><span>300&ndash;1200</span><em>Set a number</em></button>
       </div>
       <div class="rb-range-wrap" id="rangeCustomWrap" hidden>
-        <input id="rangeInput" type="number" placeholder="675" min="300" max="1200" step="10" inputmode="numeric">
+        <input id="rangeInput" type="number" placeholder="700" min="300" max="1200" step="10" inputmode="numeric">
         <span class="rb-unit">mi</span>
         <button type="button" id="rangeClearBtn" class="rb-clear-field-btn" title="Reset to default" aria-label="Reset to default" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -3474,20 +3474,25 @@ const RANGE_MIN = 300, RANGE_MAX = 1200;
 
 // The range tiers, and where their numbers come from.
 //
-// Two of the three sit exactly on the fuel gauge's own scale. With
-// FULL_TANK_MILES 1000 over TICKS 8, a tick is 125 mi, so
-//   Max     875 = 7 ticks — a full tank minus the 1/8 always held back
-//   Regular 500 = 4 ticks — exactly half a tank
-// Long 675 is deliberately NOT a whole tick (it lands at 5.4). It is a
-// road-practice number, and pretending otherwise in a comment would be
-// tidier than it is true.
+// Only Regular sits on the fuel gauge's own scale now. With FULL_TANK_MILES
+// 1000 over TICKS 8, a tick is 125 mi, so Regular 500 = 4 ticks — exactly
+// half a tank. Long 700 (5.6 ticks) and Max 900 (7.2) are road-practice
+// numbers set by the fleet in v1.35.0 (from 675/875), and pretending they
+// land on the scale would be tidier than it is true.
 //
-// WHICH TIER IS THE ODD ONE OUT CHANGED at v1.30.0, when the values moved
-// from 400/625 to 500/675. Before that it was Regular that fell off the tick
-// scale and Long that landed on it; the comment and gauge.test.js both said
-// so, and both had to be corrected rather than left describing the old
-// numbers. If these values move again, check that claim again — it is the
-// kind of sentence that silently stops being true.
+// THE TICK-SCALE CLAIM HAS NOW CHANGED THREE TIMES — 400/625 had Long on the
+// scale, 500/675 had Max on it, 500/700/900 leaves Regular alone there — and
+// each move had to correct this comment and gauge.test.js together. If these
+// values move again, check that claim again; it is the kind of sentence that
+// silently stops being true.
+//
+// MAX 900 EXCEEDS THE GAUGE'S PLANNABLE FULL TANK (875 above the held-back
+// eighth), and that is knowingly accepted rather than an oversight: Custom
+// has allowed up to 1200 since v1.27.0, and the gauge interaction already
+// handles it — a full tank on Max reads as startBurned 25, so the FIRST leg
+// plans at 875 while post-fuel legs plan the full 900. The fleet sets the
+// number; the tank model just refuses to pretend the first leg is longer
+// than the fuel on board.
 //
 // `long` is the default from v1.27.0. It was `max` for every release before,
 // which meant every driver who never touched the field was silently on the
@@ -3495,8 +3500,8 @@ const RANGE_MIN = 300, RANGE_MAX = 1200;
 // plans.
 const RANGE_TIERS = {
   regular: { miles: 500, label: 'Regular', freq: 'Most stops' },
-  long:    { miles: 675, label: 'Long',    freq: 'Fewer stops' },
-  max:     { miles: 875, label: 'Max',     freq: 'Fewest stops' }
+  long:    { miles: 700, label: 'Long',    freq: 'Fewer stops' },
+  max:     { miles: 900, label: 'Max',     freq: 'Fewest stops' }
 };
 const DEFAULT_RANGE_TIER = 'long';
 
@@ -4078,9 +4083,9 @@ function showCopyFallback(text, anchorEl){
    Resets the planner to a blank first-open state: fields, ranges, geocode
    candidates, the results panel AND the route drawn on the map. A stale
    polyline left behind on a cleared trip is worse than no clear button. */
-// 675 since v1.30.0 (625 from v1.27.0, a hardcoded 875 before that), because
-// the default IS the Long tier. Derived from the tier table so the two can
-// never disagree.
+// 700 since v1.35.0 (675 from v1.30.0, 625 from v1.27.0, a hardcoded 875
+// before that), because the default IS the Long tier. Derived from the tier
+// table so the two can never disagree.
 const ROUTE_DEFAULT_RANGE = RANGE_TIERS[DEFAULT_RANGE_TIER].miles;
 
 function routeHasSomethingToClear(){
