@@ -527,26 +527,32 @@ ok('>>> ON maps to the gauge\'s toggle tick, never a local number',
 }
 // The help line has to explain the switch from OUTSIDE: what is already held
 // back, and what turning it on buys — both worded from the gauge's own
-// numbers, never a hardcoded 375.
+// numbers, never a hardcoded 450 or 150. Since v1.38.0 the ON copy carries
+// BOTH numbers: the 1/2 aim (what the plan lands closest to) and the 1/4
+// floor (what it never goes under).
 ok('>>> the off state explains the floor and the affordance',
    /Off — plans just keep the standard reserve/.test(codeOnly)
-   && /Turn on to arrive with about/.test(codeOnly));
-ok('  the on state states the reserve with the planner\'s own figure',
-   /Plans a stop early enough to arrive with about/.test(codeOnly));
-ok('  both read the model — no literal 375 in the copy',
-   /arrivalReserveMiles\(FuelGauge\.ARRIVAL_TOGGLE_TICK\)/.test(codeOnly));
+   && /Turn on to aim for about/.test(codeOnly));
+ok('  the on state states the aim and the floor with the planner\'s own figures',
+   /Aims your last stop so you arrive with about/.test(codeOnly)
+   && /never under \$\{floorLabel\}/.test(codeOnly));
+ok('  both read the model — no literal 450 or 150 in the copy',
+   /arrivalReserveMiles\(FuelGauge\.ARRIVAL_TOGGLE_TICK\)/.test(codeOnly)
+   && /tickLabel\(FuelGauge\.ARRIVAL_TARGET_TICK\)/.test(codeOnly));
 ok('  the old seg, choices array and disclosure are gone',
    !/arrivalSeg/.test(codeOnly) && !/ARRIVAL_TICK_CHOICES/.test(codeOnly)
    && !/setArrivalOpen/.test(codeOnly) && !/arrivalField/.test(codeOnly));
 ok('>>> Clear trip switches it off through the same function',
    /setArrivalOn\(false\);[\s\S]{0,400}geoCands = \{ pickup: \[\], delivery: \[\] \};/.test(codeOnly));
 
-// The reserve has to reach the planner, and the shortfall has to stay distinct
-// from a dry gap all the way out to the shared trip text.
-ok('>>> the reserve is passed into planAdaptive',
-   /planAdaptive\([\s\S]{0,200}ranges\.arrivalReserve\)/.test(codeOnly));
-ok('  readRanges returns it alongside the rest',
-   /return \{ maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve \};/.test(codeOnly));
+// The reserve AND the target have to reach the planner, and the shortfall has
+// to stay distinct from a dry gap all the way out to the shared trip text.
+ok('>>> the reserve and the target are passed into planAdaptive',
+   /planAdaptive\([\s\S]{0,220}ranges\.arrivalReserve, ranges\.arrivalTarget\)/.test(codeOnly));
+ok('  and into planBeyondGap the same way',
+   /planBeyondGap\([\s\S]{0,220}ranges\.arrivalReserve, ranges\.arrivalTarget\)/.test(codeOnly));
+ok('  readRanges returns both alongside the rest',
+   /return \{ maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve, arrivalTarget \};/.test(codeOnly));
 ok('>>> a reserve shortfall is never recorded as a gap in the shared trip',
    /gap: \(result\.ok \|\| shortfall\) \? null : result\.gap,/.test(codeOnly));
 ok('  and never headlined as one',

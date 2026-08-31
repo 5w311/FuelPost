@@ -81,54 +81,75 @@ console.log('\n=== the 1/8 floor feeds the real planner into an immediate zero-w
   ok('ok is false', result.ok === false);
 }
 
-console.log('\n=== arrival reserve: a TOGGLE since v1.35.0 ===');
-// One switch, two states. The control narrowed release by release as the real
-// choice got clearer: v1.27.0 offered a 1/8-1/2 dial, v1.30.1 dropped 1/8
-// (nobody arrives on an eighth by choice), and v1.35.0 collapsed the rest —
-// the fleet's read was that a driver who wants fuel at delivery wants HALF A
-// TANK, and 1/4 / 3/8 were gradations nobody picked. What planFuel receives is
-// pinned here at its exact mile value, so a silent change cannot move every
-// plan without a test noticing.
+console.log('\n=== arrival reserve: a TOGGLE since v1.35.0, floor + aim since v1.38.0 ===');
+// One switch, two states — and since v1.38.0, TWO numbers behind the ON
+// state. The control narrowed release by release as the real choice got
+// clearer: v1.27.0 offered a 1/8-1/2 dial, v1.30.1 dropped 1/8, v1.35.0
+// collapsed the rest to one switch, v1.37.0 pushed it to 5/8, and v1.38.0
+// split it: never arrive UNDER 1/4 (the floor, a hard constraint), and land
+// the last stop so arrival sits CLOSEST to 1/2 (the aim, a preference).
+// Both values are pinned at their exact miles so a silent change cannot move
+// every plan without a test noticing.
 {
 
-  ok('>>> the toggle tick is 5 — 5/8 of a tank, raised from 1/2 in v1.37.0',
-     G.ARRIVAL_TOGGLE_TICK === 5, String(G.ARRIVAL_TOGGLE_TICK));
-  ok('>>> ON adds exactly 600 mi of reserve',
-     G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) === 600,
+  ok('>>> the toggle tick is 2 — the 1/4 FLOOR, down from 5/8 in v1.38.0',
+     G.ARRIVAL_TOGGLE_TICK === 2, String(G.ARRIVAL_TOGGLE_TICK));
+  ok('>>> ON requires at least 150 mi of range at delivery',
+     G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) === 150,
      String(G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK)));
-  ok('  and its label is the gauge\'s own "5/8", never a second string',
-     G.tickLabel(G.ARRIVAL_TOGGLE_TICK) === '5/8');
+  ok('  and the floor\'s label is the gauge\'s own "1/4", never a second string',
+     G.tickLabel(G.ARRIVAL_TOGGLE_TICK) === '1/4');
+  ok('>>> the target tick is 4 — aim to land nearest 1/2 a tank',
+     G.ARRIVAL_TARGET_TICK === 4, String(G.ARRIVAL_TARGET_TICK));
+  ok('>>> the aim is 450 mi of range at delivery',
+     G.arrivalReserveMiles(G.ARRIVAL_TARGET_TICK) === 450,
+     String(G.arrivalReserveMiles(G.ARRIVAL_TARGET_TICK)));
+  ok('  and the aim\'s label is the gauge\'s own "1/2"',
+     G.tickLabel(G.ARRIVAL_TARGET_TICK) === '1/2');
+  // The aim must sit strictly above the floor: equal would make the re-pick
+  // a no-op by its own guard, and below would aim at a forbidden arrival.
+  ok('  the aim sits strictly above the floor',
+     G.ARRIVAL_TARGET_TICK > G.ARRIVAL_TOGGLE_TICK);
   // OFF and the toggle tick are the pair that carries the whole intent.
   ok('>>> OFF is RESERVE_TICKS, adding exactly zero miles',
      G.arrivalReserveMiles(G.RESERVE_TICKS) === 0);
-  ok('  and the toggle tick is not the floor — ON must actually do something',
+  ok('  and the toggle tick is not the floor tick — ON must actually do something',
      G.ARRIVAL_TOGGLE_TICK !== G.RESERVE_TICKS
      && G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) > 0);
-  // WHAT 5/8 COSTS, pinned so the number stays a decision. Against Long 700
-  // the last stop must sit within 100 mi of delivery; against Max 900 within
-  // 300; against Regular 500 it can NEVER be met — the reserve exceeds the
-  // tier's whole range, and the planner reads that as a reserve shortfall
-  // rather than a dry gap (proved below with the real planner, because "it
-  // degrades honestly" is a claim, not a hope). One tick higher (3/4 = 750)
-  // would out-eat Long entirely.
-  ok('  against Long 700 the final leg may be at most 100 mi',
-     700 - G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) === 100);
-  ok('>>> against Regular 500 the reserve is unsatisfiable by construction',
-     G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) > 500);
-  ok('  one tick higher (750) would out-eat Long\'s 700 entirely',
-     G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK + 1) === 750
-     && G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK + 1) > 700);
+  // WHAT THE 1/4 FLOOR COSTS, pinned so the number stays a decision. The
+  // final leg may be at most range−150: 350 on Regular 500, 550 on Long 700,
+  // 750 on Max 900 — satisfiable on every tier, which is exactly why the
+  // fleet backed off 5/8 (Regular could never meet 600). The AIM costs
+  // nothing: it only chooses WHICH reachable stop is last, never whether one
+  // exists, so it can't create a shortfall the floor didn't already have.
+  ok('  against Long 700 the final leg may be at most 550 mi',
+     700 - G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) === 550);
+  ok('>>> against Regular 500 the floor is satisfiable — the v1.37.0 wall is gone',
+     G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) < 500
+     && 500 - G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) === 350);
+  ok('  even the AIM (450) fits inside Regular\'s 500',
+     G.arrivalReserveMiles(G.ARRIVAL_TARGET_TICK) < 500);
   {
-    // Regular + toggle on, dense stops everywhere: the planner must
-    // TERMINATE and flag reserveShortfall — never a fake dry gap, never a
-    // hang. This is the honest-degradation contract the switch relies on.
+    // Regular + the new floor, dense stops everywhere: ON now plans clean on
+    // the smallest tier — the exact case v1.37.0's 5/8 could not serve.
     const dense = [];
     for (let m = 50; m < 900; m += 50) dense.push({ id: 'S' + m, name: 'S' + m, mile: m, detourMi: 1 });
-    const r = FuelPlan.planFuel(900, dense, 500, 0, G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK));
-    ok('>>> Regular + switch ON degrades to a flagged reserve shortfall',
-       r.ok === false && r.gap && r.gap.reserveShortfall === true, JSON.stringify(r.gap));
+    const floor = G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK);
+    const aim = G.arrivalReserveMiles(G.ARRIVAL_TARGET_TICK);
+    const r = FuelPlan.planFuel(900, dense, 500, 0, floor, aim);
+    ok('>>> Regular + switch ON completes cleanly with the 1/4 floor',
+       r.ok === true && r.gap === null, JSON.stringify(r.gap));
+    ok('  and the final leg honours the floor',
+       r.plan.length > 0 && 900 - r.plan[r.plan.length - 1].mile <= 500 - floor,
+       JSON.stringify(r.plan.map(s => s.mile)));
+    // The honest-degradation contract still holds for any oversized reserve —
+    // no longer reachable via the switch, but planFuel takes raw miles and
+    // must TERMINATE and flag reserveShortfall, never fake a dry gap or hang.
+    const over = FuelPlan.planFuel(900, dense, 500, 0, 600);
+    ok('>>> an oversized reserve (600 > Regular 500) still degrades to a flagged shortfall',
+       over.ok === false && over.gap && over.gap.reserveShortfall === true, JSON.stringify(over.gap));
     ok('  with every drivable stop still planned, nothing stranded',
-       r.plan.length > 0 && r.gap.deadMile >= 900, JSON.stringify(r.plan.map(s => s.mile)));
+       over.plan.length > 0 && over.gap.deadMile >= 900, JSON.stringify(over.plan.map(s => s.mile)));
   }
   ok('  the old choices array is gone from the module',
      !('ARRIVAL_TICK_CHOICES' in G));

@@ -57,8 +57,9 @@ Three inputs shape the plan:
 - **Range leaving shipper** — how far the truck can go when it rolls out of the
   pickup. Maps to `startBurned = max(0, maxRange - rangeAtPickup)`.
 - **Fuel left at delivery** — the *arrival reserve*, new in v1.27.0 and a
-  simple on/off switch since v1.35.0 (on = arrive with about 5/8 of a tank —
-  600 mi on the 1200-mi tank, raised from 1/2 in v1.37.0).
+  simple on/off switch since v1.35.0 (on = never arrive under **1/4** of a
+  tank, and aim the last stop so arrival lands closest to **1/2** — the
+  v1.38.0 floor-plus-aim split).
   Everything above shapes where the driver stops; this one decides whether they
   stop at all near the end of the run.
 
@@ -127,59 +128,66 @@ of the floor that already existed** rather than a new parallel concept.
 `RESERVE_TICKS` has always held back the bottom 1/8 (150 mi on the 1200-mi
 tank) as never-plannable range. Since **v1.35.0** the control is a **switch**:
 
-| Switch | Extra range held for arrival | Effect |
+| Switch | What it holds for arrival | Effect |
 |---|---|---|
-| **off** | 0 mi | the standard reserve — exactly the behaviour of every release before v1.27.0 |
-| **on** | 600 mi | arrive with about **5/8 of a tank** (raised from 1/2 in v1.37.0) |
+| **off** | nothing extra | the standard reserve — exactly the behaviour of every release before v1.27.0 |
+| **on** | floor **1/4** (150 mi), aim **1/2** (450 mi) | never arrive under a quarter tank, and land the last stop so arrival sits closest to half |
 
 The control narrowed release by release as the real choice got clearer. v1.27.0
 offered a 1/8–1/2 dial. v1.30.1 dropped 1/8 — nobody arrives on an eighth by
-choice. v1.35.0 collapsed the rest: the fleet's read was that **a driver who
-wants fuel at delivery wants half a tank**, and 1/4 / 3/8 were gradations nobody
-picked. A control whose answers collapse to *yes-or-half-a-tank* should ask
-exactly that — one tap on, one tap off.
+choice. v1.35.0 collapsed the rest into one switch at 1/2, v1.37.0 raised it to
+5/8 — and v1.38.0 split what "on" means into **two numbers doing two different
+jobs**: a **floor** (1/4 — a hard constraint, the plan is not allowed to land
+under it) and an **aim** (1/2 — a preference, the plan lands as close to it as
+the stops on the route allow). One tap still asks the only question the fleet
+found drivers answering: *do you want fuel left when you get there?*
 
-`ARRIVAL_TOGGLE_TICK = 5` in `lib/gauge.js` is the whole setting, raised from 4
-at the fleet's direction in v1.37.0. What 5/8 costs is stated rather than
-buried: against Long 700 the last stop must sit within **100 mi** of the
-delivery; against Max 900, within 300; **against Regular 500 it can never be met
-at all** — the reserve exceeds the tier's whole range, so every Regular plan
-with the switch on reads as a reserve shortfall, which the results panel states
-honestly (never as a fake dry gap; proved with the real planner in
-`gauge.test.js`). One tick higher (3/4 = 750) would out-eat Long entirely —
-pinned so "or higher" stays a knowing change.
+`ARRIVAL_TOGGLE_TICK = 2` (the floor) and `ARRIVAL_TARGET_TICK = 4` (the aim)
+in `lib/gauge.js` are the whole setting. What the floor costs is stated rather
+than buried: the last stop must sit within `range − 150` of the delivery —
+**350 mi on Regular, 550 on Long, 750 on Max** — satisfiable on every tier,
+which is exactly why the fleet backed off 5/8 (600 mi could never be met on
+Regular's 500). The aim costs nothing: it only chooses *which* reachable stop
+is last, never whether one exists, so it can't create a shortfall the floor
+didn't already have, and it never changes the stop count.
 
 The old disclosure needed a reset-on-close contract (a raised reserve behind a
 collapsed field silently steered every plan). A switch does not: its state is
 visible on the control itself, so an on switch in a collapsed panel is still
 legibly on. `role="switch"` means a screen reader announces on/off rather than
-expanded/collapsed, and the help line under it explains the floor and what
-turning it on buys — worded from the gauge's own numbers, never a hardcoded
-figure (which is why the v1.36.0 tank change moved the copy to 450, and the
-v1.37.0 tick change to "5/8 … 600 mi", with no copy edits).
+expanded/collapsed, and the help line under it explains the aim and the floor —
+worded from the gauge's own numbers, never a hardcoded figure (which is why the
+v1.36.0 tank change, the v1.37.0 tick change, and the v1.38.0 split all moved
+the copy without string edits).
 
-Mechanically it is one changed loop condition: the planner now runs until it can
-reach `routeMiles + reserve`, which is exactly the condition
-`maxRange - finalLeg >= reserve`. At 1/8 the reserve is 0 and nothing changes —
-`fuelplan.test.js` runs every pre-existing fixture through both call shapes and
-deep-compares the results, because "existing plans are untouched" is the claim
-most worth proving.
+Mechanically the floor is one changed loop condition: the planner runs until it
+can reach `routeMiles + reserve`, which is exactly the condition
+`maxRange - finalLeg >= reserve`. The aim is a **re-pick of the final stop
+only**: after the fewest-stops loop finishes, the planner looks at every stop
+it could legally have used as the last one (reachable from the previous
+position, still leaving the floor intact) and swaps in the one whose arrival
+range sits closest to 450 mi, breaking near-ties within 15 mi toward the
+smaller detour. Stops before the last are never touched, a zero-stop plan never
+gains one, and with the switch off both numbers are 0 — `fuelplan.test.js` runs
+every pre-existing fixture through both call shapes and deep-compares the
+results, because "existing plans are untouched" is the claim most worth
+proving.
 
-`planFuel` stays pure: it takes the reserve **in miles**, not ticks, so it never
-learns that a tank has eighths. `FuelGauge.arrivalReserveMiles()` does the
-conversion, which keeps the tank scale in one file.
+`planFuel` stays pure: it takes the floor and the aim **in miles**, not ticks,
+so it never learns that a tank has eighths. `FuelGauge.arrivalReserveMiles()`
+does the conversion, which keeps the tank scale in one file.
 
-Worth knowing about the behaviour: the reserve is a **threshold, not a dial on
-the arrival amount**. The planner still takes the furthest stop it can reach, so
-switching the reserve on may add a stop and jump the arrival from 5 mi to 865 mi
-of unused range. It decides *whether* a late stop is needed, not how gently the
-tank drains — which, incidentally, is why collapsing the old 1/4–1/2 choices
-into one switch cost so little: on many routes they already produced identical
-plans.
+Worth knowing about the behaviour: before v1.38.0 the reserve was a threshold
+only — it decided *whether* a late stop was needed, and the greedy planner
+could then overshoot the mark by hundreds of miles (arrive at 5 mi off, or at
+865). The aim is what closes that: the *number* of stops is still the fewest
+that respect the floor, but the *last* of them is now placed for the arrival,
+not just legality. On a route with sparse stops the aim degrades gracefully to
+the nearest achievable arrival, above or below 450.
 
 **When the reserve can't be met.** A driver can ask for more than a route can
-give — and on Regular the switch now always does: the 600-mi reserve exceeds the
-tier's whole 500-mi range, so no stop placement can satisfy it. That is a real state and it reads as one: the app shows the plan
+give — a Custom range typed below the floor's needs, or a route whose last
+stops all sit too far out. That is a real state and it reads as one: the app shows the plan
 it *can* make, says what the arrival actually works out to, and points at the
 settings that move it. It is explicitly **not** shown as a fuel gap. Every leg
 of a shortfall plan is drivable and the delivery is reached; only the cushion
@@ -940,6 +948,33 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.38.0
+
+**The arrival switch splits into a floor and an aim** — never arrive under
+**1/4** of a tank, and place the last stop so arrival lands **closest to 1/2**
+— at the fleet's direction, backing off v1.37.0's 5/8: a single high threshold
+made Regular unsatisfiable and still let the greedy planner overshoot the
+arrival by hundreds of miles. Two numbers now do two different jobs:
+
+- **Floor** (`ARRIVAL_TOGGLE_TICK` 5 → **2**, 150 mi): a hard constraint — the
+  loop condition that decides *whether* a late stop is needed. Satisfiable on
+  every tier (final leg at most 350 mi on Regular, 550 on Long, 750 on Max).
+- **Aim** (`ARRIVAL_TARGET_TICK` = **4**, 450 mi, new): a preference —
+  `planFuel` re-picks the **final stop only**, among the stops it could
+  legally have used as the last one, for the arrival range closest to 450 mi
+  (near-ties within 15 mi go to the smaller detour). It never changes the
+  stop count, never touches earlier stops, never turns a zero-stop plan into
+  a one-stop plan, and costs nothing when no better candidate exists.
+
+Both values ride `FuelGauge.arrivalReserveMiles()`; the switch copy, the
+shortfall panel, and the planner all moved by derivation — no string edits.
+With the switch off both numbers are 0 and every pre-v1.27.0 fixture plans
+byte-identically (deep-compared in `fuelplan.test.js`). The
+oversized-reserve honest-degradation contract (terminate, plan every drivable
+stop, flag a *reserve shortfall*, never a fake dry gap) is still proved with
+the real planner, now via an explicit oversized value since the switch can no
+longer produce one.
 
 ### v1.37.0
 
