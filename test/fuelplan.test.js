@@ -251,6 +251,97 @@ ok('a negative reserve is treated as none, never as extra reach',
 ok('an omitted reserve is the same as zero',
    JSON.stringify(planFuel(1600, irr, 700)) === JSON.stringify(planFuel(1600, irr, 700, 0, 0)));
 
+console.log('\n=== the arrival TARGET: floor decides whether, target decides which (v1.38.0) ===');
+// planFuel's greedy loop takes the furthest reachable stop, which makes the
+// arrival fuel as HIGH as possible. The target re-picks the FINAL stop only,
+// aiming the arrival at a chosen level without ever dipping below the floor.
+{
+  // Stops every 100 mi on a 1000-mi route, range 700. Greedy with floor 150:
+  // stop at 700 (furthest), arrival = 700-300 = 400.
+  const dense = [];
+  for (let m = 100; m < 1000; m += 100) dense.push({ id: 'S' + m, name: 'S' + m, mile: m, detour: 1 });
+
+  const plain = planFuel(1000, dense, 700, 0, 150);
+  ok('fixture: greedy takes the furthest stop (700), arriving with 400',
+     plain.plan.length === 1 && plain.plan[0].mile === 700 && 700 - plain.finalLegMiles === 400,
+     JSON.stringify(plain.plan.map(x => x.mile)));
+
+  // Target 600: candidates from mile 0 are 100..700 with arrival ≥ 150 →
+  // miles 450..700 → {500,600,700} arriving {200,300,400}... wait, arrival at
+  // stop m = 700-(1000-m) = m-300. Closest to 600 would need m=900 — out of
+  // first-leg reach (700). Among reachable, m=700 arrives 400: still best.
+  const high = planFuel(1000, dense, 700, 0, 150, 600);
+  ok('an unreachable target degrades to the nearest achievable arrival',
+     high.plan.length === 1 && high.plan[0].mile === 700,
+     JSON.stringify(high.plan.map(x => x.mile)));
+
+  // Target 200: best is m=500 (arrival 200, exact). The greedy would have
+  // parked the driver at 700 arriving with 400 — double what they asked for.
+  const low = planFuel(1000, dense, 700, 0, 150, 200);
+  ok('>>> the target re-picks an EARLIER final stop to land the asked arrival',
+     low.plan.length === 1 && low.plan[0].mile === 500,
+     JSON.stringify(low.plan.map(x => x.mile)));
+  ok('  arriving with exactly the target', 700 - low.finalLegMiles === 200,
+     String(700 - low.finalLegMiles));
+  ok('  and never below the floor', 700 - low.finalLegMiles >= 150);
+  ok('>>> the stop COUNT is untouched — fewest stops still wins',
+     low.plan.length === plain.plan.length);
+
+  // Floor still guards the re-pick: target 150 == floor asks for the minimum
+  // legal arrival; the chosen stop must not dip under it. m=450 arrives
+  // exactly 150; anything earlier violates the floor and must not be picked.
+  const atFloor = planFuel(1000, dense, 700, 0, 150, 151);
+  ok('  a target hugging the floor picks the floor-legal stop, not below',
+     atFloor.plan[0].mile >= 450, JSON.stringify(atFloor.plan.map(x => x.mile)));
+
+  // Two-stop plan: 1600-mi route. Greedy: 700, then furthest ≤ 1400 → 900...
+  // arrival at 900 = 700-(1600-900) = 0 < floor 150 → loop continues within
+  // reach... rather than hand-derive, assert the invariants: with a target
+  // the count matches the no-target plan, every leg fits, and the arrival is
+  // strictly closer to (or as close to) the target.
+  const longDense = [];
+  for (let m = 100; m < 1600; m += 100) longDense.push({ id: 'L' + m, name: 'L' + m, mile: m, detour: 1 });
+  const p0 = planFuel(1600, longDense, 700, 0, 150);
+  const p1 = planFuel(1600, longDense, 700, 0, 150, 300);
+  ok('fixture: the long route really is a multi-stop plan', p0.ok && p0.plan.length >= 2,
+     JSON.stringify(p0.plan.map(x => x.mile)));
+  ok('>>> multi-stop: count preserved, non-final stops untouched',
+     p1.ok && p1.plan.length === p0.plan.length
+     && p1.plan.slice(0, -1).every((x, i) => x.mile === p0.plan[i].mile),
+     JSON.stringify([p0.plan.map(x => x.mile), p1.plan.map(x => x.mile)]));
+  ok('  every leg still fits the range',
+     p1.plan.every(x => x.legMiles <= 700) && p1.finalLegMiles <= 700,
+     JSON.stringify(p1.plan.map(x => x.legMiles)));
+  ok('  and the arrival moved toward the target, never under the floor',
+     Math.abs((700 - p1.finalLegMiles) - 300) <= Math.abs((700 - p0.finalLegMiles) - 300)
+     && 700 - p1.finalLegMiles >= 150,
+     JSON.stringify([700 - p0.finalLegMiles, 700 - p1.finalLegMiles]));
+
+  // startBurned constrains the FIRST leg; on a single-stop plan the re-pick
+  // must respect it rather than assume a full tank.
+  const burned = planFuel(1000, dense, 700, 250, 150, 200);
+  ok('>>> the re-pick honours startBurned on a single-stop plan',
+     burned.ok && burned.plan.length >= 1 && burned.plan[0].legMiles <= 700 - 250,
+     JSON.stringify(burned.plan.map(x => [x.mile, x.legMiles])));
+
+  // No target (or zero) = byte-identical old behaviour, deep-compared.
+  const a = planFuel(1000, dense, 700, 0, 150);
+  const b = planFuel(1000, dense, 700, 0, 150, 0);
+  ok('>>> zero target is byte-identical to the five-arg call',
+     JSON.stringify(a) === JSON.stringify(b));
+  // The regression the clamp exists for: a NEGATIVE reserve with no target
+  // must not switch the re-pick on (0 > negative is true) nor hand the
+  // candidate filter extra reach via maxRange - reserve.
+  const neg = planFuel(1000, dense, 700, 0, -50);
+  const none = planFuel(1000, dense, 700, 0, 0);
+  ok('>>> a negative reserve still cannot activate the re-pick or add reach',
+     JSON.stringify(neg) === JSON.stringify(none));
+  // Zero-stop trips stay zero-stop: the target never invents a stop.
+  const short = planFuel(400, dense, 700, 0, 150, 300);
+  ok('>>> a zero-stop trip stays zero-stop — the target never invents a stop',
+     short.ok && short.plan.length === 0, JSON.stringify(short.plan));
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 
 
