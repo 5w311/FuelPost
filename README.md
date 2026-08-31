@@ -57,7 +57,8 @@ Three inputs shape the plan:
 - **Range leaving shipper** — how far the truck can go when it rolls out of the
   pickup. Maps to `startBurned = max(0, maxRange - rangeAtPickup)`.
 - **Fuel left at delivery** — the *arrival reserve*, new in v1.27.0 and a
-  simple on/off switch since v1.35.0 (on = arrive with about half a tank).
+  simple on/off switch since v1.35.0 (on = arrive with about half a tank —
+  450 mi on the 1200-mi tank).
   Everything above shapes where the driver stops; this one decides whether they
   stop at all near the end of the run.
 
@@ -78,29 +79,29 @@ fewest-stops setting.
 
 | Tier | Miles | On the tank scale | Stop frequency |
 |---|---|---|---|
-| Regular | 500 | exactly 4 ticks — half a tank | Most stops |
-| **Long** (default) | **700** | 5.6 ticks — *not* a whole tick | Fewer stops |
-| Max | 900 | 7.2 ticks — past the plannable full tank, knowingly | Fewest stops |
+| Regular | 500 | 3.33 ticks — *not* a whole tick | Most stops |
+| **Long** (default) | **700** | 4.67 ticks — *not* a whole tick | Fewer stops |
+| Max | 900 | exactly 6 ticks — three quarters of the tank | Fewest stops |
 | Custom | 300–1200 | whatever you type | — |
 
-Only Regular still sits on the fuel gauge's own scale: with `FULL_TANK_MILES`
-1000 over `TICKS` 8, a tick is 125 mi, and 500 is exactly four of them. Long
-700 and Max 900 are road-practice numbers set by the fleet in v1.35.0, and
+Only Max sits on the fuel gauge's own scale: with `FULL_TANK_MILES` **1200**
+over `TICKS` 8 (the v1.36.0 Cascadia numbers), a tick is 150 mi, and 900 is
+exactly six of them. Regular and Long are road-practice numbers, and
 `gauge.test.js` asserts they are *not* whole ticks so nobody "corrects" them.
 
-**Max 900 exceeds the plannable full tank** (875 above the always-held-back
-eighth), knowingly: Custom has allowed up to 1200 since v1.27.0, and the gauge
-interaction already handles it — a full tank on Max reads as `startBurned` 25,
-capping the *first* leg at what is actually in the tank while post-fuel legs
-plan the full 900.
+**Max fits back inside the plannable tank.** For one release (v1.35.0 on the
+1000-mi model) Max 900 exceeded the 875 plannable full and leaned on a
+`startBurned` debit for its first leg. On the 1200 tank, plannable-full is 1050
+and Max sits inside with 150 to spare — no debit, no special case, and the test
+pins that it stays gone.
 
-**The tick-scale claim has now changed three times** — 400/625 had Long on the
-scale, 500/675 had Max on it, 500/700/900 leaves Regular alone there — and each
-move had to correct the comment and the test together. Since v1.35.0 the test
-reads `RANGE_TIERS` out of `index.html` instead of restating the numbers: its
-previous form asserted arithmetic about the literals 875 and 675, claims that
-stay true forever no matter what the tiers say, and it sailed through the
-v1.35.0 change silently — the exact drift it existed to catch.
+**The tick-scale claim has now changed four times** — 400/625 had Long on the
+scale, 500/675 had Max, 500/700/900-on-the-1000-tank had Regular for exactly
+one release, and the 1200 tank hands it back to Max. The test reads
+`RANGE_TIERS` out of `index.html` instead of restating the numbers: its old
+form asserted arithmetic about literals, claims that stay true forever no
+matter what the tiers say, and it sailed through the v1.35.0 change silently —
+the exact drift it existed to catch. This time it fired.
 
 The tier names the tradeoff the driver is actually making — how often they stop
 — while each button still shows its mile figure, because that number is what
@@ -123,13 +124,13 @@ until the loop ran again.
 
 The reserve is that missing input, and it is deliberately built as a **raising
 of the floor that already existed** rather than a new parallel concept.
-`RESERVE_TICKS` has always held back the bottom 1/8 (125 mi) as never-plannable
-range. Since **v1.35.0** the control is a **switch**:
+`RESERVE_TICKS` has always held back the bottom 1/8 (150 mi on the 1200-mi
+tank) as never-plannable range. Since **v1.35.0** the control is a **switch**:
 
 | Switch | Extra range held for arrival | Effect |
 |---|---|---|
 | **off** | 0 mi | the standard reserve — exactly the behaviour of every release before v1.27.0 |
-| **on** | 375 mi | arrive with about **half a tank** |
+| **on** | 450 mi | arrive with about **half a tank** |
 
 The control narrowed release by release as the real choice got clearer. v1.27.0
 offered a 1/8–1/2 dial. v1.30.1 dropped 1/8 — nobody arrives on an eighth by
@@ -139,8 +140,8 @@ picked. A control whose answers collapse to *yes-or-half-a-tank* should ask
 exactly that — one tap on, one tap off.
 
 `ARRIVAL_TOGGLE_TICK = 4` in `lib/gauge.js` is the whole setting. Raising it is
-a one-constant change but a bad default: 1/2 already holds back 375 mi, and one
-tick higher would hold 500 of a Long tier's 675, gapping most plans —
+a one-constant change but a bad default: 1/2 already holds back 450 mi, and one
+tick higher would hold 600 of a Long tier's 700, gapping most plans —
 `gauge.test.js` pins that ceiling arithmetic so "or higher" stays a decision.
 
 The old disclosure needed a reset-on-close contract (a raised reserve behind a
@@ -148,7 +149,7 @@ collapsed field silently steered every plan). A switch does not: its state is
 visible on the control itself, so an on switch in a collapsed panel is still
 legibly on. `role="switch"` means a screen reader announces on/off rather than
 expanded/collapsed, and the help line under it explains the floor and what
-turning it on buys — worded from the gauge's own numbers, never a hardcoded 375.
+turning it on buys — worded from the gauge's own numbers, never a hardcoded figure (which is why the v1.36.0 tank change moved the copy to 450 with no edit).
 
 Mechanically it is one changed loop condition: the planner now runs until it can
 reach `routeMiles + reserve`, which is exactly the condition
@@ -170,7 +171,7 @@ into one switch cost so little: on many routes they already produced identical
 plans.
 
 **When the reserve can't be met.** A driver can ask for more than a route can
-give — Regular's 500 mi range with a 1/2 reserve needs a stop within 125 mi of
+give — Regular's 500 mi range with a 1/2 reserve needs a stop within 50 mi of
 the delivery. That is a real state and it reads as one: the app shows the plan
 it *can* make, says what the arrival actually works out to, and points at the
 settings that move it. It is explicitly **not** shown as a fuel gap. Every leg
@@ -932,6 +933,41 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.36.0
+
+**The tank model moves to the fleet's 2025 Cascadias: 1200 mi full-to-empty,
+150 mi per eighth.** `FULL_TANK_MILES` 1000 → **1200**; everything else is
+derived, which is the whole reason the change is one constant.
+
+The fleet's numbers: 8.5 mpg on dual 100-gallon tanks, ~1200 mi *comfortable*
+full-to-empty. (Nominally 8.5 × 200 = 1700; the 1200 figure is the fleet's own
+real-world full-to-empty, which already accounts for unusable fuel and actual
+draw — their number, not the brochure's.) The bottom eighth stays held back, so
+a full gauge now plans **1050 mi**, in steps of 150.
+
+What moved with it, all by derivation:
+
+- **The arrival switch's half-tank is now 450 mi** (was 375). The help copy
+  moved by itself — it was worded from the model, never a hardcoded figure.
+- **Every gauge tick**: plannable runs 0 / 0 / 150 / 300 … 1050; the "limp"
+  distance in the floor message is 150.
+- **Max 900 fits back inside the plannable tank** (1050), ending the one-release
+  `startBurned`-debit special case v1.35.0 documented. The tick-scale claim
+  changed for the **fourth** time — Max is now the tier on the scale, exactly
+  6 ticks — and this time the test caught it, because v1.35.0 rewrote it to
+  read `RANGE_TIERS` out of `index.html` instead of asserting literals. First
+  change since, first firing.
+
+The tiers themselves (500/700/900) and `RANGE_MAX` 1200 are untouched — though
+Custom's cap now equals full-to-empty exactly.
+
+Tests: `gauge.test.js` re-pinned across the new scale (71 assertions);
+`fuelplan.test.js`'s tick→miles table moved to 0/150/300/450, everything else
+in it unchanged because `planFuel` takes miles and never knew the tank had
+eighths. The reserve-switch e2e re-verified end to end at the new numbers: on
+still adds Petro Knoxville to the Amarillo→Knoxville plan, now against a 450-mi
+reserve.
 
 ### v1.35.0
 
