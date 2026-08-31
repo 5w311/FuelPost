@@ -56,9 +56,10 @@ Three inputs shape the plan:
   v1.27.0 — see below.
 - **Range leaving shipper** — how far the truck can go when it rolls out of the
   pickup. Maps to `startBurned = max(0, maxRange - rangeAtPickup)`.
-- **Fuel left at delivery** — the *arrival reserve*, new in v1.27.0. Everything
-  above shapes where the driver stops; this one decides whether they stop at
-  all near the end of the run.
+- **Fuel left at delivery** — the *arrival reserve*, new in v1.27.0 and a
+  simple on/off switch since v1.35.0 (on = arrive with about half a tank).
+  Everything above shapes where the driver stops; this one decides whether they
+  stop at all near the end of the run.
 
 ### Range tiers, and the default that moved (v1.27.0)
 
@@ -113,28 +114,31 @@ until the loop ran again.
 The reserve is that missing input, and it is deliberately built as a **raising
 of the floor that already existed** rather than a new parallel concept.
 `RESERVE_TICKS` has always held back the bottom 1/8 (125 mi) as never-plannable
-range; this puts a dial on it:
+range. Since **v1.35.0** the control is a **switch**:
 
-| Setting | Extra range held for arrival | Effect |
+| Switch | Extra range held for arrival | Effect |
 |---|---|---|
-| *(nothing selected)* | 0 mi | the standard reserve — exactly the behaviour of every release before v1.27.0 |
-| 1/4 | 125 mi | |
-| 3/8 | 250 mi | |
-| 1/2 | 375 mi | |
+| **off** | 0 mi | the standard reserve — exactly the behaviour of every release before v1.27.0 |
+| **on** | 375 mi | arrive with about **half a tank** |
 
-**1/8 is not offered as a choice** (removed in v1.30.1). Nobody wants to arrive
-on an eighth of a tank, and presenting it as a button offered a target no driver
-would pick. It is gone from the buttons only, **not from the model**: 1/8 is
-still `RESERVE_TICKS`, still the reserve every release has held back, and still
-what the planner uses when the driver has not raised it.
+The control narrowed release by release as the real choice got clearer. v1.27.0
+offered a 1/8–1/2 dial. v1.30.1 dropped 1/8 — nobody arrives on an eighth by
+choice. v1.35.0 collapsed the rest: the fleet's read was that **a driver who
+wants fuel at delivery wants half a tank**, and 1/4 / 3/8 were gradations nobody
+picked. A control whose answers collapse to *yes-or-half-a-tank* should ask
+exactly that — one tap on, one tap off.
 
-So the disclosure opens with three buttons and **none selected**, which is the
-correct state rather than an unset one — the help line says what is already held
-back and what the buttons add on top of it. Closing the disclosure remains the
-way back to standard. There is deliberately no fourth *Standard* button and no
-tap-to-deselect: the disclosure toggle is already the on/off control, and a
-second route to the same state is redundant. Opening it never changes the plan,
-the same contract the pickup gauge holds.
+`ARRIVAL_TOGGLE_TICK = 4` in `lib/gauge.js` is the whole setting. Raising it is
+a one-constant change but a bad default: 1/2 already holds back 375 mi, and one
+tick higher would hold 500 of a Long tier's 675, gapping most plans —
+`gauge.test.js` pins that ceiling arithmetic so "or higher" stays a decision.
+
+The old disclosure needed a reset-on-close contract (a raised reserve behind a
+collapsed field silently steered every plan). A switch does not: its state is
+visible on the control itself, so an on switch in a collapsed panel is still
+legibly on. `role="switch"` means a screen reader announces on/off rather than
+expanded/collapsed, and the help line under it explains the floor and what
+turning it on buys — worded from the gauge's own numbers, never a hardcoded 375.
 
 Mechanically it is one changed loop condition: the planner now runs until it can
 reach `routeMiles + reserve`, which is exactly the condition
@@ -149,9 +153,11 @@ conversion, which keeps the tank scale in one file.
 
 Worth knowing about the behaviour: the reserve is a **threshold, not a dial on
 the arrival amount**. The planner still takes the furthest stop it can reach, so
-crossing from 1/8 to 1/4 may add a stop and jump the arrival from 5 mi to 865 mi
-of unused range, while 3/8 and 1/2 then change nothing further. It decides
-*whether* a late stop is needed, not how gently the tank drains.
+switching the reserve on may add a stop and jump the arrival from 5 mi to 865 mi
+of unused range. It decides *whether* a late stop is needed, not how gently the
+tank drains — which, incidentally, is why collapsing the old 1/4–1/2 choices
+into one switch cost so little: on many routes they already produced identical
+plans.
 
 **When the reserve can't be met.** A driver can ask for more than a route can
 give — Regular's 500 mi range with a 1/2 reserve needs a stop within 125 mi of
@@ -916,6 +922,61 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.35.0
+
+**The arrival reserve is a switch.** Off is the standard reserve; on plans your
+stops so you arrive with about **half a tank** (375 mi of range).
+
+The control has narrowed release by release as the real choice got clearer —
+v1.27.0's 1/8–1/2 dial, v1.30.1 dropping 1/8, and now the fleet's read that a
+driver who wants fuel at delivery wants half a tank: 1/4 and 3/8 were gradations
+nobody picked. One question, one switch, one tap each way.
+
+`ARRIVAL_TICK_CHOICES` becomes **`ARRIVAL_TOGGLE_TICK = 4`** in `lib/gauge.js`.
+The model is untouched — `arrivalTick` still drives `readRanges`, the shortfall
+copy and the planner; the switch just writes one of its two values. The old
+disclosure's reset-on-close contract is gone *because its reason is gone*: a
+switch's state is visible on the control itself, so nothing can steer plans
+from behind a collapsed panel. `role="switch"` so screen readers announce
+on/off, with the help line worded from the gauge's numbers in both states.
+
+Raising the toggle past 1/2 is a one-constant change and `gauge.test.js` pins
+why it should be a knowing one: one tick higher already holds back 500 of a
+Long tier's 675 mi.
+
+**A pre-existing contrast failure fixed alongside**: the disclosure links used
+`--ta` (#0057B8 in both themes), which measures **2.5:1** on the dark surface —
+an AA failure at 12.5px. The switch label and the remaining
+*Not leaving with a full tank?* disclosure both use `--navy-text` now (7.2:1
+dark), fixed together so the two adjacent questions keep matching.
+
+#### Testing
+
+**1037 assertions.** The gauge suite rewrites its choices block around the
+toggle tick; renderstructure pins the switch semantics — ON maps to the gauge's
+constant and never a local number, Clear trip switches it off through the same
+function, the old seg/choices/disclosure are gone.
+
+A new browser suite runs the switch **end to end through the real route flow**:
+flipping it on pulls a second stop into the plan (Amarillo→Knoxville, off = one
+stop at W. Memphis, on = W. Memphis + Petro Knoxville), and off again returns
+the original plan. That end-to-end shape is not optional coverage: a typo in
+the tick constant happened during this change (`ARRIIVAL`), producing a
+working-looking switch feeding `NaN` into every plan — only a test that runs
+the planner catches it, and the mutation run confirms it does.
+
+Also from the mutation run: the aria-checked pin was passing with the write
+deleted, because the THEME radiogroup writes the byte-identical
+`setAttribute('aria-checked', String(on))` at its own site. The pin is scoped
+to `setArrivalOn`'s body now. The e2e fixture itself was wrong twice before it
+was right — 672 straight-line miles needed no stop at all, and 888 left a final
+leg the reserve already covered — both times exposed by the planner refusing to
+play along, and both recorded in the fixture comment.
+
+*(The scratchpad's browser harness — the HERE stub and vendored SDK — was lost
+with a container recycle this session; the suite now runs against a freshly
+vendored copy of the real 3.2.9.0 SDK, which was the better harness anyway.)*
 
 ### v1.34.0
 

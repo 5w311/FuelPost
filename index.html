@@ -624,7 +624,11 @@
   .suggest-item:first-child{border-top:none;}
   /* Range at pickup is the exception, not the routine field — a plain text
      disclosure rather than a second input competing with the habit. */
-  .rb-disclosure{align-self:flex-start;background:none;border:none;padding:2px 0;font-size:12.5px;font-weight:700;color:var(--ta);text-decoration:underline;}
+  /* Same --navy-text correction as .rb-switch-text above: --ta measured
+     2.5:1 on the dark surface, a pre-existing AA failure this shared with the
+     old arrival disclosure. Fixed together so the two adjacent questions keep
+     matching. */
+  .rb-disclosure{align-self:flex-start;background:none;border:none;padding:2px 0;font-size:12.5px;font-weight:700;color:var(--navy-text);text-decoration:underline;}
   #routebar [hidden]{display:none;}
   .rb-range-wrap{position:relative;}
   /* Default (no x): pad only for "mi", which sits near the right edge — no
@@ -780,8 +784,24 @@
 
   /* Arrival reserve — four tank fractions, one line each, so it reads as the
      gauge scale it is measured on rather than as another distance control. */
-  .arrival-seg{width:100%;}
-  .arrival-seg button{flex:1;min-width:0;padding:7px 4px;font-size:12.5px;}
+  /* The arrival-reserve switch. The row is the tap target — 44px, full
+     width — not just the knob, because a driver's thumb aims at the words.
+     Track and knob get their colour from the same theme vars as everything
+     else; the ON state is TA blue, the same accent the checkboxes use. */
+  .rb-switchrow{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    width:100%;min-height:44px;padding:2px 0;border:none;background:none;
+    font:inherit;color:inherit;text-align:left;-webkit-tap-highlight-color:transparent;}
+  /* --navy-text, not --ta: TA blue is #0057B8 in both themes and manages only
+     2.5:1 on the dark surface — measured, an AA failure on 12.5px text.
+     --navy-text swaps to #6EA8FE in dark mode for exactly this situation. */
+  .rb-switch-text{font-size:12.5px;font-weight:700;color:var(--navy-text);}
+  .rb-switch{flex-shrink:0;position:relative;width:40px;height:24px;border-radius:12px;
+    background:var(--line);transition:background .15s;}
+  .rb-switch::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;
+    border-radius:50%;background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.3);
+    transition:transform .15s;}
+  .rb-switchrow[aria-checked="true"] .rb-switch{background:var(--ta);}
+  .rb-switchrow[aria-checked="true"] .rb-switch::after{transform:translateX(16px);}
 
   /* Vehicle profile controls. The segmented control reuses .seg; these only
      add the wrapping/sizing the three-up row needs inside the narrow panel. */
@@ -1007,12 +1027,18 @@
          on a tier. The label states the question rather than naming a feature,
          because a driver who wants fuel in the tank at delivery needs to
          recognise it from the outside. -->
-    <button type="button" id="arrivalToggle" class="rb-disclosure" aria-expanded="false" aria-controls="arrivalField">Want fuel left when you get there?</button>
-    <div class="rb-field" id="arrivalField" hidden>
-      <label id="arrivalLabel">Fuel left at delivery</label>
-      <div class="seg arrival-seg" id="arrivalSeg" role="group" aria-labelledby="arrivalLabel"></div>
-      <div class="rb-help" id="arrivalHelp"></div>
-    </div>
+    <!-- A SWITCH since v1.35.0, not a disclosure over choices. The fleet's
+         read: a driver who wants fuel at delivery wants half a tank — the old
+         1/4 and 3/8 buttons were gradations nobody picked, and a control
+         whose answers collapse to yes-or-half-a-tank should ask exactly that.
+         One tap on, one tap off; off is the standard reserve, byte-identical
+         to every release before v1.27.0. role="switch" so a screen reader
+         announces on/off rather than expanded/collapsed. -->
+    <button type="button" id="arrivalToggle" class="rb-switchrow" role="switch" aria-checked="false">
+      <span class="rb-switch-text">Want fuel left when you get there?</span>
+      <span class="rb-switch" aria-hidden="true"></span>
+    </button>
+    <div class="rb-help" id="arrivalHelp"></div>
     <button type="button" id="pickupRangeToggle" class="rb-disclosure" aria-expanded="false" aria-controls="pickupRangeField">Not leaving with a full tank?</button>
     <div class="rb-field" id="pickupRangeField" hidden>
       <label id="gaugeLabel">How far can you run right now?</label>
@@ -1278,33 +1304,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.34.0"></script>
+<script src="lib/fuelplan.js?v=1.35.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.34.0"></script>
+<script src="lib/triptext.js?v=1.35.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.34.0"></script>
+<script src="lib/location.js?v=1.35.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.34.0"></script>
+<script src="lib/gauge.js?v=1.35.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.34.0"></script>
+<script src="lib/corridors.js?v=1.35.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.34.0"></script>
+<script src="lib/nearme.js?v=1.35.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.34.0"></script>
+<script src="lib/extract-version.js?v=1.35.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.34.0"></script>
+<script src="lib/autosuggest.js?v=1.35.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.34.0"></script>
+<script src="lib/baselayer.js?v=1.35.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.34.0"></script>
+<script src="lib/memocache.js?v=1.35.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.34.0"></script>
+<script src="lib/routerank.js?v=1.35.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.34.0"></script>
+<script src="lib/vehicleprofile.js?v=1.35.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.34.0"></script>
+<script src="lib/escape.js?v=1.35.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.34.0"></script>
+<script src="lib/navlinks.js?v=1.35.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1320,7 +1346,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.34.0')
+fetch('lib/fuelplan-adaptive.js?v=1.35.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1337,7 +1363,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.34.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.34.0')
+fetch('lib/shorttrip.js?v=1.35.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1348,7 +1374,7 @@ fetch('lib/shorttrip.js?v=1.34.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.34.0"></script>
+<script src="lib/flexible-polyline.js?v=1.35.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1520,7 +1546,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.34.0';
+const APP_VERSION = '1.35.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -4126,10 +4152,10 @@ function clearTrip(){
 
   $('rangeInput').value = '';   // empty, so the greyed placeholder returns — not the number in black
   setRangeTier(DEFAULT_RANGE_TIER);   // back to Long, and hides the custom input
-  // Reuse each disclosure's own collapse behaviour — they already reset the
-  // gauge to F and the reserve to 1/8, and close their fields.
+  // Reuse the pickup disclosure's own collapse behaviour — it already resets
+  // the gauge to F and closes its field — and switch the reserve back off.
   setPickupRangeOpen(false);
-  setArrivalOpen(false);
+  setArrivalOn(false);
 
   geoCands = { pickup: [], delivery: [] };
   confirmed = { pickup: null, delivery: null };
@@ -4563,48 +4589,24 @@ function renderRangeHelp(){
     : `Planning on ${miles} mi between stops — ${RANGE_TIERS[rangeTier].freq.toLowerCase()}.`;
 }
 
-// The reserve control is built from the gauge's own tick labels rather than a
-// second fractions array — one source for "what is 3/8 called", so the two can
-// never drift apart.
-function buildArrivalSeg(){
-  $('arrivalSeg').innerHTML = FuelGauge.ARRIVAL_TICK_CHOICES.map(t =>
-    `<button type="button" data-tick="${t}">${FuelGauge.tickLabel(t)}</button>`).join('');
-  document.querySelectorAll('#arrivalSeg button').forEach(b =>
-    b.addEventListener('click', () => setArrivalTick(Number(b.dataset.tick))));
-}
-
-function setArrivalTick(tick){
-  arrivalTick = FuelGauge.ARRIVAL_TICK_CHOICES.includes(tick) ? tick : FuelGauge.RESERVE_TICKS;
-  document.querySelectorAll('#arrivalSeg button').forEach(b => {
-    const on = Number(b.dataset.tick) === arrivalTick;
-    b.classList.toggle('active', on);
-    b.setAttribute('aria-pressed', String(on));
-  });
-  const extra = FuelGauge.arrivalReserveMiles(arrivalTick);
-  // At the standard reserve the honest statement is that nothing is being
-  // added — the bottom 1/8 was always held back and still is. Saying "0 mi of
-  // reserve" would read as if the driver had switched something off.
-  //
-  // Since v1.30.1 this is also the FIRST thing a driver sees: 1/8 is no longer
-  // a button, so opening the disclosure shows three choices with none
-  // selected. A segmented control with no selection can read as broken, so
-  // this line has to carry the meaning — it says what is already being held
-  // back, and then what the buttons are for. The old wording ended "as it
-  // always has been", which works as reassurance on the way BACK to standard
-  // but explains nothing to someone seeing the control for the first time.
-  $('arrivalHelp').textContent = extra === 0
-    ? `Standard — the bottom 1/8 (about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} mi) is always held back. Pick one to arrive with more on top of that.`
-    : `Plans a stop early enough to arrive with about ${extra} mi of range still unused, on top of that reserve.`;
+// The arrival reserve, as one switch. Everything the old seg needed — the
+// choices array, the per-button active state, the disclosure that reset on
+// close so a raised reserve could not steer plans from behind a collapsed
+// field — collapses into a boolean, because the STATE is now visible on the
+// control itself: an on switch in a collapsed panel is still an on switch.
+// arrivalTick stays the model (the shortfall copy and readRanges read it);
+// the switch just writes one of its two values.
+function setArrivalOn(on){
+  arrivalTick = on ? FuelGauge.ARRIVAL_TOGGLE_TICK : FuelGauge.RESERVE_TICKS;
+  $('arrivalToggle').setAttribute('aria-checked', String(on));
+  const extra = FuelGauge.arrivalReserveMiles(FuelGauge.ARRIVAL_TOGGLE_TICK);
+  // Off states the fact that never changes (the floor) and what turning it on
+  // buys, so the switch explains itself before it is ever flipped. On states
+  // what is now happening, with the number the planner will actually use.
+  $('arrivalHelp').textContent = on
+    ? `Plans a stop early enough to arrive with about ${FuelGauge.tickLabel(FuelGauge.ARRIVAL_TOGGLE_TICK)} a tank — roughly ${extra} mi of range still unused.`
+    : `Off — plans just keep the standard reserve (the bottom 1/8, about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} mi). Turn on to arrive with about ${FuelGauge.tickLabel(FuelGauge.ARRIVAL_TOGGLE_TICK)} a tank instead.`;
   updateClearVisibility();
-}
-
-function setArrivalOpen(open){
-  $('arrivalField').hidden = !open;
-  $('arrivalToggle').setAttribute('aria-expanded', String(open));
-  // Closing it means the driver is back to the standard reserve; leaving a
-  // raised reserve applying from behind a closed disclosure would be a setting
-  // silently steering every plan. Same contract as the pickup gauge.
-  if(!open) setArrivalTick(FuelGauge.RESERVE_TICKS);
 }
 
 function readRanges(){
@@ -4780,9 +4782,8 @@ function renderVehicle(){
 document.querySelectorAll('#rangeSeg button').forEach(b =>
   b.addEventListener('click', () => setRangeTier(b.dataset.tier, { focus: true })));
 $('arrivalToggle').addEventListener('click', () =>
-  setArrivalOpen($('arrivalField').hidden));
-buildArrivalSeg();
-setArrivalTick(FuelGauge.RESERVE_TICKS);
+  setArrivalOn($('arrivalToggle').getAttribute('aria-checked') !== 'true'));
+setArrivalOn(false);
 setRangeTier(DEFAULT_RANGE_TIER);
 
 document.querySelectorAll('#vehicleSeg button').forEach(b =>
