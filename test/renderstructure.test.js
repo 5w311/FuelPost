@@ -470,7 +470,7 @@ ok('>>> Long is the one marked active in the initial markup',
    /data-tier="long"[^>]*class="active"/.test(tierSeg), tierSeg.slice(0, 400));
 ok('  and no other tier is', (tierSeg.match(/class="active"/g) || []).length === 1);
 ok('each button shows its mile figure, not just a name',
-   /500 mi/.test(tierSeg) && /675 mi/.test(tierSeg) && /875 mi/.test(tierSeg));
+   /500 mi/.test(tierSeg) && /700 mi/.test(tierSeg) && /900 mi/.test(tierSeg));
 ok('and the stop-frequency tradeoff alongside it',
    /Most stops/.test(tierSeg) && /Fewer stops/.test(tierSeg) && /Fewest stops/.test(tierSeg));
 // The constants behind them.
@@ -479,14 +479,15 @@ ok('>>> ROUTE_DEFAULT_RANGE is derived from the tier table, never hardcoded',
    /const ROUTE_DEFAULT_RANGE = RANGE_TIERS\[DEFAULT_RANGE_TIER\]\.miles;/.test(codeOnly));
 ok('  so it can no longer be the old 875 by accident',
    !/const ROUTE_DEFAULT_RANGE = 875/.test(codeOnly));
-ok('the three tier mile values are 500 / 675 / 875',
-   /regular:\s*\{ miles: 500/.test(codeOnly) && /long:\s*\{ miles: 675/.test(codeOnly)
-   && /max:\s*\{ miles: 875/.test(codeOnly));
+ok('the three tier mile values are 500 / 700 / 900 (v1.35.0)',
+   /regular:\s*\{ miles: 500/.test(codeOnly) && /long:\s*\{ miles: 700/.test(codeOnly)
+   && /max:\s*\{ miles: 900/.test(codeOnly));
 // The button labels must agree with the constants — they are written by hand
 // in the markup, so nothing else keeps them honest.
 ok('  and the buttons show those same figures',
    /data-tier="regular"[^>]*><b>Regular<\/b><span>500 mi<\/span>/.test(html) &&
-   /data-tier="long"[^>]*><b>Long<\/b><span>675 mi<\/span>/.test(html));
+   /data-tier="long"[^>]*><b>Long<\/b><span>700 mi<\/span>/.test(html) &&
+   /data-tier="max"[^>]*><b>Max<\/b><span>900 mi<\/span>/.test(html));
 ok('>>> Custom names the range it accepts rather than "Your own"',
    /data-tier="custom"[^>]*><b>Custom<\/b><span>300&ndash;1200<\/span>/.test(html) &&
    !/Your own/.test(html));
@@ -500,42 +501,45 @@ ok('  and RANGE_MIN/RANGE_MAX still clamp it in code',
    /Math\.min\(RANGE_MAX, Math\.max\(RANGE_MIN, n\)\)/.test(codeOnly));
 ok('  Custom is what reveals it', /\$\('rangeCustomWrap'\)\.hidden = rangeTier !== 'custom';/.test(codeOnly));
 
-// The reserve control, behind its own disclosure, defaulting to today's floor.
-ok('the reserve sits behind a disclosure, closed by default',
-   /id="arrivalToggle"[^>]*aria-expanded="false"/.test(html) && /id="arrivalField"[^>]*hidden/.test(html));
-ok('  its label asks the question rather than naming a feature',
+// The reserve control is a SWITCH since v1.35.0 — one tap, on or off, with on
+// meaning half a tank. The disclosure-plus-choices shape it replaced needed a
+// reset-on-close contract (a raised reserve behind a collapsed field silently
+// steered plans); a switch does not, because its state is visible on the
+// control itself. What follows pins the switch semantics in that contract's
+// place.
+ok('>>> the reserve control is a switch, off by default',
+   /id="arrivalToggle"[^>]*role="switch"[^>]*aria-checked="false"/.test(html));
+ok('  its label still asks the question rather than naming a feature',
    /Want fuel left when you get there\?/.test(html));
 ok('>>> it defaults to RESERVE_TICKS — exactly the pre-v1.27.0 floor',
-   /let arrivalTick = 1;/.test(codeOnly) &&
-   /setArrivalTick\(FuelGauge\.RESERVE_TICKS\)/.test(codeOnly));
-ok('  the choices come from the gauge, not a local list',
-   /FuelGauge\.ARRIVAL_TICK_CHOICES\.map/.test(codeOnly));
-// v1.30.1: 1/8 is no longer a button, so the disclosure opens with THREE
-// choices and none selected. The help line is what makes that read as
-// deliberate rather than broken, so it has to say what is held back AND what
-// the buttons are for.
-ok('>>> the standard-reserve line explains the empty state and the affordance',
-   /is always held back\. Pick one to arrive with more on top of that\./.test(codeOnly));
-ok('  and it no longer trails off with "as it always has been"',
-   !/as it always has been/.test(codeOnly));
-// No fourth Standard button, and no deselect-on-tap: the disclosure toggle is
-// already the on/off control, and a second route to the same state is
-// redundant. Both were considered and rejected.
-// Scoped to buildArrivalSeg's own body: a bare />Standard</ search matches the
-// VEHICLE profile's Standard button, which is a different control entirely.
+   /let arrivalTick = 1;/.test(codeOnly) && /setArrivalOn\(false\);/.test(codeOnly));
+ok('>>> ON maps to the gauge\'s toggle tick, never a local number',
+   /arrivalTick = on \? FuelGauge\.ARRIVAL_TOGGLE_TICK : FuelGauge\.RESERVE_TICKS;/.test(codeOnly));
+// Scoped to setArrivalOn's own body: the THEME radiogroup writes the
+// byte-identical setAttribute('aria-checked', String(on)) at its own site, so
+// an unscoped pin kept passing with the arrival write deleted — caught by a
+// mutation run, the same trap as the vehicle profile's Standard button.
 {
-  const bas = codeOnly.slice(codeOnly.indexOf('function buildArrivalSeg('));
-  const basBody = bas.slice(0, bas.indexOf('\n}\n') + 3);
-  ok('  the segment is built ONLY from the choices — no extra button appended',
-     /ARRIVAL_TICK_CHOICES\.map/.test(basBody) && !/Standard/.test(basBody)
-     && !/data-tick="1"/.test(basBody), basBody.slice(0, 240));
+  const sao = codeOnly.slice(codeOnly.indexOf('function setArrivalOn('));
+  const saoBody = sao.slice(0, sao.indexOf('\n}\n') + 3);
+  ok('  aria-checked is written from the same call, so state and announcement agree',
+     /setAttribute\('aria-checked', String\(on\)\)/.test(saoBody), saoBody.slice(0, 200));
 }
-ok('  and opening the disclosure does not auto-select a reserve',
-   !/setArrivalOpen\(true\)[\s\S]{0,120}setArrivalTick\([234]\)/.test(codeOnly));
-ok('  and the fraction labels come from tickLabel, never a second array',
-   /FuelGauge\.tickLabel\(t\)/.test(codeOnly) && !/\['1\/8', ?'1\/4'/.test(codeOnly));
-ok('closing the disclosure resets it, so nothing steers plans from behind a closed panel',
-   /if\(!open\) setArrivalTick\(FuelGauge\.RESERVE_TICKS\);/.test(codeOnly));
+// The help line has to explain the switch from OUTSIDE: what is already held
+// back, and what turning it on buys — both worded from the gauge's own
+// numbers, never a hardcoded 375.
+ok('>>> the off state explains the floor and the affordance',
+   /Off — plans just keep the standard reserve/.test(codeOnly)
+   && /Turn on to arrive with about/.test(codeOnly));
+ok('  the on state states the reserve with the planner\'s own figure',
+   /Plans a stop early enough to arrive with about/.test(codeOnly));
+ok('  both read the model — no literal 375 in the copy',
+   /arrivalReserveMiles\(FuelGauge\.ARRIVAL_TOGGLE_TICK\)/.test(codeOnly));
+ok('  the old seg, choices array and disclosure are gone',
+   !/arrivalSeg/.test(codeOnly) && !/ARRIVAL_TICK_CHOICES/.test(codeOnly)
+   && !/setArrivalOpen/.test(codeOnly) && !/arrivalField/.test(codeOnly));
+ok('>>> Clear trip switches it off through the same function',
+   /setArrivalOn\(false\);[\s\S]{0,400}geoCands = \{ pickup: \[\], delivery: \[\] \};/.test(codeOnly));
 
 // The reserve has to reach the planner, and the shortfall has to stay distinct
 // from a dry gap all the way out to the shared trip text.
