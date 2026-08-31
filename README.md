@@ -57,8 +57,8 @@ Three inputs shape the plan:
 - **Range leaving shipper** — how far the truck can go when it rolls out of the
   pickup. Maps to `startBurned = max(0, maxRange - rangeAtPickup)`.
 - **Fuel left at delivery** — the *arrival reserve*, new in v1.27.0 and a
-  simple on/off switch since v1.35.0 (on = arrive with about half a tank —
-  450 mi on the 1200-mi tank).
+  simple on/off switch since v1.35.0 (on = arrive with about 5/8 of a tank —
+  600 mi on the 1200-mi tank, raised from 1/2 in v1.37.0).
   Everything above shapes where the driver stops; this one decides whether they
   stop at all near the end of the run.
 
@@ -130,7 +130,7 @@ tank) as never-plannable range. Since **v1.35.0** the control is a **switch**:
 | Switch | Extra range held for arrival | Effect |
 |---|---|---|
 | **off** | 0 mi | the standard reserve — exactly the behaviour of every release before v1.27.0 |
-| **on** | 450 mi | arrive with about **half a tank** |
+| **on** | 600 mi | arrive with about **5/8 of a tank** (raised from 1/2 in v1.37.0) |
 
 The control narrowed release by release as the real choice got clearer. v1.27.0
 offered a 1/8–1/2 dial. v1.30.1 dropped 1/8 — nobody arrives on an eighth by
@@ -139,17 +139,24 @@ wants fuel at delivery wants half a tank**, and 1/4 / 3/8 were gradations nobody
 picked. A control whose answers collapse to *yes-or-half-a-tank* should ask
 exactly that — one tap on, one tap off.
 
-`ARRIVAL_TOGGLE_TICK = 4` in `lib/gauge.js` is the whole setting. Raising it is
-a one-constant change but a bad default: 1/2 already holds back 450 mi, and one
-tick higher would hold 600 of a Long tier's 700, gapping most plans —
-`gauge.test.js` pins that ceiling arithmetic so "or higher" stays a decision.
+`ARRIVAL_TOGGLE_TICK = 5` in `lib/gauge.js` is the whole setting, raised from 4
+at the fleet's direction in v1.37.0. What 5/8 costs is stated rather than
+buried: against Long 700 the last stop must sit within **100 mi** of the
+delivery; against Max 900, within 300; **against Regular 500 it can never be met
+at all** — the reserve exceeds the tier's whole range, so every Regular plan
+with the switch on reads as a reserve shortfall, which the results panel states
+honestly (never as a fake dry gap; proved with the real planner in
+`gauge.test.js`). One tick higher (3/4 = 750) would out-eat Long entirely —
+pinned so "or higher" stays a knowing change.
 
 The old disclosure needed a reset-on-close contract (a raised reserve behind a
 collapsed field silently steered every plan). A switch does not: its state is
 visible on the control itself, so an on switch in a collapsed panel is still
 legibly on. `role="switch"` means a screen reader announces on/off rather than
 expanded/collapsed, and the help line under it explains the floor and what
-turning it on buys — worded from the gauge's own numbers, never a hardcoded figure (which is why the v1.36.0 tank change moved the copy to 450 with no edit).
+turning it on buys — worded from the gauge's own numbers, never a hardcoded
+figure (which is why the v1.36.0 tank change moved the copy to 450, and the
+v1.37.0 tick change to "5/8 … 600 mi", with no copy edits).
 
 Mechanically it is one changed loop condition: the planner now runs until it can
 reach `routeMiles + reserve`, which is exactly the condition
@@ -171,8 +178,8 @@ into one switch cost so little: on many routes they already produced identical
 plans.
 
 **When the reserve can't be met.** A driver can ask for more than a route can
-give — Regular's 500 mi range with a 1/2 reserve needs a stop within 50 mi of
-the delivery. That is a real state and it reads as one: the app shows the plan
+give — and on Regular the switch now always does: the 600-mi reserve exceeds the
+tier's whole 500-mi range, so no stop placement can satisfy it. That is a real state and it reads as one: the app shows the plan
 it *can* make, says what the arrival actually works out to, and points at the
 settings that move it. It is explicitly **not** shown as a fuel gap. Every leg
 of a shortfall plan is drivable and the delivery is reached; only the cushion
@@ -933,6 +940,34 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.37.0
+
+**The arrival switch's ON value rises from 1/2 to 5/8 of a tank** — 600 mi of
+the 1200-mi tank — at the fleet's direction: a driver who wants fuel at
+delivery should land with 5/8 or better.
+
+One constant (`ARRIVAL_TOGGLE_TICK` 4 → 5); every piece of copy moved by
+derivation, including the switch relabelling itself "5/8 of a tank" and the
+shortfall panel quoting "5/8" — no string edits.
+
+**What 5/8 costs, stated rather than buried:**
+
+| Tier | Range | Final leg allowed with the switch on |
+|---|---|---|
+| Long 700 | 700 | at most **100 mi** |
+| Max 900 | 900 | at most 300 mi |
+| Regular 500 | 500 | **never satisfiable** — the reserve exceeds the tier's whole range |
+
+Regular + switch-on degrades **honestly**: the planner terminates, plans every
+drivable stop, and flags a *reserve shortfall* — the panel that says what you
+actually arrive with — never a fake dry gap. That contract is now proved with
+the real planner in `gauge.test.js` rather than assumed, because at this
+setting it stops being an edge case and becomes the everyday behaviour of one
+whole tier.
+
+One tick higher (3/4 = 750) would out-eat Long's 700 entirely; pinned so "or
+higher" stays a knowing change.
 
 ### v1.36.0
 

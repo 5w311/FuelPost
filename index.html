@@ -1027,13 +1027,15 @@
          on a tier. The label states the question rather than naming a feature,
          because a driver who wants fuel in the tank at delivery needs to
          recognise it from the outside. -->
-    <!-- A SWITCH since v1.35.0, not a disclosure over choices. The fleet's
-         read: a driver who wants fuel at delivery wants half a tank — the old
-         1/4 and 3/8 buttons were gradations nobody picked, and a control
-         whose answers collapse to yes-or-half-a-tank should ask exactly that.
-         One tap on, one tap off; off is the standard reserve, byte-identical
-         to every release before v1.27.0. role="switch" so a screen reader
-         announces on/off rather than expanded/collapsed. -->
+    <!-- A SWITCH since v1.35.0, not a disclosure over choices; ON means 5/8
+         of a tank since v1.37.0 (it began at 1/2). The fleet's read: a driver
+         who wants fuel at delivery should land with 5/8 or better, and the
+         old graded buttons were choices nobody picked. One tap on, one tap
+         off; off is the standard reserve, byte-identical to every release
+         before v1.27.0. role="switch" so a screen reader announces on/off
+         rather than expanded/collapsed. What ON costs per tier — including
+         that Regular's 500 can never satisfy it — is documented at
+         ARRIVAL_TOGGLE_TICK in lib/gauge.js. -->
     <button type="button" id="arrivalToggle" class="rb-switchrow" role="switch" aria-checked="false">
       <span class="rb-switch-text">Want fuel left when you get there?</span>
       <span class="rb-switch" aria-hidden="true"></span>
@@ -1304,33 +1306,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.36.0"></script>
+<script src="lib/fuelplan.js?v=1.37.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.36.0"></script>
+<script src="lib/triptext.js?v=1.37.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.36.0"></script>
+<script src="lib/location.js?v=1.37.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.36.0"></script>
+<script src="lib/gauge.js?v=1.37.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.36.0"></script>
+<script src="lib/corridors.js?v=1.37.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.36.0"></script>
+<script src="lib/nearme.js?v=1.37.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.36.0"></script>
+<script src="lib/extract-version.js?v=1.37.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.36.0"></script>
+<script src="lib/autosuggest.js?v=1.37.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.36.0"></script>
+<script src="lib/baselayer.js?v=1.37.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.36.0"></script>
+<script src="lib/memocache.js?v=1.37.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.36.0"></script>
+<script src="lib/routerank.js?v=1.37.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.36.0"></script>
+<script src="lib/vehicleprofile.js?v=1.37.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.36.0"></script>
+<script src="lib/escape.js?v=1.37.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.36.0"></script>
+<script src="lib/navlinks.js?v=1.37.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1346,7 +1348,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.36.0')
+fetch('lib/fuelplan-adaptive.js?v=1.37.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1363,7 +1365,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.36.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.36.0')
+fetch('lib/shorttrip.js?v=1.37.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1374,7 +1376,7 @@ fetch('lib/shorttrip.js?v=1.36.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.36.0"></script>
+<script src="lib/flexible-polyline.js?v=1.37.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1546,7 +1548,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.36.0';
+const APP_VERSION = '1.37.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -4606,8 +4608,8 @@ function setArrivalOn(on){
   // buys, so the switch explains itself before it is ever flipped. On states
   // what is now happening, with the number the planner will actually use.
   $('arrivalHelp').textContent = on
-    ? `Plans a stop early enough to arrive with about ${FuelGauge.tickLabel(FuelGauge.ARRIVAL_TOGGLE_TICK)} a tank — roughly ${extra} mi of range still unused.`
-    : `Off — plans just keep the standard reserve (the bottom 1/8, about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} mi). Turn on to arrive with about ${FuelGauge.tickLabel(FuelGauge.ARRIVAL_TOGGLE_TICK)} a tank instead.`;
+    ? `Plans a stop early enough to arrive with about ${FuelGauge.tickLabel(FuelGauge.ARRIVAL_TOGGLE_TICK)} of a tank — roughly ${extra} mi of range still unused.`
+    : `Off — plans just keep the standard reserve (the bottom 1/8, about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} mi). Turn on to arrive with about ${FuelGauge.tickLabel(FuelGauge.ARRIVAL_TOGGLE_TICK)} of a tank instead.`;
   updateClearVisibility();
 }
 
