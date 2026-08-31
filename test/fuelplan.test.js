@@ -1,7 +1,7 @@
 const { haversine, projectStops, planFuel, cumulativeMiles } = require('../lib/fuelplan.js');
 // The reserve reaches planFuel as MILES; the tank scale that produces those
 // miles lives in the gauge. Importing the real converter here rather than
-// hardcoding 0/125/250/375 means this file fails if the two ever disagree,
+// hardcoding 0/150/300/450 means this file fails if the two ever disagree,
 // which is the whole reason planFuel takes miles instead of ticks.
 const { arrivalReserveMiles: gaugeArrivalMiles } = require('../lib/gauge.js');
 let pass = 0, fail = 0;
@@ -172,8 +172,9 @@ console.log('\n=== arrival reserve: the extra-mileage arithmetic is exact ===');
 // One stop at mile 500 and nothing else; a 1000 mi route with 600 mi range.
 // The loop must stop planning exactly when maxRange - finalLeg >= reserve.
 {
-  // Reserve in miles for each tick, straight off the tank scale: (t-1)*125.
-  const expect = { 1: 0, 2: 125, 3: 250, 4: 375 };
+  // Reserve in miles for each tick, straight off the tank scale: (t-1)*150
+  // since the v1.36.0 move to the 1200-mi Cascadia tank.
+  const expect = { 1: 0, 2: 150, 3: 300, 4: 450 };
   for (const t of [1, 2, 3, 4]) {
     ok(`tick ${t} -> ${expect[t]} mi of reserve`, gaugeArrivalMiles(t) === expect[t],
        String(gaugeArrivalMiles(t)));
