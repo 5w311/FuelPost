@@ -1307,33 +1307,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.38.0"></script>
+<script src="lib/fuelplan.js?v=1.39.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.38.0"></script>
+<script src="lib/triptext.js?v=1.39.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.38.0"></script>
+<script src="lib/location.js?v=1.39.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.38.0"></script>
+<script src="lib/gauge.js?v=1.39.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.38.0"></script>
+<script src="lib/corridors.js?v=1.39.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.38.0"></script>
+<script src="lib/nearme.js?v=1.39.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.38.0"></script>
+<script src="lib/extract-version.js?v=1.39.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.38.0"></script>
+<script src="lib/autosuggest.js?v=1.39.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.38.0"></script>
+<script src="lib/baselayer.js?v=1.39.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.38.0"></script>
+<script src="lib/memocache.js?v=1.39.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.38.0"></script>
+<script src="lib/routerank.js?v=1.39.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.38.0"></script>
+<script src="lib/vehicleprofile.js?v=1.39.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.38.0"></script>
+<script src="lib/escape.js?v=1.39.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.38.0"></script>
+<script src="lib/navlinks.js?v=1.39.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1349,7 +1349,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.38.0')
+fetch('lib/fuelplan-adaptive.js?v=1.39.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1366,7 +1366,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.38.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.38.0')
+fetch('lib/shorttrip.js?v=1.39.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1377,7 +1377,7 @@ fetch('lib/shorttrip.js?v=1.38.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.38.0"></script>
+<script src="lib/flexible-polyline.js?v=1.39.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1549,7 +1549,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.38.0';
+const APP_VERSION = '1.39.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -3477,22 +3477,25 @@ const RANGE_MIN = 300, RANGE_MAX = 1200;
 
 // The range tiers, and where their numbers come from.
 //
-// Only Max sits on the fuel gauge's own scale now. With FULL_TANK_MILES 1200
-// over TICKS 8 (the v1.36.0 Cascadia numbers), a tick is 150 mi, so Max 900 =
-// 6 ticks exactly. Regular 500 (3.33 ticks) and Long 700 (4.67) are
-// road-practice numbers, and pretending they land on the scale would be
-// tidier than it is true.
+// Only Regular sits on the fuel gauge's own scale now. With FULL_TANK_MILES
+// 1000 over TICKS 8 (the v1.39.0 evened tank), a tick is 125 mi, so Regular
+// 500 = 4 ticks exactly — half the tank. Long 700 (5.6 ticks) and Max 900
+// (7.2) are road-practice numbers, and pretending they land on the scale
+// would be tidier than it is true.
 //
-// THE TICK-SCALE CLAIM HAS NOW CHANGED FOUR TIMES — 400/625 had Long on the
-// scale, 500/675 had Max, 500/700/900-on-the-1000-tank had Regular for
-// exactly one release, and the 1200 tank hands it back to Max. gauge.test.js
-// reads this table out of the file now instead of restating the numbers,
-// precisely because this sentence will not sit still.
+// THE TICK-SCALE CLAIM HAS NOW CHANGED FIVE TIMES — 400/625 had Long on the
+// scale, 500/675 had Max, 500/700/900-on-the-1000-tank had Regular, the 1200
+// tank handed it to Max for three releases, and evening the tank back to 1000
+// hands it to Regular again. gauge.test.js reads this table out of the file
+// now instead of restating the numbers, precisely because this sentence will
+// not sit still.
 //
-// v1.35.0 briefly had Max 900 EXCEEDING the plannable full tank (875 on the
-// old 1000-mi model), leaning on a startBurned debit for its first leg. The
-// 1200 tank ends that: plannable-full is 1050 and Max fits inside with 150 to
-// spare. No debit, no special case — gauge.test.js pins that it stays gone.
+// The evened tank brings back the v1.35.0 overhang: plannable-full is 875, so
+// Max 900 sits 25 mi past it and a driver who picks Max AND a full tank has
+// that difference docked off the first leg by computeStartBurned. That is the
+// honest arithmetic rather than a bug — the gauge tops out at 875 plannable —
+// and gauge.test.js pins the size of the dock (under one tick) and proves
+// with the real planner what it does and doesn't cost.
 //
 // `long` is the default from v1.27.0. It was `max` for every release before,
 // which meant every driver who never touched the field was silently on the

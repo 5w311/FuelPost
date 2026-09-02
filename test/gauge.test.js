@@ -6,26 +6,37 @@ const ok = (name, cond, extra = '') => {
   else { fail++; console.log('  FAIL', name, extra); }
 };
 
-console.log('=== tick <-> miles (1200-mi tank since v1.36.0) ===');
-// The fleet's 2025 Cascadias: 8.5 mpg on dual 100-gal tanks, ~1200 mi
-// comfortable full-to-empty. 1200 over 8 eighths = 150 a tick.
-ok('full tank constant is 1200', G.FULL_TANK_MILES === 1200);
-ok('150 mi per eighth', G.MILES_PER_TICK === 150);
+console.log('=== tick <-> miles (1000-mi tank since v1.39.0) ===');
+// The fleet asked for an EVEN tank: F reads a round 1,000 and every eighth
+// steps down by the same 125. 1000 over 8 eighths = 125 a tick, and the whole
+// gauge is a number a driver can do in their head — 1000, 875, 750, 625, 500,
+// 375, 250, 125, E. (v1.36.0-v1.38.0 ran a 1200 tank at 150 a tick.)
+ok('full tank constant is 1000', G.FULL_TANK_MILES === 1000);
+ok('125 mi per eighth', G.MILES_PER_TICK === 125);
 ok('tick 0 (E) = 0 mi', G.milesForTick(0) === 0);
-ok('tick 8 (F) = 1200 mi', G.milesForTick(8) === 1200);
-ok('tick 4 (1/2) = 600 mi', G.milesForTick(4) === 600);
-ok('tick 2 (1/4) = 300 mi', G.milesForTick(2) === 300);
-ok('tick 7 (7/8) = 1050 mi', G.milesForTick(7) === 1050);
+ok('tick 8 (F) = 1000 mi', G.milesForTick(8) === 1000);
+ok('tick 4 (1/2) = 500 mi', G.milesForTick(4) === 500);
+ok('tick 2 (1/4) = 250 mi', G.milesForTick(2) === 250);
+ok('tick 7 (7/8) = 875 mi', G.milesForTick(7) === 875);
 ok('out-of-range tick clamps low', G.milesForTick(-3) === 0);
-ok('out-of-range tick clamps high', G.milesForTick(99) === 1200);
-ok('fractional tick rounds', G.milesForTick(4.6) === 750, G.milesForTick(4.6));
+ok('out-of-range tick clamps high', G.milesForTick(99) === 1000);
+ok('fractional tick rounds', G.milesForTick(4.6) === 625, G.milesForTick(4.6));
+// EVEN is the whole point of this model, so it is asserted as a property and
+// not just as a table: every step down the gauge is the same size. A tank
+// whose eighths were uneven could still satisfy every literal above.
+ok('>>> every eighth is the same step — the gauge decreases evenly',
+   [1,2,3,4,5,6,7,8].every(t => G.milesForTick(t) - G.milesForTick(t-1) === G.MILES_PER_TICK));
+ok('  and the eight steps add up to exactly the full tank',
+   G.MILES_PER_TICK * G.TICKS === G.FULL_TANK_MILES);
+ok('  every reading is a whole number of miles — nothing to round on the dial',
+   [0,1,2,3,4,5,6,7,8].every(t => Number.isInteger(G.milesForTick(t))));
 
 console.log('\n=== miles -> nearest tick (for display / migrating old values) ===');
 ok('0 mi -> tick 0', G.tickForMiles(0) === 0);
-ok('1200 mi -> tick 8', G.tickForMiles(1200) === 8);
-ok('600 mi -> tick 4 (exactly half the tank now)', G.tickForMiles(600) === 4);
-ok('700 mi (the Long tier) -> nearest tick 5 (750mi)', G.tickForMiles(700) === 5);
-ok('over 1200 clamps to tick 8', G.tickForMiles(5000) === 8);
+ok('1000 mi -> tick 8', G.tickForMiles(1000) === 8);
+ok('500 mi -> tick 4 (exactly half the tank)', G.tickForMiles(500) === 4);
+ok('700 mi (the Long tier) -> nearest tick 6 (750mi)', G.tickForMiles(700) === 6);
+ok('over 1000 clamps to tick 8', G.tickForMiles(5000) === 8);
 ok('round-trip is stable for exact ticks', G.tickForMiles(G.milesForTick(3)) === 3);
 
 console.log('\n=== emergency zone (below 1/4 tank) ===');
@@ -42,33 +53,35 @@ ok('label F', G.tickLabel(8) === 'F');
 
 console.log('\n=== startBurned wiring unchanged ===');
 ok('full gauge vs 800 policy -> no burn assumed', G.computeStartBurned(800, G.milesForTick(8)) === 0);
-ok('half gauge (600) vs 800 policy -> burned 200', G.computeStartBurned(800, G.milesForTick(4)) === 200);
+ok('half gauge (500) vs 800 policy -> burned 300', G.computeStartBurned(800, G.milesForTick(4)) === 300);
 ok('never goes negative', G.computeStartBurned(500, G.milesForTick(8)) === 0);
 
 console.log('\n=== plannableMilesForTick matches both stated numbers exactly ===');
-ok('F (tick 8) = 1050 mi', G.plannableMilesForTick(8) === 1050);
+ok('F (tick 8) = 875 mi', G.plannableMilesForTick(8) === 875);
 ok('1/8 (tick 1) = 0 mi', G.plannableMilesForTick(1) === 0);
 
 console.log('\n=== full table is linear and matches the reserve rule ===');
-const expect = {0:0,1:0,2:150,3:300,4:450,5:600,6:750,7:900,8:1050};
+const expect = {0:0,1:0,2:125,3:250,4:375,5:500,6:625,7:750,8:875};
 Object.entries(expect).forEach(([t,m]) => ok(`tick ${t} -> ${m} mi`, G.plannableMilesForTick(+t) === m));
 
 console.log('\n=== the withheld reserve is exactly the "limp" figure ===');
-ok('milesForTick(8) - plannableMilesForTick(8) == 150', G.milesForTick(8) - G.plannableMilesForTick(8) === 150);
-ok('milesForTick(1) - plannableMilesForTick(1) == 150', G.milesForTick(1) - G.plannableMilesForTick(1) === 150);
+ok('milesForTick(8) - plannableMilesForTick(8) == 125', G.milesForTick(8) - G.plannableMilesForTick(8) === 125);
+ok('milesForTick(1) - plannableMilesForTick(1) == 125', G.milesForTick(1) - G.plannableMilesForTick(1) === 125);
+ok('  and the withheld slice is exactly one tick, whatever a tick is worth',
+   G.milesForTick(8) - G.plannableMilesForTick(8) === G.RESERVE_TICKS * G.MILES_PER_TICK);
 
 console.log('\n=== edge cases ===');
 ok('clamps below 0', G.plannableMilesForTick(-5) === 0);
-ok('clamps above 8', G.plannableMilesForTick(20) === 1050);
+ok('clamps above 8', G.plannableMilesForTick(20) === 875);
 ok('never negative even at the boundary', G.plannableMilesForTick(0) === 0);
 
 console.log('\n=== interaction with computeStartBurned (unchanged function) ===');
-ok('full plannable (1050) vs 625 policy -> no burn assumed',
+ok('full plannable (875) vs 625 policy -> no burn assumed',
    G.computeStartBurned(625, G.plannableMilesForTick(8)) === 0);
 ok('1/8 floor (0 plannable) vs 625 policy -> burned = full policy',
    G.computeStartBurned(625, G.plannableMilesForTick(1)) === 625);
-ok('half-ish (5/8=600) vs 625 policy -> burned 25',
-   G.computeStartBurned(625, G.plannableMilesForTick(5)) === 25);
+ok('5/8 (500 plannable) vs 625 policy -> burned 125',
+   G.computeStartBurned(625, G.plannableMilesForTick(5)) === 125);
 
 console.log('\n=== the 1/8 floor feeds the real planner into an immediate zero-width gap ===');
 {
@@ -94,15 +107,15 @@ console.log('\n=== arrival reserve: a TOGGLE since v1.35.0, floor + aim since v1
 
   ok('>>> the toggle tick is 2 — the 1/4 FLOOR, down from 5/8 in v1.38.0',
      G.ARRIVAL_TOGGLE_TICK === 2, String(G.ARRIVAL_TOGGLE_TICK));
-  ok('>>> ON requires at least 150 mi of range at delivery',
-     G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) === 150,
+  ok('>>> ON requires at least 125 mi of range at delivery',
+     G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) === 125,
      String(G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK)));
   ok('  and the floor\'s label is the gauge\'s own "1/4", never a second string',
      G.tickLabel(G.ARRIVAL_TOGGLE_TICK) === '1/4');
   ok('>>> the target tick is 4 — aim to land nearest 1/2 a tank',
      G.ARRIVAL_TARGET_TICK === 4, String(G.ARRIVAL_TARGET_TICK));
-  ok('>>> the aim is 450 mi of range at delivery',
-     G.arrivalReserveMiles(G.ARRIVAL_TARGET_TICK) === 450,
+  ok('>>> the aim is 375 mi of range at delivery',
+     G.arrivalReserveMiles(G.ARRIVAL_TARGET_TICK) === 375,
      String(G.arrivalReserveMiles(G.ARRIVAL_TARGET_TICK)));
   ok('  and the aim\'s label is the gauge\'s own "1/2"',
      G.tickLabel(G.ARRIVAL_TARGET_TICK) === '1/2');
@@ -117,16 +130,16 @@ console.log('\n=== arrival reserve: a TOGGLE since v1.35.0, floor + aim since v1
      G.ARRIVAL_TOGGLE_TICK !== G.RESERVE_TICKS
      && G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) > 0);
   // WHAT THE 1/4 FLOOR COSTS, pinned so the number stays a decision. The
-  // final leg may be at most range−150: 350 on Regular 500, 550 on Long 700,
-  // 750 on Max 900 — satisfiable on every tier, which is exactly why the
-  // fleet backed off 5/8 (Regular could never meet 600). The AIM costs
+  // final leg may be at most range−125: 375 on Regular 500, 575 on Long 700,
+  // 775 on Max 900 — satisfiable on every tier, which is exactly why the
+  // fleet backed off 5/8 (on the old 1200 tank Regular could never meet 600). The AIM costs
   // nothing: it only chooses WHICH reachable stop is last, never whether one
   // exists, so it can't create a shortfall the floor didn't already have.
-  ok('  against Long 700 the final leg may be at most 550 mi',
-     700 - G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) === 550);
+  ok('  against Long 700 the final leg may be at most 575 mi',
+     700 - G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) === 575);
   ok('>>> against Regular 500 the floor is satisfiable — the v1.37.0 wall is gone',
      G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) < 500
-     && 500 - G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) === 350);
+     && 500 - G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK) === 375);
   ok('  even the AIM (450) fits inside Regular\'s 500',
      G.arrivalReserveMiles(G.ARRIVAL_TARGET_TICK) < 500);
   {
@@ -157,9 +170,9 @@ console.log('\n=== arrival reserve: a TOGGLE since v1.35.0, floor + aim since v1
   // this value every time the driver leaves the reserve alone.
   ok('1/8 -> 0 mi (the standard reserve, no longer a button)',
      G.arrivalReserveMiles(1) === 0, String(G.arrivalReserveMiles(1)));
-  ok('1/4 -> 150 mi', G.arrivalReserveMiles(2) === 150, String(G.arrivalReserveMiles(2)));
-  ok('3/8 -> 300 mi', G.arrivalReserveMiles(3) === 300, String(G.arrivalReserveMiles(3)));
-  ok('1/2 -> 450 mi', G.arrivalReserveMiles(4) === 450, String(G.arrivalReserveMiles(4)));
+  ok('1/4 -> 125 mi', G.arrivalReserveMiles(2) === 125, String(G.arrivalReserveMiles(2)));
+  ok('3/8 -> 250 mi', G.arrivalReserveMiles(3) === 250, String(G.arrivalReserveMiles(3)));
+  ok('1/2 -> 375 mi', G.arrivalReserveMiles(4) === 375, String(G.arrivalReserveMiles(4)));
 
   // The toggle value is a whole number of ticks above the floor, by
   // construction — the same arithmetic the dial had.
@@ -174,7 +187,7 @@ console.log('\n=== arrival reserve: a TOGGLE since v1.35.0, floor + aim since v1
 
   // Defensive, same shape as the rest of this module: clamped, never negative.
   ok('clamped below', G.arrivalReserveMiles(-3) === 0);
-  ok('clamped above at the full tank minus the floor', G.arrivalReserveMiles(99) === 1050);
+  ok('clamped above at the full tank minus the floor', G.arrivalReserveMiles(99) === 875);
 }
 
 console.log('\n=== the range tiers against the tank scale ===');
@@ -195,25 +208,53 @@ console.log('\n=== the range tiers against the tank scale ===');
      JSON.stringify(T));
   ok('>>> the tiers are 500 / 700 / 900 (v1.35.0)',
      T.regular === 500 && T.long === 700 && T.max === 900, JSON.stringify(T));
-  // The tick-scale claim, FOURTH revision (v1.36.0 moved the tank to 1200, a
-  // tick to 150): now only MAX is on the scale. Regular held it for exactly
-  // one release. This block reads the real table precisely because the claim
-  // will not sit still.
-  ok('Max is exactly 6 ticks — three quarters of the 1200 tank',
-     T.max === 6 * G.MILES_PER_TICK);
-  ok('Regular is NOT a whole tick (3.33) — a road-practice number',
-     T.regular % G.MILES_PER_TICK !== 0);
-  ok('Long is NOT a whole tick either (4.67)',
+  // The tick-scale claim, FIFTH revision (v1.39.0 evened the tank to 1000, a
+  // tick to 125): the whole-tick tier is REGULAR now, and it lands on the
+  // roundest possible spot — exactly half the tank. Max held the title for
+  // three releases; before that Regular held it for one, and Long before
+  // that. This block reads the real table precisely because the claim will
+  // not sit still, and it is written as a search rather than a guess so the
+  // NEXT tank change reports the truth instead of failing blind.
+  ok('Regular is exactly 4 ticks — half the 1000 tank',
+     T.regular === 4 * G.MILES_PER_TICK);
+  ok('Long is NOT a whole tick (5.6) — a road-practice number',
      T.long % G.MILES_PER_TICK !== 0);
-  // The v1.35.0 oddity is GONE: Max 900 sat 25 mi past the old 875 plannable
-  // full and leaned on a startBurned debit for its first leg. At the 1200
-  // tank, plannable-full is 1050 and Max fits back inside with 150 to spare —
-  // no debit, no special case, and this pins that it stays that way.
-  ok('>>> Max 900 fits INSIDE plannable-full (1050) again, 150 to spare',
-     G.plannableMilesForTick(G.TICKS) - T.max === 150,
-     String(G.plannableMilesForTick(G.TICKS) - T.max));
-  ok('  so a full tank on Max carries no startBurned debit',
-     G.computeStartBurned(T.max, G.plannableMilesForTick(G.TICKS)) === 0);
+  ok('Max is NOT a whole tick either (7.2)',
+     T.max % G.MILES_PER_TICK !== 0);
+  ok('  exactly one tier sits on the tick scale',
+     Object.values(T).filter(m => m % G.MILES_PER_TICK === 0).length === 1,
+     JSON.stringify(Object.entries(T).map(([k, m]) => k + ':' + (m / G.MILES_PER_TICK))));
+  // THE COST OF EVENING THE TANK, stated rather than buried. Plannable-full
+  // drops from 1050 to 875, and Max 900 no longer fits inside it — the same
+  // 25-mi overhang the app carried on the v1.35.0 1000-mi tank. It is not a
+  // bug and needs no special case: a driver who picks Max AND says the tank
+  // is full is claiming 900 mi of plannable range from a gauge that tops out
+  // at 875, so computeStartBurned docks the difference off the first leg.
+  // The arithmetic is the honest one; what's pinned here is that it stays
+  // SMALL and stays visible.
+  ok('>>> Max 900 overhangs plannable-full (875) by 25 mi on the evened tank',
+     T.max - G.plannableMilesForTick(G.TICKS) === 25,
+     String(T.max - G.plannableMilesForTick(G.TICKS)));
+  ok('  so a full tank on Max carries a 25-mi startBurned debit, not zero',
+     G.computeStartBurned(T.max, G.plannableMilesForTick(G.TICKS)) === 25);
+  ok('  and the debit is under one tick — a rounding-sized dock, not a lost stop',
+     G.computeStartBurned(T.max, G.plannableMilesForTick(G.TICKS)) < G.MILES_PER_TICK);
+  ok('  Regular and Long still fit inside plannable-full with no debit at all',
+     G.computeStartBurned(T.regular, G.plannableMilesForTick(G.TICKS)) === 0
+     && G.computeStartBurned(T.long, G.plannableMilesForTick(G.TICKS)) === 0);
+  {
+    // What the debit actually DOES to a plan, proved with the real planner
+    // rather than asserted as arithmetic: on a 900-mi run with one stop at
+    // mile 880, Max + full tank cannot reach it (875 < 880) and says so.
+    const debit = G.computeStartBurned(T.max, G.plannableMilesForTick(G.TICKS));
+    const far = [{ id: 'X', name: 'X', mile: 880, detourMi: 1, detour: 1 }];
+    const r = FuelPlan.planFuel(900, far, T.max, debit);
+    ok('  the debit is REAL: a stop at 880 is out of reach on a full Max tank',
+       r.ok === false && r.plan.length === 0, JSON.stringify(r.gap));
+    const near = [{ id: 'Y', name: 'Y', mile: 870, detourMi: 1, detour: 1 }];
+    ok('  and a stop 5 mi closer is reachable — the dock is 25 mi, not a wall',
+       FuelPlan.planFuel(900, near, T.max, debit).ok === true);
+  }
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
