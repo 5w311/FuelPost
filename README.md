@@ -1032,6 +1032,33 @@ overlay unmount it.
 
 ## Version history
 
+### v1.44.0
+
+**The legend closes itself whenever the chrome around it changes.** It is a
+transient popover over the map, not a panel with state, so switching tabs or
+opening/closing any collapsible panel now dismisses it — the same way a tap
+outside dismisses the filter card.
+
+Five toggles call one `closeLegend()`: the Stops hamburger, Near Me, the mode
+switch, Trip details, and the results panel. Each is wired in the function that
+owns that panel's state, so **collapse and expand both dismiss**, not just one
+direction.
+
+**The two bugs this fixes**, both of which looked like the legend "coming
+back":
+
+- `#listview.show ~ #legendCard{display:none}` only ever *hid* the card while
+  the list was up — it kept its `.show` class, so closing the list brought it
+  straight back, still open over the map.
+- `setMode` removed `.show` only inside its `if(route)` branch, so **Route →
+  Stops** left the legend sitting open behind the tab switch. Only the way in
+  was handled.
+
+The e2e reads both the `.show` class **and** computed visibility on every
+check, because a visibility-only assertion passes on the broken build — the
+card really was invisible while the list covered it. Run against the pre-fix
+code it fails 9 times, including that springback.
+
 ### v1.43.0
 
 **The arrival reserve switch is on by default.** Every release from v1.27.0 to

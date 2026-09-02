@@ -1315,33 +1315,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.43.0"></script>
+<script src="lib/fuelplan.js?v=1.44.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.43.0"></script>
+<script src="lib/triptext.js?v=1.44.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.43.0"></script>
+<script src="lib/location.js?v=1.44.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.43.0"></script>
+<script src="lib/gauge.js?v=1.44.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.43.0"></script>
+<script src="lib/corridors.js?v=1.44.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.43.0"></script>
+<script src="lib/nearme.js?v=1.44.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.43.0"></script>
+<script src="lib/extract-version.js?v=1.44.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.43.0"></script>
+<script src="lib/autosuggest.js?v=1.44.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.43.0"></script>
+<script src="lib/baselayer.js?v=1.44.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.43.0"></script>
+<script src="lib/memocache.js?v=1.44.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.43.0"></script>
+<script src="lib/routerank.js?v=1.44.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.43.0"></script>
+<script src="lib/vehicleprofile.js?v=1.44.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.43.0"></script>
+<script src="lib/escape.js?v=1.44.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.43.0"></script>
+<script src="lib/navlinks.js?v=1.44.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1357,7 +1357,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.43.0')
+fetch('lib/fuelplan-adaptive.js?v=1.44.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1374,7 +1374,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.43.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.43.0')
+fetch('lib/shorttrip.js?v=1.44.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1385,7 +1385,7 @@ fetch('lib/shorttrip.js?v=1.43.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.43.0"></script>
+<script src="lib/flexible-polyline.js?v=1.44.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1557,7 +1557,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.43.0';
+const APP_VERSION = '1.44.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2962,7 +2962,18 @@ document.getElementById('listToggle').addEventListener('click', ()=>{
   // Catch up before it becomes visible, so the first paint is already correct.
   if(opening && listDirty) renderList(currentFiltered);
   el.classList.toggle('show');
+  closeLegend();   // both directions — opening hid it, closing brought it back
 });
+// The legend is a transient popover over the map, not a panel with state.
+// Anything that rearranges the chrome around it — switching tabs, or opening
+// or closing any of the collapsible panels — dismisses it, the same way a tap
+// outside dismisses the filter card. Called from all five toggles rather than
+// left to CSS: `#listview.show ~ #legendCard{display:none}` only HIDES it
+// while the list is up, so the card kept its .show class and sprang back the
+// moment the list closed. That reappearance is what this fixes.
+function closeLegend(){
+  document.getElementById('legendCard').classList.remove('show');
+}
 document.getElementById('legendBtn').addEventListener('click', ()=>{
   document.getElementById('legendCard').classList.toggle('show');
 });
@@ -3435,6 +3446,7 @@ function setNearMeExpanded(open){
   nearMeExpanded = open;
   $('nearMe').classList.toggle('nm-collapsed', !open);
   $('nmTab').setAttribute('aria-expanded', String(open));
+  closeLegend();   // the Stops tab's other collapsible, same rule
   // The height changes over the 220ms max-height transition; the observer
   // below republishes --nm-h on every frame of it, so the map buttons ride
   // the animation rather than jumping when it ends.
@@ -3665,6 +3677,7 @@ function syncRrTabShowing(){
 }
 function setRrCollapsed(collapsed){
   rrCollapsed = collapsed;
+  closeLegend();
   $('routeResults').classList.toggle('rr-collapsed', collapsed);
   $('rrTab').setAttribute('aria-expanded', String(!collapsed));
   syncRrTabShowing();
@@ -3701,6 +3714,7 @@ function updateRoutebarSummary(){
 
 function setRoutebarOpen(open){
   routebarOpen = open;
+  closeLegend();
   $('routebar').classList.toggle('collapsed', !open);
   $('routebarTab').setAttribute('aria-expanded', String(open));
   updateRoutebarSummary();
@@ -3722,9 +3736,11 @@ function setMode(mode){
   routeGroup.setVisibility(route);
   $('routeResults').classList.toggle('show', route && !!$('routeResultsBody').innerHTML);
   syncRrTabShowing();
+  // Both directions: Route->Stops used to leave the legend open behind the
+  // switch, because this only ran on the way in.
+  closeLegend();
   if(route){
     $('listview').classList.remove('show');
-    $('legendCard').classList.remove('show');
     $('filterCard').classList.remove('show');
     $('filterBtn').setAttribute('aria-expanded', 'false');
     // Re-entering Route: expanded if there's nothing planned yet, collapsed
