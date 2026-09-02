@@ -1320,33 +1320,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.40.0"></script>
+<script src="lib/fuelplan.js?v=1.41.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.40.0"></script>
+<script src="lib/triptext.js?v=1.41.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.40.0"></script>
+<script src="lib/location.js?v=1.41.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.40.0"></script>
+<script src="lib/gauge.js?v=1.41.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.40.0"></script>
+<script src="lib/corridors.js?v=1.41.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.40.0"></script>
+<script src="lib/nearme.js?v=1.41.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.40.0"></script>
+<script src="lib/extract-version.js?v=1.41.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.40.0"></script>
+<script src="lib/autosuggest.js?v=1.41.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.40.0"></script>
+<script src="lib/baselayer.js?v=1.41.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.40.0"></script>
+<script src="lib/memocache.js?v=1.41.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.40.0"></script>
+<script src="lib/routerank.js?v=1.41.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.40.0"></script>
+<script src="lib/vehicleprofile.js?v=1.41.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.40.0"></script>
+<script src="lib/escape.js?v=1.41.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.40.0"></script>
+<script src="lib/navlinks.js?v=1.41.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1362,7 +1362,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.40.0')
+fetch('lib/fuelplan-adaptive.js?v=1.41.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1379,7 +1379,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.40.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.40.0')
+fetch('lib/shorttrip.js?v=1.41.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1390,7 +1390,7 @@ fetch('lib/shorttrip.js?v=1.40.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.40.0"></script>
+<script src="lib/flexible-polyline.js?v=1.41.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1562,7 +1562,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.40.0';
+const APP_VERSION = '1.41.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -4313,6 +4313,17 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
   let h = `<div class="rr-head">${headline}</div>`;
   h += `<div class="rr-sub">${mi(routeMiles)} mi loaded miles &middot; ${mi(rangeAtPickup)} mi of range leaving the shipper`
      + `${startBurned > 0 ? ` &middot; ${mi(startBurned)} mi already burned` : ''}</div>`;
+  // A plan built on the backup reserve is NOT an ordinary plan and must never
+  // read as one: the range it used is fuel the app normally refuses to touch.
+  // Said once, at the top, before the stops — a driver who reads no further
+  // has still been told which side of the floor they are on.
+  if(ranges.onBackupReserve){
+    h += `<div class="rr-caution"><b>Planned on your backup reserve</b>
+      You're at ${FuelGauge.tickLabel(gaugeTick)}, with no ordinary plannable range left — this app plans
+      down to ${FuelGauge.tickLabel(FuelGauge.RESERVE_TICKS)} and no further. This plan uses the ${mi(rangeAtPickup)} mi of backup
+      range between ${FuelGauge.tickLabel(FuelGauge.RESERVE_TICKS)} and ${FuelGauge.tickLabel(FuelGauge.BACKUP_RESERVE_TICKS)} to show what's actually within reach.
+      Treat the first stop as the one to make: below ${FuelGauge.tickLabel(FuelGauge.BACKUP_RESERVE_TICKS)} nothing is plannable at all.</div>`;
+  }
   // Name the profile the roads were chosen for — silence would imply Standard.
   if(vehicleSummary()){
     h += `<div class="rr-veh">Routed for: <b>${vehicleSummary()}</b></div>`;
@@ -4520,9 +4531,9 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
   setRoutebarOpen(false);
 }
 
-// Every gauge reading at or under the floor (RESERVE_TICKS — the bottom
-// QUARTER since v1.40.0, so ticks 1 and 2 both land here) reads as 0
-// plannable miles. planLoad() short-circuits straight here without calling
+// The one reading with NOTHING left — 1/8, where the backup band is spent
+// too. Since v1.41.0 a quarter tank does not come here any more: it plans on
+// the backup reserve. planLoad() short-circuits straight here without calling
 // the routing API,
 // because the outcome is already fully determined by rangeAtPickup alone:
 // feeding 0 through the real planner always returns the degenerate
@@ -4534,7 +4545,10 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
   // No routing call was made, so there are no alternatives to offer.
   clearRouteOptions();
   lastFitBounds = null; lastFitFree = null;   // no route at this fill level — nothing to re-fit to
-  const limpMiles = FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS); // the reserved ticks — no literal here, the model owns the number
+  // The band NOTHING may touch — not the planning floor, which the backup
+  // reserve is allowed to dip below. The model owns both numbers; this panel
+  // only ever fires when the backup is already gone.
+  const limpMiles = FuelGauge.milesForTick(FuelGauge.BACKUP_RESERVE_TICKS);
   lastTrip = {
     pickupAddr: pickup.label,
     deliveryAddr: delivery.label,
@@ -4556,8 +4570,8 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
   h += '<div class="rr-sub">0 mi of range leaving the shipper</div>';
 
   h += `<div class="rr-warn"><b>No network stop is reachable at this fill level</b>
-    The bottom ${FuelGauge.tickLabel(FuelGauge.RESERVE_TICKS)} tank (about ${limpMiles} mi) is always held back as a safety reserve —
-    it's never counted as plannable range for routing, but it's roughly how far you can
+    The backup reserve is spent at this reading: the bottom ${FuelGauge.tickLabel(FuelGauge.BACKUP_RESERVE_TICKS)} tank
+    (about ${limpMiles} mi) is never plannable at all, but it's roughly how far you can
     still physically limp toward a stop.`;
   if(nearPickup.length){
     const namedNear = nearPickup.slice(0, 2).map(nearPickupLine).join('; ');
@@ -4659,7 +4673,12 @@ function readRanges(){
   // to policy" — maxRange, startBurned 0 — same as before the gauge existed.
   // Only once the driver says otherwise does the gauge's own reading apply.
   const pickupOpen = !$('pickupRangeField').hidden;
-  const rangeAtPickup = pickupOpen ? FuelGauge.plannableMilesForTick(gaugeTick) : maxRange;
+  // One question to the model, not two: how far can this reading plan, and is
+  // that the backup band? A closed disclosure still means "full relative to
+  // policy" and never touches the backup.
+  const fromGauge = FuelGauge.rangeForTick(gaugeTick);
+  const rangeAtPickup = pickupOpen ? fromGauge.miles : maxRange;
+  const onBackupReserve = pickupOpen && fromGauge.backup;
 
   // A driver who rolls out with more range than the max is just at max; never
   // let startBurned go negative and hand the planner extra reach.
@@ -4674,7 +4693,8 @@ function readRanges(){
   // behaviour exactly, so both numbers go to zero together.
   const arrivalTarget = arrivalTick === FuelGauge.RESERVE_TICKS
     ? 0 : FuelGauge.arrivalReserveMiles(FuelGauge.ARRIVAL_TARGET_TICK);
-  return { maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve, arrivalTarget };
+  return { maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve,
+           arrivalTarget, onBackupReserve };
 }
 
 /* ---- Vehicle profile (dimensions, weight, hazmat) ----
@@ -4896,7 +4916,12 @@ function buildGaugeMarkup(){
 buildGaugeMarkup();
 
 function gaugeReadoutText(tick){
-  return `${FuelGauge.tickLabel(tick)} — about ${FuelGauge.plannableMilesForTick(tick).toLocaleString()} mi`;
+  // Says what the app will actually DO with this reading, which below the
+  // floor is the backup band rather than zero. Saying "0 mi" here and then
+  // handing the planner 150 was the inconsistency this replaced.
+  const r = FuelGauge.rangeForTick(tick);
+  return `${FuelGauge.tickLabel(tick)} — about ${r.miles.toLocaleString()} mi`
+       + (r.backup ? ' on backup reserve' : '');
 }
 
 function renderGauge(){
@@ -5457,8 +5482,10 @@ async function planLoad(pickup, delivery){
 
   const ranges = readRanges();
 
-  // The gauge floor (1/8 tank) reads as 0 plannable miles — that alone
-  // determines an immediate gap, so skip the routing call entirely.
+  // Only a reading with nothing left at all — the backup band spent, i.e.
+  // 1/8 — reads as 0 miles. That alone determines an immediate gap, so skip
+  // the routing call entirely. A quarter tank no longer lands here: it plans
+  // on the backup reserve and goes looking for what's within 150 mi.
   if(ranges.rangeAtPickup === 0){
     const nearPickup = FuelPlanAdaptive.stopsNearPickup(
       pickup.lat, pickup.lng, FUEL_STOPS, NEAR_PICKUP_RADIUS_GAP);

@@ -99,6 +99,75 @@ ok('1/8 floor (0 plannable) vs 625 policy -> burned = full policy',
 ok('5/8 (450 plannable) vs 625 policy -> burned 175',
    G.computeStartBurned(625, G.plannableMilesForTick(5)) === 175);
 
+console.log('\n=== the BACKUP reserve: 1/8 to 1/4, dipped into only from below ===');
+// The change this exists for: a driver sitting on a quarter tank used to get
+// a blank panel — no routing call, no stops, nothing. Refusing to PLAN on the
+// bottom quarter and refusing to LOOK are different things, and that is the
+// moment they most need to see what's near them.
+{
+  ok('>>> the untouchable band is the bottom eighth, not the planning floor',
+     G.BACKUP_RESERVE_TICKS === 1 && G.BACKUP_RESERVE_TICKS < G.RESERVE_TICKS,
+     JSON.stringify([G.BACKUP_RESERVE_TICKS, G.RESERVE_TICKS]));
+  ok('  so the backup band is exactly one tick wide — 150 mi',
+     (G.RESERVE_TICKS - G.BACKUP_RESERVE_TICKS) * G.MILES_PER_TICK === 150);
+  ok('  and it is exactly the amber stretch the gauge paints',
+     G.backupMilesForTick(G.RESERVE_TICKS) === 150
+     && G.backupMilesForTick(G.BACKUP_RESERVE_TICKS) === 0);
+
+  // THE HEADLINE: a quarter tank now has something to plan with.
+  const quarter = G.rangeForTick(2);
+  ok('>>> at 1/4 the app plans on 150 mi of backup, flagged as backup',
+     quarter.miles === 150 && quarter.backup === true, JSON.stringify(quarter));
+  // ...and the floor below it still refuses, which is what keeps the limp
+  // band a real promise rather than a slogan.
+  const eighth = G.rangeForTick(1);
+  ok('>>> at 1/8 there is nothing left, backup included — still a hard 0',
+     eighth.miles === 0 && eighth.backup === false, JSON.stringify(eighth));
+  ok('  and E is 0 too', G.rangeForTick(0).miles === 0);
+
+  // THE INVARIANT THAT KEEPS v1.40.0 INTACT: an ordinary plan never spends
+  // the backup. A driver at 3/8 gets the 150 mi above the quarter-tank floor,
+  // NOT the 300 the backup scale would hand them — otherwise this release
+  // would have quietly restored the old 1/8 floor for everyone.
+  ok('>>> above the floor, nothing dips into the backup',
+     [3,4,5,6,7,8].every(t => {
+       const r = G.rangeForTick(t);
+       return r.backup === false && r.miles === G.plannableMilesForTick(t);
+     }), JSON.stringify([3,4,5,6,7,8].map(t => G.rangeForTick(t))));
+  ok('  3/8 in particular still plans 150, not the backup scale\'s 300',
+     G.rangeForTick(3).miles === 150 && G.backupMilesForTick(3) === 300);
+  ok('  and a full tank is untouched — still the round 900',
+     G.rangeForTick(8).miles === 900 && G.rangeForTick(8).backup === false);
+
+  // Same clamping discipline as the rest of the module.
+  ok('backupMilesForTick clamps below', G.backupMilesForTick(-4) === 0);
+  ok('  and above, at the full tank minus the untouchable eighth',
+     G.backupMilesForTick(99) === 1050);
+
+  {
+    // Proved with the real planner: at a quarter tank the app now REACHES a
+    // stop 140 mi out that it previously could not see at all, and still
+    // refuses one at 160 — the backup is 150 mi, not a blank cheque.
+    const tier = 700;
+    const r = G.rangeForTick(2);
+    const burned = G.computeStartBurned(tier, r.miles);
+    const near = [{ id: 'N', name: 'N', mile: 140, detourMi: 2, detour: 2 }];
+    const far = [{ id: 'F', name: 'F', mile: 160, detourMi: 2, detour: 2 }];
+    ok('>>> a stop 140 mi out is now reachable on the backup reserve',
+       FuelPlan.planFuel(600, near, tier, burned).plan.length === 1,
+       JSON.stringify(FuelPlan.planFuel(600, near, tier, burned).gap));
+    ok('  and one at 160 is still out of reach — 150 mi is the whole band',
+       FuelPlan.planFuel(600, far, tier, burned).plan.length === 0);
+    // The old behaviour, kept honest: at 1/8 the planner still returns the
+    // degenerate zero-width gap the floor panel is written for.
+    const spent = G.computeStartBurned(tier, G.rangeForTick(1).miles);
+    const none = FuelPlan.planFuel(600, near, tier, spent);
+    ok('>>> at 1/8 it is still the degenerate {0,0} gap — the floor panel case',
+       none.ok === false && none.plan.length === 0
+       && none.gap.fromMile === 0 && none.gap.deadMile === 0, JSON.stringify(none.gap));
+  }
+}
+
 console.log('\n=== the 1/8 floor feeds the real planner into an immediate zero-width gap ===');
 {
   const maxRange = 625;

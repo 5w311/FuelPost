@@ -574,7 +574,40 @@ ok('>>> the reserve and the target are passed into planAdaptive',
 ok('  and into planBeyondGap the same way',
    /planBeyondGap\([\s\S]{0,220}ranges\.arrivalReserve, ranges\.arrivalTarget\)/.test(codeOnly));
 ok('  readRanges returns both alongside the rest',
-   /return \{ maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve, arrivalTarget \};/.test(codeOnly));
+   /return \{ maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve,\s*\n\s*arrivalTarget, onBackupReserve \};/.test(codeOnly));
+
+// v1.41.0 — the backup reserve. The band between 1/8 and 1/4 is dipped into
+// only when the reading is already at or under the planning floor, and the
+// driver has to be TOLD, because it is fuel the app otherwise refuses to
+// plan on. These pin the three places that must agree: the range handed to
+// the planner, the readout the driver set it by, and the caution on the plan.
+ok('>>> readRanges asks the model one question, not two scales',
+   /const fromGauge = FuelGauge\.rangeForTick\(gaugeTick\);/.test(codeOnly)
+   && /rangeAtPickup = pickupOpen \? fromGauge\.miles : maxRange/.test(codeOnly));
+ok('  a closed disclosure never dips into the backup',
+   /onBackupReserve = pickupOpen && fromGauge\.backup/.test(codeOnly));
+ok('>>> the gauge readout names the backup rather than claiming 0 mi',
+   /rangeForTick\(tick\)/.test(codeOnly) && /on backup reserve/.test(codeOnly));
+{
+  const guard = 'if(ranges.onBackupReserve){';
+  ok('>>> a backup plan is captioned, on an unconditional guard',
+     codeOnly.includes(guard)
+     && new RegExp(guard.replace(/[(){}.]/g, '\\$&') + '[\\s\\S]{0,200}Planned on your backup reserve')
+          .test(codeOnly),
+     'the guard must be exactly ' + guard + ' — a && false in front of it disables the caution silently');
+  const rp = codeOnly.slice(codeOnly.indexOf('function renderPlan('));
+  const rpBody = rp.slice(0, rp.indexOf('\nfunction '));
+  ok('  and it is emitted before the stop rows, so it reads as a caption',
+     rpBody.indexOf('Planned on your backup reserve') >= 0
+     && rpBody.indexOf('Planned on your backup reserve') < rpBody.indexOf('h += `<button class="rr-stop"'),
+     JSON.stringify([rpBody.indexOf('Planned on your backup reserve'),
+                     rpBody.indexOf('h += `<button class="rr-stop"')]));
+}
+ok('  and the caution names both floors from the model, no literals',
+   /tickLabel\(FuelGauge\.BACKUP_RESERVE_TICKS\)/.test(codeOnly)
+   && /tickLabel\(FuelGauge\.RESERVE_TICKS\)/.test(codeOnly));
+ok('>>> the floor panel now names the untouchable band, not the planning floor',
+   /const limpMiles = FuelGauge\.milesForTick\(FuelGauge\.BACKUP_RESERVE_TICKS\);/.test(codeOnly));
 ok('>>> a reserve shortfall is never recorded as a gap in the shared trip',
    /gap: \(result\.ok \|\| shortfall\) \? null : result\.gap,/.test(codeOnly));
 ok('  and never headlined as one',

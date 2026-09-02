@@ -134,12 +134,48 @@ until the loop ran again.
 The reserve is that missing input, and it is deliberately built as a **raising
 of the floor that already existed** rather than a new parallel concept.
 `RESERVE_TICKS` holds back the bottom of the tank — a quarter of it since
-v1.40.0 (300 mi), one eighth before that as never-plannable range. Since **v1.35.0** the control is a **switch**:
+v1.40.0 (300 mi), one eighth before that. Since v1.41.0 that quarter has two
+halves: the eighth below it is untouchable (`BACKUP_RESERVE_TICKS`), and the
+amber band between them is a **backup reserve** the app dips into only when
+the driver is already down there — see below as never-plannable range. Since **v1.35.0** the control is a **switch**:
 
 | Switch | What it holds for arrival | Effect |
 |---|---|---|
 | **off** | nothing extra | the standard reserve — exactly the behaviour of every release before v1.27.0 |
 | **on** | floor **3/8** (150 mi), aim **1/2** (300 mi) | never arrive under three eighths, and land the last stop so arrival sits closest to half |
+
+#### The backup reserve (v1.41.0)
+
+Refusing to *plan* on the bottom quarter and refusing to *look* are different
+things. Until v1.41.0 they were the same code path: a driver sitting on a
+quarter tank got no routing call and a blank panel — the exact moment they most
+need to see what is near them.
+
+So the band between **1/8 and 1/4** — one tick, 150 mi, the amber stretch on
+the gauge — is a backup reserve rather than a dead zone:
+
+| Gauge reading | Plans on | Flagged |
+|---|---|---|
+| 3/8 and above | ordinary plannable range (150 mi at 3/8, 900 at F) | no |
+| **1/4** | **150 mi of backup** | yes — caution on the plan |
+| 1/8 | nothing. The floor panel, unchanged | — |
+
+Two floors answering two questions: `RESERVE_TICKS` (1/4) is what a normal plan
+may not touch, `BACKUP_RESERVE_TICKS` (1/8) is what nothing may touch, ever.
+`FuelGauge.rangeForTick()` is the single place that chooses between them —
+readout, planner input and results caution all read it, because the choice is
+the same one every time and splitting it is how the three drift apart.
+
+The invariant that keeps v1.40.0 intact: **an ordinary plan never spends the
+backup.** A driver at 3/8 gets the 150 mi above the quarter-tank floor, not the
+300 the backup scale would hand them; otherwise this would have quietly
+restored the old 1/8 floor for everyone. `gauge.test.js` asserts that for every
+tick above the floor, and proves the rest with the real planner — at a quarter
+tank a stop 140 mi out is now reachable and one at 160 still isn't.
+
+A backup plan is captioned before the stops, never left to read as an ordinary
+one: it names the reading, the two floors, and the 150 mi it is spending, and
+says to treat the first stop as the one to make.
 
 The control narrowed release by release as the real choice got clearer. v1.27.0
 offered a 1/8–1/2 dial. v1.30.1 dropped 1/8 — nobody arrives on an eighth by
@@ -964,6 +1000,36 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.41.0
+
+**The band between 1/8 and 1/4 becomes a backup reserve — 150 mi the app will
+dip into, but only when the driver is already down there.** v1.40.0 made the
+bottom quarter unplannable, which was right for planning and wrong for
+looking: a driver sitting on a quarter tank got no routing call at all and a
+blank panel, at the moment they most need to see what's near them.
+
+- **`BACKUP_RESERVE_TICKS = 1`** — the untouchable band is now the bottom
+  eighth alone. `RESERVE_TICKS` (1/4) stays exactly what it was: the floor a
+  *normal* plan may not touch.
+- **`rangeForTick(tick)`** is the one question the app asks a gauge reading —
+  how far can this plan, and does it dip into the backup? Above the floor it
+  returns ordinary plannable range untouched; at 1/4 it returns 150 mi flagged
+  as backup; at 1/8 it returns 0 and the floor panel fires as before.
+- **The readout stops contradicting the planner.** At 1/4 it said "about 0 mi";
+  it now reads "1/4 — about 150 mi on backup reserve".
+- **The plan says so.** A backup plan carries a caution above the stops naming
+  the reading, both floors and the range it is spending, so it can never read
+  as an ordinary plan.
+- **The floor panel** at 1/8 now names the untouchable eighth (150 mi) rather
+  than the planning floor, and says the backup is spent.
+
+The invariant that keeps v1.40.0 intact is asserted directly: **an ordinary
+plan never spends the backup** — 3/8 still plans 150 mi, not the 300 the backup
+scale would give, for every tick above the floor. Proved with the real planner
+too: at a quarter tank a stop 140 mi out is now reachable where nothing was
+before, one at 160 still is not, and 1/8 still returns the degenerate
+`{fromMile: 0, deadMile: 0}` gap the floor panel is written for.
 
 ### v1.40.0
 
