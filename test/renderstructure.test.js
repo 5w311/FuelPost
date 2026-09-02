@@ -537,13 +537,18 @@ ok('>>> ON maps to the gauge\'s toggle tick, never a local number',
 // floor (what it never goes under).
 ok('>>> the off state explains the floor and the affordance',
    /Off — plans just keep the standard reserve/.test(codeOnly)
-   && /Turn on to aim for about/.test(codeOnly));
-ok('  the on state states the aim and the floor with the planner\'s own figures',
-   /Aims your last stop so you arrive with about/.test(codeOnly)
-   && /never under \$\{floorLabel\}/.test(codeOnly));
-ok('  both read the model — no literal 300 or 150 in the copy',
+   && /Turn on to arrive with at least about/.test(codeOnly));
+// v1.42.0: the switch is a MINIMUM, and the copy has to say so — "at least",
+// not "about". The releases that read as a target described a planner that
+// could hand the driver LESS fuel than leaving the switch off.
+ok('  the on state states it as a minimum, in the planner\'s own figures',
+   /arrive with at least about \$\{minLabel\} of a tank/.test(codeOnly)
+   && /as much more as the route allows/.test(codeOnly));
+ok('  it reads the model — no literal 300 in the copy',
    /arrivalReserveMiles\(FuelGauge\.ARRIVAL_TOGGLE_TICK\)/.test(codeOnly)
-   && /tickLabel\(FuelGauge\.ARRIVAL_TARGET_TICK\)/.test(codeOnly));
+   && /tickLabel\(FuelGauge\.ARRIVAL_TOGGLE_TICK\)/.test(codeOnly));
+ok('>>> and the separate "aim" is gone from the app entirely',
+   !/arrivalTarget/.test(codeOnly) && !/ARRIVAL_TARGET_TICK/.test(html));
 // v1.40.0: the held-back band is a QUARTER, so any copy naming it has to ask
 // the model rather than say "1/8". Three places said it; all three derive now.
 ok('>>> no copy hardcodes the old 1/8 floor any more',
@@ -569,12 +574,26 @@ ok('>>> Clear trip switches it off through the same function',
 
 // The reserve AND the target have to reach the planner, and the shortfall has
 // to stay distinct from a dry gap all the way out to the shared trip text.
-ok('>>> the reserve and the target are passed into planAdaptive',
-   /planAdaptive\([\s\S]{0,220}ranges\.arrivalReserve, ranges\.arrivalTarget\)/.test(codeOnly));
+// Scoped to readRanges' own body. The help copy also mentions
+// arrivalReserveMiles, so an unscoped pin kept passing with the reserve
+// hardcoded to 0 — a switch that flips, announces itself, reads correctly in
+// its own help line, and hands the planner nothing. That is the ARRIIVAL typo
+// of v1.35.0 wearing a different hat; only the e2e caught it in a mutation run.
+{
+  const rr = codeOnly.slice(codeOnly.indexOf('function readRanges('));
+  const rrBody = rr.slice(0, rr.indexOf('\n}\n') + 3);
+  ok('>>> readRanges computes the reserve from the model, not a literal',
+     /const arrivalReserve = FuelGauge\.arrivalReserveMiles\(arrivalTick\);/.test(rrBody),
+     rrBody.slice(rrBody.indexOf('arrivalReserve'), rrBody.indexOf('arrivalReserve') + 120));
+  ok('  and the range at pickup comes from rangeForTick, likewise',
+     /FuelGauge\.rangeForTick\(gaugeTick\)/.test(rrBody));
+}
+ok('>>> the reserve is passed into planAdaptive',
+   /planAdaptive\([\s\S]{0,220}ranges\.arrivalReserve\)/.test(codeOnly));
 ok('  and into planBeyondGap the same way',
-   /planBeyondGap\([\s\S]{0,220}ranges\.arrivalReserve, ranges\.arrivalTarget\)/.test(codeOnly));
-ok('  readRanges returns both alongside the rest',
-   /return \{ maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve,\s*\n\s*arrivalTarget, onBackupReserve \};/.test(codeOnly));
+   /planBeyondGap\([\s\S]{0,220}ranges\.arrivalReserve\)/.test(codeOnly));
+ok('  readRanges returns it alongside the rest',
+   /return \{ maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve,\s*\n\s*onBackupReserve \};/.test(codeOnly));
 
 // v1.41.0 — the backup reserve. The band between 1/8 and 1/4 is dipped into
 // only when the reading is already at or under the planning floor, and the

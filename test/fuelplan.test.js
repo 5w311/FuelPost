@@ -260,95 +260,96 @@ ok('a negative reserve is treated as none, never as extra reach',
 ok('an omitted reserve is the same as zero',
    JSON.stringify(planFuel(1600, irr, 700)) === JSON.stringify(planFuel(1600, irr, 700, 0, 0)));
 
-console.log('\n=== the arrival TARGET: floor decides whether, target decides which (v1.38.0) ===');
-// planFuel's greedy loop takes the furthest reachable stop, which makes the
-// arrival fuel as HIGH as possible. The target re-picks the FINAL stop only,
-// aiming the arrival at a chosen level without ever dipping below the floor.
+console.log('\n=== the arrival reserve is a MINIMUM, never a target to land on (v1.42.0) ===');
+// v1.38.0-v1.41.0 re-picked the final stop to land the arrival CLOSEST to a
+// target, counting an arrival above it as just as wrong as one below. On a
+// real Dallas->Carteret run that cost the driver fuel: at 700 mi range the
+// switch ON arrived with 350 mi of range where OFF arrived with 566, and at
+// 900, where one stop covers the run, it could not re-pick at all and did
+// nothing. Both faults are gone with the target; what replaces them is the
+// invariant below, which is the property a driver actually cares about.
 {
-  // Stops every 100 mi on a 1000-mi route, range 700. Greedy with floor 150:
-  // stop at 700 (furthest), arrival = 700-300 = 400.
   const dense = [];
-  for (let m = 100; m < 1000; m += 100) dense.push({ id: 'S' + m, name: 'S' + m, mile: m, detour: 1 });
+  for (let m = 100; m <= 900; m += 100) dense.push({ id: 'd' + m, name: 'd' + m, mile: m, detour: 2 });
+  const arrival = (r, range) => range - r.finalLegMiles;
 
-  const plain = planFuel(1000, dense, 700, 0, 150);
-  ok('fixture: greedy takes the furthest stop (700), arriving with 400',
-     plain.plan.length === 1 && plain.plan[0].mile === 700 && 700 - plain.finalLegMiles === 400,
-     JSON.stringify(plain.plan.map(x => x.mile)));
+  // THE INVARIANT. Asking for fuel at delivery may add a stop or push one
+  // later; it may never leave the driver with LESS than not asking. Swept
+  // across routes, ranges and reserves rather than asserted on one fixture,
+  // because the case that broke it was one nobody had thought to try.
+  let worse = null, moved = 0;
+  for (const routeMiles of [500, 700, 900, 1100, 1300, 1500]) {
+    for (const range of [500, 700, 900]) {
+      for (const ask of [150, 300, 450]) {
+        const off = planFuel(routeMiles, dense, range, 0, 0);
+        const on = planFuel(routeMiles, dense, range, 0, ask);
+        if (!off.ok || !on.ok) continue;
+        if (arrival(on, range) < arrival(off, range) - 0.001) {
+          worse = { routeMiles, range, ask, off: arrival(off, range), on: arrival(on, range) };
+        }
+        if (arrival(on, range) > arrival(off, range) + 0.001) moved++;
+      }
+    }
+  }
+  ok('>>> asking for fuel at delivery NEVER arrives with less than not asking',
+     worse === null, JSON.stringify(worse));
+  ok('  and on some of those it arrives with more — the switch does something',
+     moved > 0, String(moved));
 
-  // Target 600: candidates from mile 0 are 100..700 with arrival ≥ 150 →
-  // miles 450..700 → {500,600,700} arriving {200,300,400}... wait, arrival at
-  // stop m = 700-(1000-m) = m-300. Closest to 600 would need m=900 — out of
-  // first-leg reach (700). Among reachable, m=700 arrives 400: still best.
-  const high = planFuel(1000, dense, 700, 0, 150, 600);
-  ok('an unreachable target degrades to the nearest achievable arrival',
-     high.plan.length === 1 && high.plan[0].mile === 700,
-     JSON.stringify(high.plan.map(x => x.mile)));
+  // THE REPORTED CASE, in miniature: one stop covers the run, so the old
+  // re-pick had nothing it was allowed to touch and the switch was inert.
+  // As a minimum it adds the late stop and the arrival jumps.
+  {
+    // The shape that matters, taken from the real route: stops cluster early,
+    // then thin out, so the furthest stop reachable from the shipper still
+    // leaves a long run to the delivery. `dense` cannot show it — its stops
+    // reach far enough that one hop already arrives full.
+    const sparse = [];
+    for (let m = 100; m <= 800; m += 100) sparse.push({ id: 'e' + m, name: 'e' + m, mile: m, detour: 2 });
+    for (const m of [1000, 1100, 1200, 1300]) sparse.push({ id: 'l' + m, name: 'l' + m, mile: m, detour: 2 });
+    const route = 1500, range = 900;
+    const off = planFuel(route, sparse, range, 0, 0);
+    const on = planFuel(route, sparse, range, 0, 300);
+    ok('>>> the Max case: OFF plans one stop and arrives low',
+       off.plan.length === 1 && arrival(off, range) < 300,
+       JSON.stringify([off.plan.map(s => s.mile), arrival(off, range)]));
+    ok('>>> ON adds a later stop and clears the asked minimum',
+       on.plan.length === 2 && arrival(on, range) >= 300,
+       JSON.stringify([on.plan.map(s => s.mile), arrival(on, range)]));
+    ok('  and the added stop is the FURTHEST reachable, so the arrival is as full as it gets',
+       on.plan[on.plan.length - 1].mile === 1300,
+       JSON.stringify(on.plan.map(s => s.mile)));
+    ok('  the switch bought real fuel here: 200 mi at delivery becomes 700',
+       Math.round(arrival(off, range)) === 200 && Math.round(arrival(on, range)) === 700,
+       JSON.stringify([arrival(off, range), arrival(on, range)]));
+  }
 
-  // Target 200: best is m=500 (arrival 200, exact). The greedy would have
-  // parked the driver at 700 arriving with 400 — double what they asked for.
-  const low = planFuel(1000, dense, 700, 0, 150, 200);
-  ok('>>> the target re-picks an EARLIER final stop to land the asked arrival',
-     low.plan.length === 1 && low.plan[0].mile === 500,
-     JSON.stringify(low.plan.map(x => x.mile)));
-  ok('  arriving with exactly the target', 700 - low.finalLegMiles === 200,
-     String(700 - low.finalLegMiles));
-  ok('  and never below the floor', 700 - low.finalLegMiles >= 150);
-  ok('>>> the stop COUNT is untouched — fewest stops still wins',
-     low.plan.length === plain.plan.length);
+  // The minimum is met or beaten, never merely approached — the contract the
+  // shortfall flag exists to report when it cannot be.
+  for (const ask of [150, 300, 450]) {
+    const r = planFuel(1000, dense, 700, 0, ask);
+    ok(`  a ${ask} mi ask is met or beaten (${Math.round(arrival(r, 700))} mi)`,
+       r.ok && arrival(r, 700) >= ask - 0.001, JSON.stringify(r.plan.map(s => s.mile)));
+  }
 
-  // Floor still guards the re-pick: target 150 == floor asks for the minimum
-  // legal arrival; the chosen stop must not dip under it. m=450 arrives
-  // exactly 150; anything earlier violates the floor and must not be picked.
-  const atFloor = planFuel(1000, dense, 700, 0, 150, 151);
-  ok('  a target hugging the floor picks the floor-legal stop, not below',
-     atFloor.plan[0].mile >= 450, JSON.stringify(atFloor.plan.map(x => x.mile)));
-
-  // Two-stop plan: 1600-mi route. Greedy: 700, then furthest ≤ 1400 → 900...
-  // arrival at 900 = 700-(1600-900) = 0 < floor 150 → loop continues within
-  // reach... rather than hand-derive, assert the invariants: with a target
-  // the count matches the no-target plan, every leg fits, and the arrival is
-  // strictly closer to (or as close to) the target.
-  const longDense = [];
-  for (let m = 100; m < 1600; m += 100) longDense.push({ id: 'L' + m, name: 'L' + m, mile: m, detour: 1 });
-  const p0 = planFuel(1600, longDense, 700, 0, 150);
-  const p1 = planFuel(1600, longDense, 700, 0, 150, 300);
-  ok('fixture: the long route really is a multi-stop plan', p0.ok && p0.plan.length >= 2,
-     JSON.stringify(p0.plan.map(x => x.mile)));
-  ok('>>> multi-stop: count preserved, non-final stops untouched',
-     p1.ok && p1.plan.length === p0.plan.length
-     && p1.plan.slice(0, -1).every((x, i) => x.mile === p0.plan[i].mile),
-     JSON.stringify([p0.plan.map(x => x.mile), p1.plan.map(x => x.mile)]));
-  ok('  every leg still fits the range',
-     p1.plan.every(x => x.legMiles <= 700) && p1.finalLegMiles <= 700,
-     JSON.stringify(p1.plan.map(x => x.legMiles)));
-  ok('  and the arrival moved toward the target, never under the floor',
-     Math.abs((700 - p1.finalLegMiles) - 300) <= Math.abs((700 - p0.finalLegMiles) - 300)
-     && 700 - p1.finalLegMiles >= 150,
-     JSON.stringify([700 - p0.finalLegMiles, 700 - p1.finalLegMiles]));
-
-  // startBurned constrains the FIRST leg; on a single-stop plan the re-pick
-  // must respect it rather than assume a full tank.
-  const burned = planFuel(1000, dense, 700, 250, 150, 200);
-  ok('>>> the re-pick honours startBurned on a single-stop plan',
-     burned.ok && burned.plan.length >= 1 && burned.plan[0].legMiles <= 700 - 250,
-     JSON.stringify(burned.plan.map(x => [x.mile, x.legMiles])));
-
-  // No target (or zero) = byte-identical old behaviour, deep-compared.
-  const a = planFuel(1000, dense, 700, 0, 150);
-  const b = planFuel(1000, dense, 700, 0, 150, 0);
-  ok('>>> zero target is byte-identical to the five-arg call',
+  // Old call shapes are untouched: a plain 4-arg call and an explicit zero
+  // reserve are the same plan, and a negative reserve cannot add reach.
+  const a = planFuel(1000, dense, 700, 0);
+  const b = planFuel(1000, dense, 700, 0, 0);
+  ok('>>> a 4-arg call and an explicit zero reserve are identical',
      JSON.stringify(a) === JSON.stringify(b));
-  // The regression the clamp exists for: a NEGATIVE reserve with no target
-  // must not switch the re-pick on (0 > negative is true) nor hand the
-  // candidate filter extra reach via maxRange - reserve.
-  const neg = planFuel(1000, dense, 700, 0, -50);
-  const none = planFuel(1000, dense, 700, 0, 0);
-  ok('>>> a negative reserve still cannot activate the re-pick or add reach',
-     JSON.stringify(neg) === JSON.stringify(none));
-  // Zero-stop trips stay zero-stop: the target never invents a stop.
-  const short = planFuel(400, dense, 700, 0, 150, 300);
-  ok('>>> a zero-stop trip stays zero-stop — the target never invents a stop',
+  ok('>>> a negative reserve cannot hand the planner extra reach',
+     JSON.stringify(planFuel(1000, dense, 700, 0, -50)) === JSON.stringify(b));
+  // Zero-stop trips stay zero-stop when the reserve is already satisfied.
+  const short = planFuel(400, dense, 700, 0, 300);
+  ok('>>> a zero-stop trip that already clears the minimum stays zero-stop',
      short.ok && short.plan.length === 0, JSON.stringify(short.plan));
+  // ...but a zero-stop trip that does NOT clear it gains one, which is the
+  // whole point of the switch and the case v1.27.0 was built for.
+  const forced = planFuel(650, dense, 700, 0, 300);
+  ok('>>> a zero-stop trip that falls short gains a stop',
+     forced.ok && forced.plan.length === 1 && arrival(forced, 700) >= 300,
+     JSON.stringify([forced.plan.map(s => s.mile), arrival(forced, 700)]));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
