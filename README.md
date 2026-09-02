@@ -57,10 +57,9 @@ Three inputs shape the plan:
 - **Range leaving shipper** — how far the truck can go when it rolls out of the
   pickup. Maps to `startBurned = max(0, maxRange - rangeAtPickup)`.
 - **Fuel left at delivery** — the *arrival reserve*, new in v1.27.0 and a
-  simple on/off switch since v1.35.0 (on = never arrive under **3/8** of a
-  tank, and aim the last stop so arrival lands closest to **1/2** — the
-  v1.38.0 floor-plus-aim split, with the floor raised one tick in v1.40.0
-  when the app's own floor moved under it).
+  simple on/off switch since v1.35.0 (on = arrive with **at least half a
+  tank**, and as much more as the route allows — one number again since
+  v1.42.0).
   Everything above shapes where the driver stops; this one decides whether they
   stop at all near the end of the run.
 
@@ -142,7 +141,7 @@ the driver is already down there — see below as never-plannable range. Since *
 | Switch | What it holds for arrival | Effect |
 |---|---|---|
 | **off** | nothing extra | the standard reserve — exactly the behaviour of every release before v1.27.0 |
-| **on** | floor **3/8** (150 mi), aim **1/2** (300 mi) | never arrive under three eighths, and land the last stop so arrival sits closest to half |
+| **on** | **1/2** (300 mi), as a minimum | arrive with at least half a tank — the planner beats it wherever the route allows |
 
 #### The backup reserve (v1.41.0)
 
@@ -186,22 +185,45 @@ under it) and an **aim** (1/2 — a preference, the plan lands as close to it as
 the stops on the route allow). One tap still asks the only question the fleet
 found drivers answering: *do you want fuel left when you get there?*
 
-`ARRIVAL_TOGGLE_TICK` (the floor) and `ARRIVAL_TARGET_TICK = 4` (the aim) in
-`lib/gauge.js` are the whole setting. The floor is **derived**, not written:
-`RESERVE_TICKS + 1`, which reads 3/8 today. That derivation is load-bearing —
-every figure on this scale is measured *above* `RESERVE_TICKS`, so when
-v1.40.0 raised the app's floor to a quarter, a literal `2` would have made
-"never arrive under 1/4" cost exactly zero miles: a switch that still flipped,
-still announced itself, and changed no plan at all. One tick above the floor
-is what the switch has always meant — the first reading with real plannable
-range above it — so turning it on always costs a tick and can always force a
-late stop.
+`ARRIVAL_TOGGLE_TICK = 4` in `lib/gauge.js` is the whole setting. It must sit
+above `RESERVE_TICKS` to cost anything at all — every figure on this scale is
+measured above that floor, so a switch set to the floor asks for zero — and
+`gauge.test.js` pins that, which is what caught it when v1.40.0 moved the floor
+underneath it.
 
-What the floor costs is stated rather than buried: the last stop must sit
-within `range − 150` of the delivery — **350 mi on Regular, 550 on Long, 750 on
-Max** — satisfiable on every tier. The aim costs nothing: it only chooses *which* reachable stop
-is last, never whether one exists, so it can't create a shortfall the floor
-didn't already have, and it never changes the stop count.
+What half a tank costs is stated rather than buried: the last stop must sit
+within `range − 300` of the delivery — **200 mi on Regular, 400 on Long, 600 on
+Max**. Where a route's late stops cannot meet it, the planner flags a reserve
+shortfall rather than lying (below).
+
+#### Why the "aim" was deleted (v1.42.0)
+
+v1.38.0 split the switch into a floor and an **aim**: the planner re-picked the
+final stop to land the arrival *closest to* half a tank. That target was
+**symmetric** — an arrival above it counted as just as wrong as one below — and
+for a control a driver reads as *"leave me some fuel"*, that is backwards. Two
+faults, both measured on a real Dallas → Carteret run:
+
+| Range | Switch OFF arrives with | v1.38.0 switch ON arrived with |
+|---|---|---|
+| 700 (Long) | 566 mi | **350 mi** — the switch made it *worse* |
+| 900 (Max) | 237 mi | 237 mi — **inert**, no change at all |
+
+The first is the aim pulling the last stop *earlier* because greedy had
+overshot the target. The second is the re-pick only being allowed to choose
+among stops reachable from the *second-to-last* stop — on a one-stop plan it
+has nothing to choose from, which is exactly what a driver reported.
+
+A minimum has neither fault. The loop runs until the destination is reachable
+while still holding the reserve, and because it always takes the **furthest**
+reachable stop, the final leg is as short as the route allows and the arrival
+as full. On that same run at 900 mi range it now adds a late stop and arrives
+with **855 mi** instead of 237.
+
+The invariant that replaces the aim is the one a driver actually cares about,
+and `fuelplan.test.js` sweeps it across routes, ranges and reserves rather than
+asserting it on one fixture: **asking for fuel at delivery never arrives with
+less than not asking.**
 
 The old disclosure needed a reset-on-close contract (a raised reserve behind a
 collapsed field silently steered every plan). A switch does not: its state is
@@ -1000,6 +1022,45 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.42.0
+
+**The arrival switch becomes a minimum instead of a target, and stops being
+able to leave a driver worse off than switching it off.** Reported from the
+road: on **Max** with the switch on, the planner wouldn't look for a fuel stop
+closer to the delivery, while on **Long** it would.
+
+Both behaviours traced to the same thing — the *aim* added in v1.38.0, which
+re-picked the final stop to land the arrival **closest to** half a tank. A
+symmetric target counts arriving *fuller* than half as just as wrong as
+arriving emptier. Measured on the reported Dallas → Carteret run:
+
+| Range | Switch OFF | v1.41.0 switch ON | v1.42.0 switch ON |
+|---|---|---|---|
+| 700 (Long) | arrives 566 mi | **350 mi** — worse than off | 566 mi |
+| 900 (Max) | arrives 237 mi | 237 mi — **inert** | **855 mi** |
+
+- At 700 the aim pulled the last stop *earlier* because the greedy planner had
+  already overshot the target — so the switch cost the driver 216 mi of fuel.
+- At 900 one stop covers the run, and the re-pick could only choose among stops
+  reachable from the *second-to-last* stop. With no second-to-last stop it had
+  nothing to choose from and did nothing at all. That is the reported bug.
+
+**The fix is a deletion.** `arrivalTarget` is gone from `planFuel`,
+`planAdaptive` and `planBeyondGap`; `ARRIVAL_TARGET_TICK` is gone from the
+gauge; the switch is one number again — `ARRIVAL_TOGGLE_TICK = 4`, half a tank,
+300 mi — and it is a **minimum**. The loop plans until the destination is
+reachable while still holding it, and because it always takes the furthest
+reachable stop, the arrival is as full as the route allows.
+
+The copy follows the meaning: *"Plans a late enough stop that you arrive with
+at least about 1/2 of a tank (300 mi of range) — and as much more as the route
+allows."*
+
+**The invariant that replaces the aim**, swept across routes, ranges and
+reserves rather than asserted on one fixture, because the case that broke it
+was one nobody had thought to try: **asking for fuel at delivery never arrives
+with less than not asking.**
 
 ### v1.41.0
 

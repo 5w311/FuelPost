@@ -1033,22 +1033,17 @@
       <div class="rb-help" id="rangeHelp"></div>
     </div>
     <!-- Arrival reserve. Behind its own disclosure on purpose: the standard
-         reserve alone (no arrival cushion on top) is exactly
-         what every release before v1.27.0 did, so a driver who never opens
-         this gets the plans they always got, and the common case stays one tap
-         on a tier. The label states the question rather than naming a feature,
-         because a driver who wants fuel in the tank at delivery needs to
-         recognise it from the outside. -->
-    <!-- A SWITCH since v1.35.0, not a disclosure over choices. Since v1.38.0
-         ON carries TWO numbers: a 1/4-tank FLOOR (no plan lands under it) and
-         a 1/2-tank AIM (the last stop is picked to arrive nearest it). The
-         fleet's landing after trying 1/2 then a hard 5/8: "never under a
-         quarter, aim for half". One tap on, one tap off; off is the standard
-         reserve, byte-identical to every release before v1.27.0.
+         reserve alone (no arrival cushion on top) is exactly what every
+         release before v1.27.0 did, so a driver who never opens this gets the
+         plans they always got, and the common case stays one tap.
+         One tap on, one tap off; on means a MINIMUM of half a tank at
+         delivery, and the planner beats it wherever the route allows.
          role="switch" so a screen reader announces on/off rather than
-         expanded/collapsed. The two constants and what they cost per tier
-         live at ARRIVAL_TOGGLE_TICK / ARRIVAL_TARGET_TICK in lib/gauge.js;
-         the re-pick that honours the aim lives in planFuel. -->
+         expanded/collapsed. The number and what it costs per tier live at
+         ARRIVAL_TOGGLE_TICK in lib/gauge.js. v1.38.0-v1.41.0 also carried an
+         "aim" that re-picked the last stop toward a target; it could leave a
+         driver with LESS fuel than the switch being off, and planFuel's own
+         comment records why it is gone. -->
     <button type="button" id="arrivalToggle" class="rb-switchrow" role="switch" aria-checked="false">
       <span class="rb-switch-text">Want fuel left when you get there?</span>
       <span class="rb-switch" aria-hidden="true"></span>
@@ -1320,33 +1315,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.41.0"></script>
+<script src="lib/fuelplan.js?v=1.42.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.41.0"></script>
+<script src="lib/triptext.js?v=1.42.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.41.0"></script>
+<script src="lib/location.js?v=1.42.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.41.0"></script>
+<script src="lib/gauge.js?v=1.42.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.41.0"></script>
+<script src="lib/corridors.js?v=1.42.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.41.0"></script>
+<script src="lib/nearme.js?v=1.42.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.41.0"></script>
+<script src="lib/extract-version.js?v=1.42.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.41.0"></script>
+<script src="lib/autosuggest.js?v=1.42.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.41.0"></script>
+<script src="lib/baselayer.js?v=1.42.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.41.0"></script>
+<script src="lib/memocache.js?v=1.42.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.41.0"></script>
+<script src="lib/routerank.js?v=1.42.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.41.0"></script>
+<script src="lib/vehicleprofile.js?v=1.42.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.41.0"></script>
+<script src="lib/escape.js?v=1.42.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.41.0"></script>
+<script src="lib/navlinks.js?v=1.42.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1362,7 +1357,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.41.0')
+fetch('lib/fuelplan-adaptive.js?v=1.42.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1379,7 +1374,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.41.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.41.0')
+fetch('lib/shorttrip.js?v=1.42.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1390,7 +1385,7 @@ fetch('lib/shorttrip.js?v=1.41.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.41.0"></script>
+<script src="lib/flexible-polyline.js?v=1.42.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1562,7 +1557,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.41.0';
+const APP_VERSION = '1.42.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -4643,13 +4638,12 @@ function renderRangeHelp(){
 function setArrivalOn(on){
   arrivalTick = on ? FuelGauge.ARRIVAL_TOGGLE_TICK : FuelGauge.RESERVE_TICKS;
   $('arrivalToggle').setAttribute('aria-checked', String(on));
-  // Both numbers, both worded from the model: the driver is promised a floor
-  // and an aim, and those are exactly what readRanges hands the planner.
-  const floorLabel = FuelGauge.tickLabel(FuelGauge.ARRIVAL_TOGGLE_TICK);
-  const aimLabel = FuelGauge.tickLabel(FuelGauge.ARRIVAL_TARGET_TICK);
+  // One number, worded from the model: a MINIMUM, and the planner beats it
+  // wherever the route allows — which is why this says "at least".
+  const minLabel = FuelGauge.tickLabel(FuelGauge.ARRIVAL_TOGGLE_TICK);
   $('arrivalHelp').textContent = on
-    ? `Aims your last stop so you arrive with about ${aimLabel} of a tank — and never under ${floorLabel} (${FuelGauge.arrivalReserveMiles(FuelGauge.ARRIVAL_TOGGLE_TICK)} mi of range).`
-    : `Off — plans just keep the standard reserve (the bottom ${FuelGauge.tickLabel(FuelGauge.RESERVE_TICKS)}, about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} mi). Turn on to aim for about ${aimLabel} of a tank at delivery, never landing under ${floorLabel}.`;
+    ? `Plans a late enough stop that you arrive with at least about ${minLabel} of a tank (${FuelGauge.arrivalReserveMiles(FuelGauge.ARRIVAL_TOGGLE_TICK)} mi of range) — and as much more as the route allows.`
+    : `Off — plans just keep the standard reserve (the bottom ${FuelGauge.tickLabel(FuelGauge.RESERVE_TICKS)}, about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} mi). Turn on to arrive with at least about ${minLabel} of a tank.`;
   updateClearVisibility();
 }
 
@@ -4689,12 +4683,8 @@ function readRanges(){
   // still be in it at delivery. Both can bind at once, and when they can't
   // both be satisfied the planner reports it rather than quietly dropping one.
   const arrivalReserve = FuelGauge.arrivalReserveMiles(arrivalTick);
-  // The aim only exists while the switch is on; off is the pre-v1.27.0
-  // behaviour exactly, so both numbers go to zero together.
-  const arrivalTarget = arrivalTick === FuelGauge.RESERVE_TICKS
-    ? 0 : FuelGauge.arrivalReserveMiles(FuelGauge.ARRIVAL_TARGET_TICK);
   return { maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve,
-           arrivalTarget, onBackupReserve };
+           onBackupReserve };
 }
 
 /* ---- Vehicle profile (dimensions, weight, hazmat) ----
@@ -5509,14 +5499,14 @@ async function planLoad(pickup, delivery){
       const routeMiles = cum[cum.length - 1];
       const result = FuelPlanAdaptive.planAdaptive(
         r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, ranges.startBurned, DETOUR_TIERS,
-        ranges.arrivalReserve, ranges.arrivalTarget);
+        ranges.arrivalReserve);
       // A gapped route usually doesn't stay empty past the dry line — show
       // what the rest of the run fuels like, so the driver comparing the map
       // against the plan isn't left wondering where all that Texas fuel went.
       if(!result.ok){
         result.resume = FuelPlanAdaptive.planBeyondGap(
           r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, result.gap, result.detourMax,
-          ranges.arrivalReserve, ranges.arrivalTarget);
+          ranges.arrivalReserve);
       }
       // Short-trip options are computed ONCE here, per option, and cached on
       // the option object — three consumers need them (the map's available
