@@ -1032,6 +1032,41 @@ overlay unmount it.
 
 ## Version history
 
+### v1.45.0
+
+**The startup loading state now tracks whether the map is actually on screen.**
+Reported from the road: *"sometimes it has the loading map message and
+sometimes it doesn't, and when it doesn't you can tell the map hasn't loaded
+in yet."*
+
+The indicator was retired on the first `mapviewchangeend` — the camera
+settling. Measured against the real 3.2.9.0 library, that lands at **~854ms
+with nothing yet drawn**, because the tiles are a separate network fetch that
+has barely started. So the overlay came off over an empty rectangle; and on a
+fast or warm-cache load it was removed before the browser ever painted it,
+which is why the message sometimes never appeared at all.
+
+Removal now needs **two** things: the camera settled **and** a base-map tile
+actually delivered. The tile host is not a guess — `vector.hereapi.com` is the
+URL template inside the vendored SDK. Resource timing is read with
+`buffered: true`, so a tile that landed before the observer existed still
+counts.
+
+**A tile requested is not a tile arrived.** The first cut of this watched for
+resource entries by name, and a blocked fetch writes an entry too — the
+browser suite caught it by aborting the tile host and watching the overlay
+vanish at 960ms regardless. `responseStatus` is the discriminator: 200 for a
+served tile, 0 for an aborted one, measured. Every size field reads 0 either
+way, because the tile host sends no `Timing-Allow-Origin`, so sizes cannot be
+used for this.
+
+**A 6s cap** releases the tile half of the condition, so a blocked CDN or a
+dead cell link doesn't hold a driver behind a spinner for the full 20s
+watchdog. The camera settle is still required, exactly as before. The stop
+list sits at z-index 350, above this overlay at 300, so a longer wait never
+traps someone who wants the list — asserted in the browser rather than trusted
+to the CSS.
+
 ### v1.44.0
 
 **The legend closes itself whenever the chrome around it changes.** It is a
