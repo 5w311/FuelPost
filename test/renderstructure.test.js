@@ -11,6 +11,52 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const render = html.slice(html.indexOf('function render(){'));
 const body = render.slice(0, render.indexOf('\n}\n') + 3);
 
+console.log('=== the legend closes on any chrome change (v1.44.0) ===');
+// It is a transient popover over the map, not a panel with state. The bug it
+// replaces: `#listview.show ~ #legendCard{display:none}` HID the card while
+// the list was up without clearing .show, so it sprang back the moment the
+// list closed — and setMode only closed it on the way INTO route mode, so
+// Route -> Stops left it open behind the switch.
+{
+  const codeOnlyL = html.replace(/\/\*[\s\S]*?\*\//g, '').split('\n')
+    .filter(l => !/^\s*\/\//.test(l)).join('\n');
+  // What it DOES, not only that it is called: a mutation that made
+  // closeLegend add .show instead of removing it sailed past the call-site
+  // pins below and was caught only by the browser run.
+  {
+    const cl = codeOnlyL.slice(codeOnlyL.indexOf('function closeLegend(){'));
+    const clBody = cl.slice(0, cl.indexOf('\n}\n') + 3);
+    ok('>>> closeLegend REMOVES the class — it closes, it does not toggle or open',
+       /legendCard'\)\.classList\.remove\('show'\)/.test(clBody)
+       && !/classList\.(add|toggle)\('show'\)/.test(clBody), clBody);
+  }
+  ok('>>> there is ONE closeLegend, and the toggles call it rather than repeat it',
+     /function closeLegend\(\)\{/.test(codeOnlyL)
+     && (codeOnlyL.match(/closeLegend\(\);/g) || []).length === 5,
+     String((codeOnlyL.match(/closeLegend\(\);/g) || []).length));
+  // Scoped to setMode's body: it must fire for BOTH directions, so it cannot
+  // sit inside the if(route) branch that only runs on the way in.
+  const sm = codeOnlyL.slice(codeOnlyL.indexOf('function setMode('));
+  const smBody = sm.slice(0, sm.indexOf('\n}\n') + 3);
+  ok('>>> setMode closes it before the route-only branch, so both directions fire',
+     smBody.indexOf('closeLegend();') >= 0
+     && smBody.indexOf('closeLegend();') < smBody.indexOf('if(route){'),
+     JSON.stringify([smBody.indexOf('closeLegend();'), smBody.indexOf('if(route){')]));
+  ok('  and the old route-only removal is gone from that branch',
+     !/\$\('legendCard'\)\.classList\.remove\('show'\)/.test(smBody), smBody.slice(0, 400));
+  // Each collapsible panel, by the function that owns its state — so a new
+  // call site cannot be added that forgets it.
+  for (const fn of ['setRoutebarOpen', 'setRrCollapsed', 'setNearMeExpanded']) {
+    const f = codeOnlyL.slice(codeOnlyL.indexOf('function ' + fn + '('));
+    const fBody = f.slice(0, f.indexOf('\n}\n') + 3);
+    ok(`  ${fn} closes it, so collapse AND expand both dismiss`,
+       /closeLegend\(\);/.test(fBody), fBody.slice(0, 300));
+  }
+  const lt = codeOnlyL.slice(codeOnlyL.indexOf("getElementById('listToggle').addEventListener"));
+  ok('  the Stops hamburger closes it on both directions of its own toggle',
+     /closeLegend\(\);/.test(lt.slice(0, 400)), lt.slice(0, 400));
+}
+
 console.log('=== the count must never depend on the list being open ===');
 // The count is set in render() itself, NOT inside renderList — otherwise it
 // would silently freeze for any driver who never opens the list.
