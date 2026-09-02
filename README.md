@@ -138,6 +138,15 @@ halves: the eighth below it is untouchable (`BACKUP_RESERVE_TICKS`), and the
 amber band between them is a **backup reserve** the app dips into only when
 the driver is already down there — see below as never-plannable range. Since **v1.35.0** the control is a **switch**:
 
+**The switch is ON by default since v1.43.0.** Every release from v1.27.0 to
+v1.42.0 defaulted it off, so a driver who never touched it got plans that could
+put them at the receiver on the bottom reserve — the very case v1.27.0 was
+built for. The default now leaves them half a tank. `ARRIVAL_DEFAULT_ON` in
+`index.html` is the single place it lives: startup, Clear trip, the static
+`aria-checked` in the markup, and the "is there anything to clear" check all
+read it, because four copies of a boolean disagreeing is exactly how a switch
+ends up looking on while planning as if it were off.
+
 | Switch | What it holds for arrival | Effect |
 |---|---|---|
 | **off** | nothing extra | the standard reserve — exactly the behaviour of every release before v1.27.0 |
@@ -1022,6 +1031,33 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.43.0
+
+**The arrival reserve switch is on by default.** Every release from v1.27.0 to
+v1.42.0 shipped it off, which meant the driver who never opened the panel got
+exactly the plans v1.27.0 existed to fix — arriving at the receiver on the
+bottom reserve. On by default, they arrive with at least half a tank.
+
+The default lives in **one** constant, `ARRIVAL_DEFAULT_ON`, read by all four
+places that care: the startup call, Clear trip, the static `aria-checked` in
+the markup, and the "is there anything to clear" check. Four copies of a
+boolean disagreeing is how a switch ends up looking on while planning as if it
+were off.
+
+**The trap that comes with defaulting on**, fixed here and pinned: "has
+anything changed?" was comparing the arrival tick against the *off* value, so
+with the switch defaulting on it reported a change on a form nobody had
+touched, and **Clear trip offered itself on an empty page**. It now compares
+the switch against its default rather than against off.
+
+**What this changes for a first-time user:** plans hold 300 mi of range at the
+delivery unless the switch is turned off. On Regular 500 that leaves a final
+leg of at most 200 mi, so a route whose late stops are sparse can now report a
+reserve shortfall where it previously planned silently — the shortfall panel
+says what the arrival actually works out to and points at the settings that
+move it, which is the honest reading of "I asked for half a tank and this route
+can't give it".
 
 ### v1.42.0
 

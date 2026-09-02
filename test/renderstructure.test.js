@@ -507,17 +507,33 @@ ok('  Custom is what reveals it', /\$\('rangeCustomWrap'\)\.hidden = rangeTier !
 // steered plans); a switch does not, because its state is visible on the
 // control itself. What follows pins the switch semantics in that contract's
 // place.
-ok('>>> the reserve control is a switch, off by default',
-   /id="arrivalToggle"[^>]*role="switch"[^>]*aria-checked="false"/.test(html));
+// v1.43.0 — ON by default. The static markup has to agree with the constant,
+// or the control renders in one state and flips in the other the moment the
+// startup call runs.
+ok('>>> the reserve control is a switch, ON by default',
+   /id="arrivalToggle"[^>]*role="switch"[^>]*aria-checked="true"/.test(html));
+ok('  and the default lives in ONE constant the whole file reads',
+   /const ARRIVAL_DEFAULT_ON = true;/.test(codeOnly)
+   && (codeOnly.match(/setArrivalOn\(ARRIVAL_DEFAULT_ON\)/g) || []).length === 2,
+   String((codeOnly.match(/setArrivalOn\(ARRIVAL_DEFAULT_ON\)/g) || []).length));
+ok('  with no bare setArrivalOn(false)/(true) left to disagree with it',
+   !/setArrivalOn\(false\)/.test(codeOnly) && !/setArrivalOn\(true\)/.test(codeOnly));
 ok('  its label still asks the question rather than naming a feature',
    /Want fuel left when you get there\?/.test(html));
-// The literal has to track FuelGauge.RESERVE_TICKS, which it cannot read at
-// that point in the file — so the test reads the module and requires the two
-// to agree. v1.40.0 moved the floor to 2 and this is what would have caught a
-// stale 1 (an OFF switch quietly asking for a tick of reserve).
-ok('>>> it defaults to RESERVE_TICKS — exactly the pre-v1.27.0 floor',
-   new RegExp('let arrivalTick = ' + require('../lib/gauge.js').RESERVE_TICKS + ';').test(codeOnly)
-   && /setArrivalOn\(false\);/.test(codeOnly));
+// The literal cannot read FuelGauge at that point in the file, so the test
+// reads the module and requires the two to agree — against whichever constant
+// the default selects. v1.40.0's floor move would have been caught by this,
+// and so would a default flipped in one place but not the other.
+{
+  const G = require('../lib/gauge.js');
+  const expectTick = /const ARRIVAL_DEFAULT_ON = true;/.test(codeOnly)
+    ? G.ARRIVAL_TOGGLE_TICK : G.RESERVE_TICKS;
+  ok('>>> the declared tick matches the default the switch starts in',
+     new RegExp('let arrivalTick = ' + expectTick + ';').test(codeOnly),
+     'expected let arrivalTick = ' + expectTick + ';');
+  ok('  and ON means the module\'s own minimum, never a local number',
+     /arrivalTick = on \? FuelGauge\.ARRIVAL_TOGGLE_TICK : FuelGauge\.RESERVE_TICKS;/.test(codeOnly));
+}
 ok('>>> ON maps to the gauge\'s toggle tick, never a local number',
    /arrivalTick = on \? FuelGauge\.ARRIVAL_TOGGLE_TICK : FuelGauge\.RESERVE_TICKS;/.test(codeOnly));
 // Scoped to setArrivalOn's own body: the THEME radiogroup writes the
@@ -569,8 +585,14 @@ ok('  and its width comes from RESERVE_TICKS, not a hardcoded 12.5%',
 ok('  the old seg, choices array and disclosure are gone',
    !/arrivalSeg/.test(codeOnly) && !/ARRIVAL_TICK_CHOICES/.test(codeOnly)
    && !/setArrivalOpen/.test(codeOnly) && !/arrivalField/.test(codeOnly));
-ok('>>> Clear trip switches it off through the same function',
-   /setArrivalOn\(false\);[\s\S]{0,400}geoCands = \{ pickup: \[\], delivery: \[\] \};/.test(codeOnly));
+ok('>>> Clear trip returns it to the DEFAULT through the same function',
+   /setArrivalOn\(ARRIVAL_DEFAULT_ON\);[\s\S]{0,400}geoCands = \{ pickup: \[\], delivery: \[\] \};/.test(codeOnly));
+// The trap of defaulting on: "has anything changed?" compared against the OFF
+// tick would report yes on a form nobody has touched, and Clear trip would
+// offer itself on an empty page.
+ok('>>> "anything to clear" is measured against the DEFAULT, not against off',
+   /aria-checked'\) === 'true'\) !== ARRIVAL_DEFAULT_ON/.test(codeOnly)
+   && !/arrivalChanged = arrivalTick !== FuelGauge\.RESERVE_TICKS/.test(codeOnly));
 
 // The reserve AND the target have to reach the planner, and the shortfall has
 // to stay distinct from a dry gap all the way out to the shared trip text.
