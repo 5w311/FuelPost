@@ -371,16 +371,45 @@ ok('  at 20s, with the reasoning commented against the measured load times',
 ok('  the failure message tells the truth and does not claim the list still works',
    /could not be loaded\. Check your connection/.test(html)
    && !/list.*(still|continues to) work/i.test(html.slice(watchdogIdx - 2000, watchdogIdx + 800)));
-// Removal: exactly one signal, self-removing, watchdog cleared, not sticky.
-ok('>>> removal rides the FIRST mapviewchangeend — the earliest signal meaning pixels',
-   /const clearMapLoading = \(\) => \{\s*\n\s*map\.removeEventListener\('mapviewchangeend', clearMapLoading\);/.test(html)
-   && /map\.addEventListener\('mapviewchangeend', clearMapLoading\);/.test(html));
+// Removal (v1.45.0): TWO conditions, not one. mapviewchangeend means the
+// camera settled, which measured at ~854ms with nothing yet drawn — the tiles
+// are a separate fetch. Retiring on the camera alone put the driver in front
+// of a blank rectangle, and on a warm cache removed the indicator before it
+// was ever painted. Both halves are pinned, because either one alone is the
+// bug: camera-only is what shipped, tile-only would hang if the camera never
+// settles.
+ok('>>> removal needs the camera settled AND a base-map tile actually delivered',
+   /cameraSettled = true; maybeRetire\(\);/.test(html)
+   && /map\.addEventListener\('mapviewchangeend', onSettled\);/.test(html)
+   && /tilesSeen = true;\s*\n\s*maybeRetire\(\);/.test(html)
+   && /if\(retired \|\| !cameraSettled \|\| !tilesSeen\) return;/.test(html));
+ok('  the tile host is the SDK\'s own vector template, not a guessed hostname',
+   /const MAP_TILE_HOST = 'vector\.hereapi\.com';/.test(html));
+// A tile REQUESTED is not a tile ARRIVED. A blocked fetch still writes a
+// resource-timing entry, and the first cut of this cleared the overlay on
+// exactly those — the browser suite caught it by aborting the tile host and
+// watching the overlay vanish at 960ms anyway. responseStatus is what tells
+// the two apart (200 served / 0 aborted, measured); every size field reads 0
+// either way because the host sends no Timing-Allow-Origin.
+ok('>>> a FAILED tile does not count — the status is checked, not just the name',
+   /e\.responseStatus >= 200 && e\.responseStatus < 400/.test(html)
+   && /e\.responseStatus === undefined/.test(html));
+ok('  read from resource timing WITH buffered:true, so a tile that landed early counts',
+   /observe\(\{ type: 'resource', buffered: true \}\)/.test(html));
+ok('>>> a cap releases the TILE half only — blocked tiles must not trap the driver',
+   /capTimer = setTimeout\(\(\) => \{ tilesSeen = true; maybeRetire\(\); \}, TILE_WAIT_CAP_MS\);/.test(html)
+   && /const TILE_WAIT_CAP_MS = 6000;/.test(html));
+ok('  and it is well under the 20s watchdog, so the two never collide',
+   6000 < 20000 && /}, 20000\);/.test(html));
+ok('  a browser without buffered resource timing falls back to the old behaviour',
+   /catch\(e\) \{[\s\S]{0,400}tilesSeen = true;/.test(html));
 ok('  it clears the watchdog and removes the element outright (startup only, never reattached)',
    /clearTimeout\(window\.__mapLoadTimer\);/.test(html)
    && (html.match(/getElementById\('mapLoading'\)/g) || []).length === 1);
 ok('  exactly one removal site in the whole file',
-   (html.match(/clearMapLoading/g) || []).length === 3, // const + removeEventListener + addEventListener
-   String((html.match(/clearMapLoading/g) || []).length));
+   (html.match(/el\.remove\(\);/g) || []).length >= 1
+   && (html.match(/retired = true;/g) || []).length === 1,
+   String((html.match(/retired = true;/g) || []).length));
 
 console.log('\n=== connection hints ===');
 ok('preconnect to js.api.here.com with crossorigin',

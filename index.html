@@ -1315,33 +1315,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.44.0"></script>
+<script src="lib/fuelplan.js?v=1.45.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.44.0"></script>
+<script src="lib/triptext.js?v=1.45.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.44.0"></script>
+<script src="lib/location.js?v=1.45.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.44.0"></script>
+<script src="lib/gauge.js?v=1.45.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.44.0"></script>
+<script src="lib/corridors.js?v=1.45.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.44.0"></script>
+<script src="lib/nearme.js?v=1.45.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.44.0"></script>
+<script src="lib/extract-version.js?v=1.45.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.44.0"></script>
+<script src="lib/autosuggest.js?v=1.45.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.44.0"></script>
+<script src="lib/baselayer.js?v=1.45.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.44.0"></script>
+<script src="lib/memocache.js?v=1.45.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.44.0"></script>
+<script src="lib/routerank.js?v=1.45.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.44.0"></script>
+<script src="lib/vehicleprofile.js?v=1.45.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.44.0"></script>
+<script src="lib/escape.js?v=1.45.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.44.0"></script>
+<script src="lib/navlinks.js?v=1.45.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1357,7 +1357,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.44.0')
+fetch('lib/fuelplan-adaptive.js?v=1.45.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1374,7 +1374,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.44.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.44.0')
+fetch('lib/shorttrip.js?v=1.45.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1385,7 +1385,7 @@ fetch('lib/shorttrip.js?v=1.44.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.44.0"></script>
+<script src="lib/flexible-polyline.js?v=1.45.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1557,7 +1557,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.44.0';
+const APP_VERSION = '1.45.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -1862,28 +1862,86 @@ const map = new H.Map(
   }
 );
 
-// Retire the startup loading state on the engine's FIRST settled render.
-// mapviewchangeend is the earliest 3.2 signal that genuinely means pixels:
-// the canvas element exists at construction, before anything is drawn, and
-// the 'render'/'update' events never fire on this engine (measured against
-// the real 3.2.9.0 library — first mapviewchangeend at ~417ms, canvas at
-// ~48ms). The constructor returning would hide the indicator onto an empty
-// container for a further beat.
+// Retire the startup loading state when the map is ACTUALLY on screen, which
+// takes two things: the camera has settled, and at least one base-map tile
+// has come back from the network.
 //
-// Exactly once, startup only — the listener removes itself, and the element
-// is removed outright so no later pan, plan or theme change can bring it
-// back. Also clears the watchdog from the inline script next to the markup,
-// and runs even if that watchdog already fired: a map that limps up after
-// the 20s timeout still clears the error message rather than leaving it
-// stuck over a working map.
+// mapviewchangeend alone was the old test, and it is the wrong one. Measured
+// against the real 3.2.9.0 library: the canvas element exists at ~48ms, the
+// first mapviewchangeend lands at ~854ms — and NOTHING has been drawn at that
+// point, because the tiles are a separate network fetch that has barely
+// started. So the indicator was retired over an empty rectangle, and on a
+// fast or warm-cache load it could be removed before the browser ever painted
+// it: the driver saw no loading state at all and then sat looking at a blank
+// map. That is exactly the report — "sometimes it shows and sometimes it
+// doesn't, and when it doesn't you can tell the map hasn't loaded".
+//
+// The tile host is not guessed: HARP's vector base layer fetches from
+// vector.hereapi.com/v2/vectortiles/base/mc, which is the URL template inside
+// the vendored mapsjs-core.js itself. PerformanceObserver with buffered:true
+// also delivers entries recorded before this line ran, so a tile that landed
+// during startup is not missed.
+//
+// THE CAP exists because "no tiles ever" is a real state — a blocked CDN, a
+// dead cell link — and the driver should not be held behind a spinner for the
+// full 20s watchdog when the rest of the app works. It releases only the tile
+// half of the condition; the camera settle is still required, exactly as
+// before. The list view sits at z-index 350, above this overlay, so a longer
+// wait never traps a driver who wants the stop list.
+//
+// Exactly once, startup only — every listener detaches and the element is
+// removed outright, so no later pan, plan or theme change can bring it back.
+// Also clears the watchdog from the inline script next to the markup, and
+// runs even if that watchdog already fired: a map that limps up late still
+// clears the error message rather than leaving it stuck over a working map.
 {
-  const clearMapLoading = () => {
-    map.removeEventListener('mapviewchangeend', clearMapLoading);
+  const MAP_TILE_HOST = 'vector.hereapi.com';
+  const TILE_WAIT_CAP_MS = 6000;
+  let cameraSettled = false, tilesSeen = false, retired = false;
+  let capTimer = 0, tileObserver = null;
+
+  const onSettled = () => { cameraSettled = true; maybeRetire(); };
+  function maybeRetire(){
+    if(retired || !cameraSettled || !tilesSeen) return;
+    retired = true;
+    clearTimeout(capTimer);
     clearTimeout(window.__mapLoadTimer);
+    if(tileObserver) tileObserver.disconnect();
+    map.removeEventListener('mapviewchangeend', onSettled);
     const el = document.getElementById('mapLoading');
-    if (el) el.remove();
-  };
-  map.addEventListener('mapviewchangeend', clearMapLoading);
+    if(el) el.remove();
+  }
+  map.addEventListener('mapviewchangeend', onSettled);
+  // A tile that was REQUESTED is not a tile that arrived: a blocked or failed
+  // fetch still writes a resource-timing entry, and the first version of this
+  // cleared the overlay on exactly those. responseStatus is the discriminator
+  // — measured through the real library, a served tile reports 200 and an
+  // aborted one reports 0, while every size field reads 0 either way because
+  // the tile host sends no Timing-Allow-Origin. Sizes therefore cannot be
+  // used for this; the status can, and it is exposed cross-origin by design.
+  //
+  // Where responseStatus is not implemented at all it reads undefined, and
+  // this falls back to counting the request. That is weaker but still strictly
+  // later than the camera settle, and the cap below bounds it either way.
+  const tileArrived = e =>
+    e.name.indexOf(MAP_TILE_HOST) !== -1
+    && (e.responseStatus === undefined
+        || (e.responseStatus >= 200 && e.responseStatus < 400));
+  try {
+    tileObserver = new PerformanceObserver(list => {
+      if(list.getEntries().some(tileArrived)){
+        tilesSeen = true;
+        maybeRetire();
+      }
+    });
+    tileObserver.observe({ type: 'resource', buffered: true });
+  } catch(e) {
+    // No PerformanceObserver, or no buffered resource entries (older Safari):
+    // fall straight back to the pre-v1.45.0 behaviour rather than leaving the
+    // overlay to the cap on every single load.
+    tilesSeen = true;
+  }
+  capTimer = setTimeout(() => { tilesSeen = true; maybeRetire(); }, TILE_WAIT_CAP_MS);
 }
 window.addEventListener('resize', () => { map.getViewPort().resize(); syncMapPadding(); });
 // HERE's canvas only re-measures on a real window resize or an explicit
