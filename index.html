@@ -1044,7 +1044,7 @@
          "aim" that re-picked the last stop toward a target; it could leave a
          driver with LESS fuel than the switch being off, and planFuel's own
          comment records why it is gone. -->
-    <button type="button" id="arrivalToggle" class="rb-switchrow" role="switch" aria-checked="false">
+    <button type="button" id="arrivalToggle" class="rb-switchrow" role="switch" aria-checked="true">
       <span class="rb-switch-text">Want fuel left when you get there?</span>
       <span class="rb-switch" aria-hidden="true"></span>
     </button>
@@ -1315,33 +1315,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.42.0"></script>
+<script src="lib/fuelplan.js?v=1.43.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.42.0"></script>
+<script src="lib/triptext.js?v=1.43.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.42.0"></script>
+<script src="lib/location.js?v=1.43.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.42.0"></script>
+<script src="lib/gauge.js?v=1.43.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.42.0"></script>
+<script src="lib/corridors.js?v=1.43.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.42.0"></script>
+<script src="lib/nearme.js?v=1.43.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.42.0"></script>
+<script src="lib/extract-version.js?v=1.43.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.42.0"></script>
+<script src="lib/autosuggest.js?v=1.43.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.42.0"></script>
+<script src="lib/baselayer.js?v=1.43.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.42.0"></script>
+<script src="lib/memocache.js?v=1.43.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.42.0"></script>
+<script src="lib/routerank.js?v=1.43.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.42.0"></script>
+<script src="lib/vehicleprofile.js?v=1.43.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.42.0"></script>
+<script src="lib/escape.js?v=1.43.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.42.0"></script>
+<script src="lib/navlinks.js?v=1.43.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1357,7 +1357,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.42.0')
+fetch('lib/fuelplan-adaptive.js?v=1.43.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1374,7 +1374,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.42.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.42.0')
+fetch('lib/shorttrip.js?v=1.43.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1385,7 +1385,7 @@ fetch('lib/shorttrip.js?v=1.42.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.42.0"></script>
+<script src="lib/flexible-polyline.js?v=1.43.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1557,7 +1557,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.42.0';
+const APP_VERSION = '1.43.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -3526,13 +3526,21 @@ const DEFAULT_RANGE_TIER = 'long';
 // before its declaration is a temporal-dead-zone crash that takes the whole
 // app down at parse time, and this file has learned that the hard way.
 let rangeTier = DEFAULT_RANGE_TIER;
-// FuelGauge.RESERVE_TICKS, spelled as a literal because this is declared above
-// the shim that defines FuelGauge. 2 = 1/4 = the unplannable floor since
-// v1.40.0, and the switch's OFF state is still exactly what every release
-// before v1.27.0 did — the standard reserve, nothing on top of it.
-// gauge.test.js pins the two against each other, which is the only thing
-// keeping this literal honest when the floor moves.
-let arrivalTick = 2;
+// THE ARRIVAL SWITCH IS ON BY DEFAULT since v1.43.0 — a driver who never
+// touches it gets plans that leave them half a tank at the receiver. Every
+// release from v1.27.0 to v1.42.0 defaulted it off, so this changes the plan
+// a first-time user sees; it is the fleet's call, not an inferred one.
+//
+// The default lives HERE and nowhere else: startup, Clear trip and the
+// "is there anything to clear" check all read this constant rather than
+// repeating the boolean, because the four of them disagreeing is exactly how
+// a switch ends up looking on while planning as if it were off.
+const ARRIVAL_DEFAULT_ON = true;
+// FuelGauge.ARRIVAL_TOGGLE_TICK when on, RESERVE_TICKS when off — spelled as
+// a literal because this is declared above the shim that defines FuelGauge.
+// 4 = 1/2, the minimum the switch asks for. renderstructure.test.js pins this
+// literal against the module so it cannot drift from either constant.
+let arrivalTick = 4;
 
 const DRIVER_SUPPORT = '423-463-3680';
 // Rendered from JS, same as #appVer elsewhere in the legend card, so this is
@@ -4111,7 +4119,11 @@ function routeHasSomethingToClear(){
   const rangeVal = $('rangeInput').value.trim();
   const rangeChanged = rangeTier !== DEFAULT_RANGE_TIER
     || (rangeVal !== '' && Number(rangeVal) !== ROUTE_DEFAULT_RANGE);
-  const arrivalChanged = arrivalTick !== FuelGauge.RESERVE_TICKS;
+  // Against the DEFAULT, not against "off". With the switch defaulting on, a
+  // comparison to RESERVE_TICKS reports "changed" on a form nobody has
+  // touched, and Clear trip offers itself on an empty page.
+  const arrivalChanged =
+    ($('arrivalToggle').getAttribute('aria-checked') === 'true') !== ARRIVAL_DEFAULT_ON;
   return !!($('pickupInput').value.trim() || $('deliveryInput').value.trim()
     || $('routeResultsBody').innerHTML
     || rangeChanged
@@ -4172,9 +4184,10 @@ function clearTrip(){
   $('rangeInput').value = '';   // empty, so the greyed placeholder returns — not the number in black
   setRangeTier(DEFAULT_RANGE_TIER);   // back to Long, and hides the custom input
   // Reuse the pickup disclosure's own collapse behaviour — it already resets
-  // the gauge to F and closes its field — and switch the reserve back off.
+  // the gauge to F and closes its field — and put the reserve back to its
+  // default rather than to off, which are no longer the same thing.
   setPickupRangeOpen(false);
-  setArrivalOn(false);
+  setArrivalOn(ARRIVAL_DEFAULT_ON);
 
   geoCands = { pickup: [], delivery: [] };
   confirmed = { pickup: null, delivery: null };
@@ -4827,7 +4840,7 @@ document.querySelectorAll('#rangeSeg button').forEach(b =>
   b.addEventListener('click', () => setRangeTier(b.dataset.tier, { focus: true })));
 $('arrivalToggle').addEventListener('click', () =>
   setArrivalOn($('arrivalToggle').getAttribute('aria-checked') !== 'true'));
-setArrivalOn(false);
+setArrivalOn(ARRIVAL_DEFAULT_ON);
 setRangeTier(DEFAULT_RANGE_TIER);
 
 document.querySelectorAll('#vehicleSeg button').forEach(b =>
