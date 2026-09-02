@@ -57,9 +57,10 @@ Three inputs shape the plan:
 - **Range leaving shipper** — how far the truck can go when it rolls out of the
   pickup. Maps to `startBurned = max(0, maxRange - rangeAtPickup)`.
 - **Fuel left at delivery** — the *arrival reserve*, new in v1.27.0 and a
-  simple on/off switch since v1.35.0 (on = never arrive under **1/4** of a
+  simple on/off switch since v1.35.0 (on = never arrive under **3/8** of a
   tank, and aim the last stop so arrival lands closest to **1/2** — the
-  v1.38.0 floor-plus-aim split).
+  v1.38.0 floor-plus-aim split, with the floor raised one tick in v1.40.0
+  when the app's own floor moved under it).
   Everything above shapes where the driver stops; this one decides whether they
   stop at all near the end of the run.
 
@@ -85,25 +86,27 @@ fewest-stops setting.
 | Max | 900 | exactly 6 ticks — three quarters of the tank | Fewest stops |
 | Custom | 300–1200 | whatever you type | — |
 
-Only Regular sits on the fuel gauge's own scale: with `FULL_TANK_MILES`
-**1000** over `TICKS` 8 (the v1.39.0 evened tank), a tick is 125 mi, and 500 is
-exactly four of them — half the tank. Long and Max are road-practice numbers,
-and `gauge.test.js` asserts they are *not* whole ticks so nobody "corrects"
-them.
+Only Max sits on the fuel gauge's own scale: with `FULL_TANK_MILES` **1200**
+over `TICKS` 8, a tick is 150 mi, and 900 is exactly six of them. Regular and
+Long are road-practice numbers, and `gauge.test.js` asserts they are *not*
+whole ticks so nobody "corrects" them.
 
-**Max overhangs the plannable tank by 25 mi.** Plannable-full on the evened
-tank is 875, so a driver who picks Max *and* says the tank is full is claiming
-900 mi of range from a gauge that tops out at 875; `computeStartBurned` docks
-the 25-mi difference off the first leg. This is the same overhang v1.35.0
-carried on the old 1000-mi tank (the 1200 tank removed it for three releases).
-It is the honest arithmetic rather than a bug, and the test pins that the dock
-stays under one tick and proves with the real planner what it does and doesn't
-cost: a stop 880 mi out is unreachable on a full Max tank, one at 870 is fine.
+**Max 900 IS a full tank's plannable range, exactly.** Since v1.40.0 the tank
+is sized so that what's left above the held-back quarter is a round 900 — the
+same number as the Max tier. The biggest range a driver can pick is precisely
+the range a full tank gives: no overhang (v1.35.0 and v1.39.0 each had Max
+sitting 25 mi past plannable-full, leaning on a `startBurned` debit for the
+first leg), and nothing left on the table either. No tier carries a debit on a
+full tank now, and the test proves it with the real planner rather than
+arithmetic: a full Max tank covers a 900-mi run outright, and 901 is honestly a
+gap.
 
-**The tick-scale claim has now changed five times** — 400/625 had Long on the
+**The tick-scale claim has now changed six times** — 400/625 had Long on the
 scale, 500/675 had Max, 500/700/900-on-the-1000-tank had Regular, the 1200 tank
-handed it to Max for three releases, and evening the tank back to 1000 hands it
-to Regular. The test reads
+handed it to Max, evening the tank to 1000 handed it to Regular, and sizing the
+plannable span to 900 hands it back to Max — this time on the scale that
+matters, since Max is now a full tank's range rather than merely a whole number
+of ticks. The test reads
 `RANGE_TIERS` out of `index.html` instead of restating the numbers: its old
 form asserted arithmetic about literals, claims that stay true forever no
 matter what the tiers say, and it sailed through the v1.35.0 change silently —
@@ -130,13 +133,13 @@ until the loop ran again.
 
 The reserve is that missing input, and it is deliberately built as a **raising
 of the floor that already existed** rather than a new parallel concept.
-`RESERVE_TICKS` has always held back the bottom 1/8 (125 mi on the 1000-mi
-tank) as never-plannable range. Since **v1.35.0** the control is a **switch**:
+`RESERVE_TICKS` holds back the bottom of the tank — a quarter of it since
+v1.40.0 (300 mi), one eighth before that as never-plannable range. Since **v1.35.0** the control is a **switch**:
 
 | Switch | What it holds for arrival | Effect |
 |---|---|---|
 | **off** | nothing extra | the standard reserve — exactly the behaviour of every release before v1.27.0 |
-| **on** | floor **1/4** (125 mi), aim **1/2** (375 mi) | never arrive under a quarter tank, and land the last stop so arrival sits closest to half |
+| **on** | floor **3/8** (150 mi), aim **1/2** (300 mi) | never arrive under three eighths, and land the last stop so arrival sits closest to half |
 
 The control narrowed release by release as the real choice got clearer. v1.27.0
 offered a 1/8–1/2 dial. v1.30.1 dropped 1/8 — nobody arrives on an eighth by
@@ -147,12 +150,20 @@ under it) and an **aim** (1/2 — a preference, the plan lands as close to it as
 the stops on the route allow). One tap still asks the only question the fleet
 found drivers answering: *do you want fuel left when you get there?*
 
-`ARRIVAL_TOGGLE_TICK = 2` (the floor) and `ARRIVAL_TARGET_TICK = 4` (the aim)
-in `lib/gauge.js` are the whole setting. What the floor costs is stated rather
-than buried: the last stop must sit within `range − 125` of the delivery —
-**375 mi on Regular, 575 on Long, 775 on Max** — satisfiable on every tier,
-which is exactly why the fleet backed off 5/8 (on the 1200 tank, 600 mi could
-never be met on Regular's 500). The aim costs nothing: it only chooses *which* reachable stop
+`ARRIVAL_TOGGLE_TICK` (the floor) and `ARRIVAL_TARGET_TICK = 4` (the aim) in
+`lib/gauge.js` are the whole setting. The floor is **derived**, not written:
+`RESERVE_TICKS + 1`, which reads 3/8 today. That derivation is load-bearing —
+every figure on this scale is measured *above* `RESERVE_TICKS`, so when
+v1.40.0 raised the app's floor to a quarter, a literal `2` would have made
+"never arrive under 1/4" cost exactly zero miles: a switch that still flipped,
+still announced itself, and changed no plan at all. One tick above the floor
+is what the switch has always meant — the first reading with real plannable
+range above it — so turning it on always costs a tick and can always force a
+late stop.
+
+What the floor costs is stated rather than buried: the last stop must sit
+within `range − 150` of the delivery — **350 mi on Regular, 550 on Long, 750 on
+Max** — satisfiable on every tier. The aim costs nothing: it only chooses *which* reachable stop
 is last, never whether one exists, so it can't create a shortfall the floor
 didn't already have, and it never changes the stop count.
 
@@ -171,7 +182,7 @@ can reach `routeMiles + reserve`, which is exactly the condition
 only**: after the fewest-stops loop finishes, the planner looks at every stop
 it could legally have used as the last one (reachable from the previous
 position, still leaving the floor intact) and swaps in the one whose arrival
-range sits closest to 375 mi, breaking near-ties within 15 mi toward the
+range sits closest to 300 mi, breaking near-ties within 15 mi toward the
 smaller detour. Stops before the last are never touched, a zero-stop plan never
 gains one, and with the switch off both numbers are 0 — `fuelplan.test.js` runs
 every pre-existing fixture through both call shapes and deep-compares the
@@ -188,7 +199,7 @@ could then overshoot the mark by hundreds of miles (arrive at 5 mi off, or at
 865). The aim is what closes that: the *number* of stops is still the fewest
 that respect the floor, but the *last* of them is now placed for the arrival,
 not just legality. On a route with sparse stops the aim degrades gracefully to
-the nearest achievable arrival, above or below 375.
+the nearest achievable arrival, above or below 300.
 
 **When the reserve can't be met.** A driver can ask for more than a route can
 give — a Custom range typed below the floor's needs, or a route whose last
@@ -953,6 +964,60 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.40.0
+
+**The unplannable band grows from one eighth to a quarter, the gauge marks the
+new stretch in amber, and the tank is sized so a full one plans a round 900.**
+Three fleet-directed changes that are really one: what the app is allowed to
+plan on, where the driver can see that line, and how much range sits above it.
+
+**1. E through 1/4 is unplannable.** `RESERVE_TICKS` 1 → **2**. The bottom
+quarter is the driver's own fuel and the planner will not touch a mile of it.
+The limp figure named in the floor message doubles with it, from 150 to
+**300 physical mi**, and every gauge reading at or under 1/4 now reads 0
+plannable — so two needle positions, not one, land on the "no plannable range"
+panel, which now names the reading the driver actually set.
+
+**2. The gauge shows it.** The track's fixed danger marking gains a second
+band: red over the emergency eighth as always, **amber from 1/8 to 1/4** for
+the rest of the stretch the planner won't use. Both widths are computed from
+`RESERVE_TICKS` rather than written as `12.5%` literals, so the amber band
+tracks the floor wherever it goes — including to zero width if the floor ever
+returns to one tick.
+
+**3. A full tank plans exactly 900.** `FULL_TANK_MILES` 1000 → **1200** at 150
+a tick, chosen so the six eighths *above* the new floor come to a round 900 —
+which is also exactly the Max tier. The evenness v1.39.0 asked for moves to
+where it is actually read: the plannable span, 900 divided into six even 150s.
+The dial itself stays even end to end (1200, 1050, 900 … 150, E).
+
+**The consequence worth stating plainly** — and the trap this release created:
+
+> Every figure on this scale is measured *above* `RESERVE_TICKS`. Raising the
+> app's floor to a quarter therefore made the arrival switch's own "never under
+> **1/4**" floor cost **exactly zero miles** — a switch that still flipped,
+> still announced itself, and changed no plan at all.
+
+So `ARRIVAL_TOGGLE_TICK` is no longer a literal: it is **`RESERVE_TICKS + 1`**,
+the first reading with real plannable range above the floor, which reads **3/8
+(150 mi)** today. That is what the switch has always meant, and deriving it
+means turning the switch on always costs a tick and can always force a late
+stop. The aim stays where the fleet put it, 1/2 (now 300 mi), so floor and aim
+sit one tick apart instead of two. `gauge.test.js` pins the derivation and the
+collapse trap directly, and proves with the real planner that ON still forces a
+stop where OFF plans none.
+
+**What else moved, all by derivation:** the switch's help copy, the shortfall
+caution, and the no-plannable-range panel each named "the bottom 1/8" as a
+string; all three now ask `tickLabel(RESERVE_TICKS)`. The Max overhang flagged
+in v1.39.0 is **gone** — Max 900 equals plannable-full exactly, so no tier
+carries a `startBurned` debit on a full tank.
+
+The needle still reaches 1/8. Where it may land is a question about what a
+driver can honestly report — a truck really can be sitting on an eighth — and
+what the app will plan on is the separate question `RESERVE_TICKS` answers;
+re-coupling them would rewrite a true reading into a legal one.
 
 ### v1.39.0
 

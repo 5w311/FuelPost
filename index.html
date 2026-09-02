@@ -639,15 +639,26 @@
   .rb-range-wrap.has-clear input{padding-right:58px;}
   .rb-range-wrap.has-clear .rb-unit{right:33px;}
 
-  /* Fuel gauge — needle, not a fill bar. The E-1/8 segment of the TRACK
-     itself is permanently red (a fixed danger marking, like a tachometer
-     redline); the needle's own color never changes with position, and its
-     usable range is clamped to ticks 1-8 (1/8 tank through F) in JS. */
+  /* Fuel gauge — needle, not a fill bar. The bottom of the TRACK itself is
+     permanently marked (fixed danger colouring, like a tachometer redline):
+     red for the emergency eighth, amber from there to the floor. The needle's
+     own color never changes with position, and its usable range is clamped to
+     ticks 1-8 (1/8 tank through F) in JS — a driver may still SET a reading
+     inside the marked band, they just get no plannable range from it. */
   .gauge{margin-top:2px;-webkit-tap-highlight-color:transparent;}
   .gauge-labels{position:relative;height:13px;margin-bottom:4px;}
   .gauge-labels span{position:absolute;top:0;transform:translateX(-50%);font-size:9.5px;font-weight:800;color:var(--sub);white-space:nowrap;}
   .gauge-track{position:relative;height:36px;border:3px solid var(--navy);border-radius:10px;background:var(--bg);touch-action:none;cursor:pointer;}
-  .gauge-danger{position:absolute;top:-3px;bottom:-3px;left:-3px;width:calc(12.5% + 3px);background:#F3B4B4;border-radius:8px 0 0 8px;pointer-events:none;}
+  /* The two bands of the UNPLANNABLE stretch. Red is the emergency eighth
+     (E to 1/8) and has marked it since the gauge shipped; amber was added in
+     v1.40.0 when the floor rose to a quarter, so the rest of the band the
+     planner will not touch reads as caution rather than as ordinary tank.
+     Both are painted from --gauge-band-*, which buildGaugeMarkup() computes
+     from RESERVE_TICKS — the widths are NOT 12.5% literals, because the whole
+     point of the amber band is that it tracks wherever the floor sits. Fixed
+     tints in both themes, like every other band on this control. */
+  .gauge-danger{position:absolute;top:-3px;bottom:-3px;left:-3px;width:calc(var(--gauge-band-danger) + 3px);background:#F3B4B4;border-radius:8px 0 0 8px;pointer-events:none;}
+  .gauge-warn{position:absolute;top:-3px;bottom:-3px;left:var(--gauge-band-danger);width:var(--gauge-band-warn);background:#F5DFA5;pointer-events:none;}
   .gauge-tick{position:absolute;top:5px;bottom:5px;width:2px;background:var(--gauge-tick);transform:translateX(-50%);pointer-events:none;}
   .gauge-tick.minor{top:11px;bottom:11px;width:1px;background:var(--gauge-tick-minor);}
   .gauge-needle{position:absolute;top:-4px;bottom:-4px;width:9px;border-radius:5px;background:#C4281C;box-shadow:0 1px 4px rgba(0,0,0,.35);transform:translateX(-50%);pointer-events:none;}
@@ -1021,7 +1032,8 @@
       </div>
       <div class="rb-help" id="rangeHelp"></div>
     </div>
-    <!-- Arrival reserve. Behind its own disclosure on purpose: 1/8 is exactly
+    <!-- Arrival reserve. Behind its own disclosure on purpose: the standard
+         reserve alone (no arrival cushion on top) is exactly
          what every release before v1.27.0 did, so a driver who never opens
          this gets the plans they always got, and the common case stays one tap
          on a tier. The label states the question rather than naming a feature,
@@ -1049,6 +1061,7 @@
         <div class="gauge-labels" id="gaugeLabels"></div>
         <div class="gauge-track" id="gaugeTrack">
           <div class="gauge-danger"></div>
+          <div class="gauge-warn"></div>
           <div class="gauge-ticks" id="gaugeTicks"></div>
           <div class="gauge-needle" id="gaugeNeedle"></div>
         </div>
@@ -1307,33 +1320,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.39.0"></script>
+<script src="lib/fuelplan.js?v=1.40.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.39.0"></script>
+<script src="lib/triptext.js?v=1.40.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.39.0"></script>
+<script src="lib/location.js?v=1.40.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.39.0"></script>
+<script src="lib/gauge.js?v=1.40.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.39.0"></script>
+<script src="lib/corridors.js?v=1.40.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.39.0"></script>
+<script src="lib/nearme.js?v=1.40.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.39.0"></script>
+<script src="lib/extract-version.js?v=1.40.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.39.0"></script>
+<script src="lib/autosuggest.js?v=1.40.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.39.0"></script>
+<script src="lib/baselayer.js?v=1.40.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.39.0"></script>
+<script src="lib/memocache.js?v=1.40.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.39.0"></script>
+<script src="lib/routerank.js?v=1.40.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.39.0"></script>
+<script src="lib/vehicleprofile.js?v=1.40.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.39.0"></script>
+<script src="lib/escape.js?v=1.40.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.39.0"></script>
+<script src="lib/navlinks.js?v=1.40.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1349,7 +1362,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.39.0')
+fetch('lib/fuelplan-adaptive.js?v=1.40.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1366,7 +1379,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.39.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.39.0')
+fetch('lib/shorttrip.js?v=1.40.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1377,7 +1390,7 @@ fetch('lib/shorttrip.js?v=1.39.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.39.0"></script>
+<script src="lib/flexible-polyline.js?v=1.40.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1549,7 +1562,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.39.0';
+const APP_VERSION = '1.40.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -3519,9 +3532,12 @@ const DEFAULT_RANGE_TIER = 'long';
 // app down at parse time, and this file has learned that the hard way.
 let rangeTier = DEFAULT_RANGE_TIER;
 // FuelGauge.RESERVE_TICKS, spelled as a literal because this is declared above
-// the shim that defines FuelGauge. 1 = 1/8 = exactly what every release before
-// v1.27.0 did; gauge.test.js pins the two against each other.
-let arrivalTick = 1;
+// the shim that defines FuelGauge. 2 = 1/4 = the unplannable floor since
+// v1.40.0, and the switch's OFF state is still exactly what every release
+// before v1.27.0 did — the standard reserve, nothing on top of it.
+// gauge.test.js pins the two against each other, which is the only thing
+// keeping this literal honest when the floor moves.
+let arrivalTick = 2;
 
 const DRIVER_SUPPORT = '423-463-3680';
 // Rendered from JS, same as #appVer elsewhere in the legend card, so this is
@@ -4407,7 +4423,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
       (about ${mi(asked)} mi of range on top of the reserve). The last network stop this route
       offers leaves ${stops.length ? `a final leg of <strong>${mi(shortfallFinalLeg)} mi</strong>` :
       `<strong>${mi(routeMiles)} mi</strong> to run`}, so you get there with roughly
-      <strong>${mi(achieved)} mi</strong> — still above the bottom 1/8, but short of your reserve.
+      <strong>${mi(achieved)} mi</strong> — still above the bottom ${FuelGauge.tickLabel(FuelGauge.RESERVE_TICKS)}, but short of your reserve.
       Every stop above is reachable and this load makes it; only the cushion falls short.
       A shorter range setting plans an extra stop and closes the difference.</div>`;
   } else {
@@ -4504,8 +4520,10 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
   setRoutebarOpen(false);
 }
 
-// The gauge's floor (tick 1, 1/8 tank) reads as 0 plannable miles —
-// planLoad() short-circuits straight here without calling the routing API,
+// Every gauge reading at or under the floor (RESERVE_TICKS — the bottom
+// QUARTER since v1.40.0, so ticks 1 and 2 both land here) reads as 0
+// plannable miles. planLoad() short-circuits straight here without calling
+// the routing API,
 // because the outcome is already fully determined by rangeAtPickup alone:
 // feeding 0 through the real planner always returns the degenerate
 // {fromMile:0, deadMile:0} gap (verified in test/gauge.test.js), and
@@ -4516,7 +4534,7 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
   // No routing call was made, so there are no alternatives to offer.
   clearRouteOptions();
   lastFitBounds = null; lastFitFree = null;   // no route at this fill level — nothing to re-fit to
-  const limpMiles = FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS); // the one reserved tick — no literal here, the model owns the number
+  const limpMiles = FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS); // the reserved ticks — no literal here, the model owns the number
   lastTrip = {
     pickupAddr: pickup.label,
     deliveryAddr: delivery.label,
@@ -4530,11 +4548,15 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
     fuelBookRev: FUEL_BOOK_REV
   };
 
-  let h = '<div class="rr-head">Gauge at 1/8 — no plannable range</div>';
+  // Name the reading the driver actually set, not the floor in the abstract:
+  // at a quarter-tank floor two different gauge positions arrive here, and
+  // "Gauge at 1/8" would be flatly wrong for one of them.
+  const head = `Gauge at ${FuelGauge.tickLabel(gaugeTick)} — no plannable range`;
+  let h = `<div class="rr-head">${head}</div>`;
   h += '<div class="rr-sub">0 mi of range leaving the shipper</div>';
 
   h += `<div class="rr-warn"><b>No network stop is reachable at this fill level</b>
-    The bottom 1/8 tank (about ${limpMiles} mi) is always held back as a safety reserve —
+    The bottom ${FuelGauge.tickLabel(FuelGauge.RESERVE_TICKS)} tank (about ${limpMiles} mi) is always held back as a safety reserve —
     it's never counted as plannable range for routing, but it's roughly how far you can
     still physically limp toward a stop.`;
   if(nearPickup.length){
@@ -4548,7 +4570,7 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
 
   h += '<button type="button" id="shareTripBtn">Share / save trip</button>';
 
-  showRoutePanel(h, 'Gauge at 1/8 — no plannable range');
+  showRoutePanel(h, head);
   $('shareTripBtn').addEventListener('click', shareTrip);
 
   // No route to draw at this fill level — clear anything left from a
@@ -4613,7 +4635,7 @@ function setArrivalOn(on){
   const aimLabel = FuelGauge.tickLabel(FuelGauge.ARRIVAL_TARGET_TICK);
   $('arrivalHelp').textContent = on
     ? `Aims your last stop so you arrive with about ${aimLabel} of a tank — and never under ${floorLabel} (${FuelGauge.arrivalReserveMiles(FuelGauge.ARRIVAL_TOGGLE_TICK)} mi of range).`
-    : `Off — plans just keep the standard reserve (the bottom 1/8, about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} mi). Turn on to aim for about ${aimLabel} of a tank at delivery, never landing under ${floorLabel}.`;
+    : `Off — plans just keep the standard reserve (the bottom ${FuelGauge.tickLabel(FuelGauge.RESERVE_TICKS)}, about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} mi). Turn on to aim for about ${aimLabel} of a tank at delivery, never landing under ${floorLabel}.`;
   updateClearVisibility();
 }
 
@@ -4824,18 +4846,23 @@ renderVehicle();
 
 /* ---- Fuel gauge (range leaving shipper) ----
    Needle gauge, not a fill bar: one indicator that slides to the selected
-   tick, its own color never changing with position. The E-1/8 segment of
-   the TRACK is a fixed danger marking, visible regardless of where the
-   needle sits — like a tachometer redline, not a live warning state. The
-   needle's usable range is clamped to ticks 1-8 (1/8 tank through F); only
-   E (tick 0) is unreachable. A tick of 1 reads as 0 plannable miles — see
+   tick, its own color never changing with position. The bottom of the TRACK
+   is a fixed two-band marking, visible regardless of where the needle sits —
+   like a tachometer redline, not a live warning state: red over the emergency
+   eighth, amber over the rest of the unplannable stretch (v1.40.0, when the
+   floor rose to a quarter). The needle's usable range is clamped to ticks 1-8
+   (1/8 tank through F); only E (tick 0) is unreachable, so a driver can still
+   park the needle inside the amber and be told plainly that it plans nothing.
+   Any tick at or under RESERVE_TICKS reads as 0 plannable miles — see
    FuelGauge.plannableMilesForTick — and planLoad() short-circuits straight
    to the floor-gap message in that case rather than routing. */
-const GAUGE_MIN_TICK = 1; // 1/8 tank — the new floor. Deliberately NOT tied to
-  // EMERGENCY_TICK_CEILING anymore: that constant still correctly classifies
-  // ticks 0-1 as "below 1/4 tank" for isEmergencyZone, which is a fact about
-  // tank fullness. Where the UI lets the needle land is a separate decision
-  // that just changed. Don't re-couple them.
+const GAUGE_MIN_TICK = 1; // 1/8 tank. Deliberately NOT tied to
+  // EMERGENCY_TICK_CEILING, and since v1.40.0 not to RESERVE_TICKS either:
+  // the floor rose to a quarter, but the needle still reaches 1/8 because
+  // WHERE THE NEEDLE MAY LAND is a question about what a driver can honestly
+  // report, and a truck really can be sitting on an eighth. What the app will
+  // PLAN on is the separate question RESERVE_TICKS answers. Re-coupling them
+  // would silently rewrite a driver's true reading into a legal one.
 const GAUGE_MAX_TICK = FuelGauge.TICKS;                  // 8 (F)
 const GAUGE_TICK_LABELS = ['E','1/8','1/4','3/8','1/2','5/8','3/4','7/8','F'];
 let gaugeTick = GAUGE_MAX_TICK;
@@ -4852,7 +4879,18 @@ function buildGaugeMarkup(){
       ticks += `<div class="gauge-tick minor" style="left:${(i + 0.5) / GAUGE_MAX_TICK * 100}%"></div>`;
   }
   $('gaugeTicks').innerHTML = ticks;
-  $('gaugeDangerNote').innerHTML = `E isn't selectable. At an 1/8th tank, plannable range is 0 — you likely have about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} miles to limp towards an out-of-network fuel stop.
+  // The unplannable bands, sized from the model so they can never disagree
+  // with it: red covers the emergency eighth, amber covers the rest of the
+  // held-back stretch (nothing at all if the floor is ever one tick again).
+  const track = $('gaugeTrack');
+  track.style.setProperty('--gauge-band-danger', (1 / GAUGE_MAX_TICK * 100) + '%');
+  track.style.setProperty('--gauge-band-warn',
+    (Math.max(0, FuelGauge.RESERVE_TICKS - 1) / GAUGE_MAX_TICK * 100) + '%');
+  // Named from the model too. Below the floor there is no plannable range at
+  // all — what's left is physical fuel to limp on, and the driver is entitled
+  // to the actual figure rather than a vague "very low".
+  const floorLabel = FuelGauge.tickLabel(FuelGauge.RESERVE_TICKS);
+  $('gaugeDangerNote').innerHTML = `E isn't selectable. Under ${floorLabel} of a tank, plannable range is 0 — you likely have about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} miles to limp towards an out-of-network fuel stop.
     <br>Call the Fuel Dept if you're this low: <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>`;
 }
 buildGaugeMarkup();

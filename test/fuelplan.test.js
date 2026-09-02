@@ -3,7 +3,8 @@ const { haversine, projectStops, planFuel, cumulativeMiles } = require('../lib/f
 // miles lives in the gauge. Importing the real converter here rather than
 // hardcoding 0/150/300/450 means this file fails if the two ever disagree,
 // which is the whole reason planFuel takes miles instead of ticks.
-const { arrivalReserveMiles: gaugeArrivalMiles } = require('../lib/gauge.js');
+const { arrivalReserveMiles: gaugeArrivalMiles, RESERVE_TICKS: FLOOR_TICK,
+        ARRIVAL_TOGGLE_TICK: SWITCH_TICK } = require('../lib/gauge.js');
 let pass = 0, fail = 0;
 const ok = (name, cond, extra='') => { if (cond) { pass++; console.log('  PASS', name); } else { fail++; console.log('  FAIL', name, extra); } };
 const near = (a,b,tol) => Math.abs(a-b) <= tol;
@@ -142,17 +143,24 @@ console.log('\n=== arrival reserve: THE REPORTED CASE — a route that planned z
   const dense = [];
   for (let m = 100; m <= 860; m += 20) dense.push({ id: 'm' + m, mile: m, detour: 1 });
   const zero = planFuel(870, dense, 875, 0, 0);
-  ok('at 1/8 (0 reserve) it still plans zero stops — the reported behaviour',
+  ok('at the bare floor (0 reserve) it still plans zero stops — the reported behaviour',
      zero.ok && zero.plan.length === 0, JSON.stringify(zero.plan.map(s => s.mile)));
-  const quarter = planFuel(870, dense, 875, 0, gaugeArrivalMiles(2));
-  ok('>>> at 1/4 a stop appears before delivery', quarter.ok && quarter.plan.length === 1,
+  // The switch's own tick, read from the gauge rather than written as a
+  // number: it is one tick above the floor by construction, and v1.40.0 moved
+  // it from 1/4 to 3/8 when the floor rose. Hardcoding "2" here would have
+  // asserted a zero reserve and passed for the wrong reason.
+  const quarter = planFuel(870, dense, 875, 0, gaugeArrivalMiles(SWITCH_TICK));
+  ok('>>> one tick above the floor, a stop appears before delivery',
+     quarter.ok && quarter.plan.length === 1,
      JSON.stringify({ ok: quarter.ok, miles: quarter.plan.map(s => s.mile) }));
+  ok('  and the floor tick itself asks for nothing, so it plans nothing',
+     planFuel(870, dense, 875, 0, gaugeArrivalMiles(FLOOR_TICK)).plan.length === 0);
   const half = planFuel(870, dense, 875, 0, gaugeArrivalMiles(4));
   ok('>>> at 1/2 as well', half.ok && half.plan.length === 1,
      JSON.stringify({ ok: half.ok, miles: half.plan.map(s => s.mile) }));
   // The reserve is a THRESHOLD, not a dial on the arrival amount, and this is
   // where that becomes visible: the planner still takes the FURTHEST stop it
-  // can reach, so 1/4 and 1/2 both land on mile 860 — the last one there is —
+  // can reach, so the switch tick and 1/2 both land on mile 860 — the last —
   // and both arrive with the same 865 mi unused. Raising the setting further
   // does not push the stop earlier; it only decides WHETHER a stop is needed
   // at all. Asserting a strictly rising arrival here would be asserting a
@@ -163,19 +171,19 @@ console.log('\n=== arrival reserve: THE REPORTED CASE — a route that planned z
      left(zero) === 5 && left(quarter) === 865 && left(half) === 865,
      JSON.stringify([left(zero), left(quarter), left(half)]));
   ok('  every setting is met or beaten, which is the actual contract',
-     left(zero) >= gaugeArrivalMiles(1) && left(quarter) >= gaugeArrivalMiles(2)
+     left(zero) >= gaugeArrivalMiles(FLOOR_TICK) && left(quarter) >= gaugeArrivalMiles(SWITCH_TICK)
      && left(half) >= gaugeArrivalMiles(4),
-     JSON.stringify([left(quarter), gaugeArrivalMiles(2), left(half), gaugeArrivalMiles(4)]));
+     JSON.stringify([left(quarter), gaugeArrivalMiles(SWITCH_TICK), left(half), gaugeArrivalMiles(4)]));
 }
 
 console.log('\n=== arrival reserve: the extra-mileage arithmetic is exact ===');
 // One stop at mile 500 and nothing else; a 1000 mi route with 600 mi range.
 // The loop must stop planning exactly when maxRange - finalLeg >= reserve.
 {
-  // Reserve in miles for each tick, straight off the tank scale: (t-1)*125
-  // since the v1.39.0 move to the evened 1000-mi tank (it was (t-1)*150 on
-  // the v1.36.0 Cascadia 1200).
-  const expect = { 1: 0, 2: 125, 3: 250, 4: 375 };
+  // Reserve in miles for each tick, straight off the tank scale:
+  // (t - RESERVE_TICKS) * 150, and RESERVE_TICKS is 2 since v1.40.0 — so the
+  // bottom TWO ticks both ask for nothing and range starts at 3/8.
+  const expect = { 1: 0, 2: 0, 3: 150, 4: 300 };
   for (const t of [1, 2, 3, 4]) {
     ok(`tick ${t} -> ${expect[t]} mi of reserve`, gaugeArrivalMiles(t) === expect[t],
        String(gaugeArrivalMiles(t)));

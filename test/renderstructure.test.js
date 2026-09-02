@@ -511,8 +511,13 @@ ok('>>> the reserve control is a switch, off by default',
    /id="arrivalToggle"[^>]*role="switch"[^>]*aria-checked="false"/.test(html));
 ok('  its label still asks the question rather than naming a feature',
    /Want fuel left when you get there\?/.test(html));
+// The literal has to track FuelGauge.RESERVE_TICKS, which it cannot read at
+// that point in the file — so the test reads the module and requires the two
+// to agree. v1.40.0 moved the floor to 2 and this is what would have caught a
+// stale 1 (an OFF switch quietly asking for a tick of reserve).
 ok('>>> it defaults to RESERVE_TICKS — exactly the pre-v1.27.0 floor',
-   /let arrivalTick = 1;/.test(codeOnly) && /setArrivalOn\(false\);/.test(codeOnly));
+   new RegExp('let arrivalTick = ' + require('../lib/gauge.js').RESERVE_TICKS + ';').test(codeOnly)
+   && /setArrivalOn\(false\);/.test(codeOnly));
 ok('>>> ON maps to the gauge\'s toggle tick, never a local number',
    /arrivalTick = on \? FuelGauge\.ARRIVAL_TOGGLE_TICK : FuelGauge\.RESERVE_TICKS;/.test(codeOnly));
 // Scoped to setArrivalOn's own body: the THEME radiogroup writes the
@@ -536,9 +541,26 @@ ok('>>> the off state explains the floor and the affordance',
 ok('  the on state states the aim and the floor with the planner\'s own figures',
    /Aims your last stop so you arrive with about/.test(codeOnly)
    && /never under \$\{floorLabel\}/.test(codeOnly));
-ok('  both read the model — no literal 450 or 150 in the copy',
+ok('  both read the model — no literal 300 or 150 in the copy',
    /arrivalReserveMiles\(FuelGauge\.ARRIVAL_TOGGLE_TICK\)/.test(codeOnly)
    && /tickLabel\(FuelGauge\.ARRIVAL_TARGET_TICK\)/.test(codeOnly));
+// v1.40.0: the held-back band is a QUARTER, so any copy naming it has to ask
+// the model rather than say "1/8". Three places said it; all three derive now.
+ok('>>> no copy hardcodes the old 1/8 floor any more',
+   !/bottom 1\/8/.test(codeOnly) && !/Gauge at 1\/8/.test(codeOnly)
+   && !/At an 1\/8th tank/.test(codeOnly));
+ok('  the switch, the shortfall caution and the floor panel all name it from the model',
+   (codeOnly.match(/tickLabel\(FuelGauge\.RESERVE_TICKS\)/g) || []).length >= 3,
+   String((codeOnly.match(/tickLabel\(FuelGauge\.RESERVE_TICKS\)/g) || []).length));
+// The amber band is the driver-visible half of the floor change, and its
+// width is computed from RESERVE_TICKS so it can never disagree with the
+// planner about where the unplannable stretch ends.
+ok('>>> the gauge paints a second, amber band below the floor',
+   /class="gauge-warn"/.test(html) && /\.gauge-warn\{/.test(html));
+ok('  and its width comes from RESERVE_TICKS, not a hardcoded 12.5%',
+   /--gauge-band-warn[\s\S]{0,120}FuelGauge\.RESERVE_TICKS - 1/.test(codeOnly)
+   || /RESERVE_TICKS - 1[\s\S]{0,120}gauge-band-warn/.test(codeOnly),
+   (codeOnly.match(/gauge-band-warn[^\n]*/) || [''])[0]);
 ok('  the old seg, choices array and disclosure are gone',
    !/arrivalSeg/.test(codeOnly) && !/ARRIVAL_TICK_CHOICES/.test(codeOnly)
    && !/setArrivalOpen/.test(codeOnly) && !/arrivalField/.test(codeOnly));
