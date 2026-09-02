@@ -172,9 +172,10 @@ console.log('\n=== arrival reserve: the extra-mileage arithmetic is exact ===');
 // One stop at mile 500 and nothing else; a 1000 mi route with 600 mi range.
 // The loop must stop planning exactly when maxRange - finalLeg >= reserve.
 {
-  // Reserve in miles for each tick, straight off the tank scale: (t-1)*150
-  // since the v1.36.0 move to the 1200-mi Cascadia tank.
-  const expect = { 1: 0, 2: 150, 3: 300, 4: 450 };
+  // Reserve in miles for each tick, straight off the tank scale: (t-1)*125
+  // since the v1.39.0 move to the evened 1000-mi tank (it was (t-1)*150 on
+  // the v1.36.0 Cascadia 1200).
+  const expect = { 1: 0, 2: 125, 3: 250, 4: 375 };
   for (const t of [1, 2, 3, 4]) {
     ok(`tick ${t} -> ${expect[t]} mi of reserve`, gaugeArrivalMiles(t) === expect[t],
        String(gaugeArrivalMiles(t)));

@@ -85,20 +85,25 @@ fewest-stops setting.
 | Max | 900 | exactly 6 ticks — three quarters of the tank | Fewest stops |
 | Custom | 300–1200 | whatever you type | — |
 
-Only Max sits on the fuel gauge's own scale: with `FULL_TANK_MILES` **1200**
-over `TICKS` 8 (the v1.36.0 Cascadia numbers), a tick is 150 mi, and 900 is
-exactly six of them. Regular and Long are road-practice numbers, and
-`gauge.test.js` asserts they are *not* whole ticks so nobody "corrects" them.
+Only Regular sits on the fuel gauge's own scale: with `FULL_TANK_MILES`
+**1000** over `TICKS` 8 (the v1.39.0 evened tank), a tick is 125 mi, and 500 is
+exactly four of them — half the tank. Long and Max are road-practice numbers,
+and `gauge.test.js` asserts they are *not* whole ticks so nobody "corrects"
+them.
 
-**Max fits back inside the plannable tank.** For one release (v1.35.0 on the
-1000-mi model) Max 900 exceeded the 875 plannable full and leaned on a
-`startBurned` debit for its first leg. On the 1200 tank, plannable-full is 1050
-and Max sits inside with 150 to spare — no debit, no special case, and the test
-pins that it stays gone.
+**Max overhangs the plannable tank by 25 mi.** Plannable-full on the evened
+tank is 875, so a driver who picks Max *and* says the tank is full is claiming
+900 mi of range from a gauge that tops out at 875; `computeStartBurned` docks
+the 25-mi difference off the first leg. This is the same overhang v1.35.0
+carried on the old 1000-mi tank (the 1200 tank removed it for three releases).
+It is the honest arithmetic rather than a bug, and the test pins that the dock
+stays under one tick and proves with the real planner what it does and doesn't
+cost: a stop 880 mi out is unreachable on a full Max tank, one at 870 is fine.
 
-**The tick-scale claim has now changed four times** — 400/625 had Long on the
-scale, 500/675 had Max, 500/700/900-on-the-1000-tank had Regular for exactly
-one release, and the 1200 tank hands it back to Max. The test reads
+**The tick-scale claim has now changed five times** — 400/625 had Long on the
+scale, 500/675 had Max, 500/700/900-on-the-1000-tank had Regular, the 1200 tank
+handed it to Max for three releases, and evening the tank back to 1000 hands it
+to Regular. The test reads
 `RANGE_TIERS` out of `index.html` instead of restating the numbers: its old
 form asserted arithmetic about literals, claims that stay true forever no
 matter what the tiers say, and it sailed through the v1.35.0 change silently —
@@ -125,13 +130,13 @@ until the loop ran again.
 
 The reserve is that missing input, and it is deliberately built as a **raising
 of the floor that already existed** rather than a new parallel concept.
-`RESERVE_TICKS` has always held back the bottom 1/8 (150 mi on the 1200-mi
+`RESERVE_TICKS` has always held back the bottom 1/8 (125 mi on the 1000-mi
 tank) as never-plannable range. Since **v1.35.0** the control is a **switch**:
 
 | Switch | What it holds for arrival | Effect |
 |---|---|---|
 | **off** | nothing extra | the standard reserve — exactly the behaviour of every release before v1.27.0 |
-| **on** | floor **1/4** (150 mi), aim **1/2** (450 mi) | never arrive under a quarter tank, and land the last stop so arrival sits closest to half |
+| **on** | floor **1/4** (125 mi), aim **1/2** (375 mi) | never arrive under a quarter tank, and land the last stop so arrival sits closest to half |
 
 The control narrowed release by release as the real choice got clearer. v1.27.0
 offered a 1/8–1/2 dial. v1.30.1 dropped 1/8 — nobody arrives on an eighth by
@@ -144,10 +149,10 @@ found drivers answering: *do you want fuel left when you get there?*
 
 `ARRIVAL_TOGGLE_TICK = 2` (the floor) and `ARRIVAL_TARGET_TICK = 4` (the aim)
 in `lib/gauge.js` are the whole setting. What the floor costs is stated rather
-than buried: the last stop must sit within `range − 150` of the delivery —
-**350 mi on Regular, 550 on Long, 750 on Max** — satisfiable on every tier,
-which is exactly why the fleet backed off 5/8 (600 mi could never be met on
-Regular's 500). The aim costs nothing: it only chooses *which* reachable stop
+than buried: the last stop must sit within `range − 125` of the delivery —
+**375 mi on Regular, 575 on Long, 775 on Max** — satisfiable on every tier,
+which is exactly why the fleet backed off 5/8 (on the 1200 tank, 600 mi could
+never be met on Regular's 500). The aim costs nothing: it only chooses *which* reachable stop
 is last, never whether one exists, so it can't create a shortfall the floor
 didn't already have, and it never changes the stop count.
 
@@ -166,7 +171,7 @@ can reach `routeMiles + reserve`, which is exactly the condition
 only**: after the fewest-stops loop finishes, the planner looks at every stop
 it could legally have used as the last one (reachable from the previous
 position, still leaving the floor intact) and swaps in the one whose arrival
-range sits closest to 450 mi, breaking near-ties within 15 mi toward the
+range sits closest to 375 mi, breaking near-ties within 15 mi toward the
 smaller detour. Stops before the last are never touched, a zero-stop plan never
 gains one, and with the switch off both numbers are 0 — `fuelplan.test.js` runs
 every pre-existing fixture through both call shapes and deep-compares the
@@ -183,7 +188,7 @@ could then overshoot the mark by hundreds of miles (arrive at 5 mi off, or at
 865). The aim is what closes that: the *number* of stops is still the fewest
 that respect the floor, but the *last* of them is now placed for the arrival,
 not just legality. On a route with sparse stops the aim degrades gracefully to
-the nearest achievable arrival, above or below 450.
+the nearest achievable arrival, above or below 375.
 
 **When the reserve can't be met.** A driver can ask for more than a route can
 give — a Custom range typed below the floor's needs, or a route whose last
@@ -948,6 +953,54 @@ returns `null` for the road layers and the same three lines that mount the
 overlay unmount it.
 
 ## Version history
+
+### v1.39.0
+
+**The tank is evened out: F reads a round 1,000 mi and every eighth steps down
+by the same 125.** `FULL_TANK_MILES` 1200 → **1000**, so `MILES_PER_TICK` is
+125 and the whole gauge is arithmetic a driver can do at a glance — 1000, 875,
+750, 625, 500, 375, 250, 125, E. Two constants changed; every figure the app
+shows moved with them, because all of them are derived.
+
+The 1200 model (v1.36.0) came from the fleet's 2025 Cascadias — 8.5 mpg on dual
+100-gallon tanks, ~1200 mi comfortable full-to-empty. 1000 is the fleet reading
+that back down to an even number, and it rounds in the safe direction: a gauge
+that under-promises range plans more stops, not fewer.
+
+**What moved, all by derivation:**
+
+- **Plannable full** (above the held-back bottom eighth): 1050 → **875**.
+- **The limp figure** — the physical distance in the reserved eighth, named in
+  the E-is-not-selectable note: 150 → **125 mi**.
+- **The arrival switch**: floor 1/4 is **125 mi** (was 150), aim 1/2 is
+  **375 mi** (was 450). The switch's own copy re-derived without a string edit,
+  as it has at every model change since v1.35.0.
+- **What the floor costs**: the final leg may be at most `range − 125` —
+  375 mi on Regular, 575 on Long, 775 on Max. Still satisfiable on every tier.
+
+**Two consequences worth stating rather than burying:**
+
+- **The whole-tick tier flips from Max to Regular.** At 125 a tick, Regular 500
+  is exactly 4 ticks — half the tank, the roundest spot on the scale — while
+  Long 700 (5.6) and Max 900 (7.2) are road-practice numbers. That claim has
+  now changed five times, which is why `gauge.test.js` reads `RANGE_TIERS` out
+  of `index.html` instead of restating it, and now also asserts that *exactly
+  one* tier lands on the scale.
+- **Max 900 overhangs plannable-full (875) by 25 mi again** — the same
+  situation the app carried on the pre-v1.36.0 1000-mi tank. A driver who picks
+  Max *and* a full tank has 25 mi docked off the first leg by
+  `computeStartBurned`. Not a bug and no special case: the gauge tops out at
+  875 plannable, and the dock is the honest difference. The test pins that it
+  stays under one tick and proves with the real planner what it costs (a stop
+  880 mi out is unreachable on a full Max tank; one at 870 is fine).
+
+The tiers themselves (500/700/900) and `RANGE_MAX` 1200 are untouched — the
+Custom clamp has never been tied to the tank model, and has outlived two
+changes to it. Beyond the numbers, `gauge.test.js` now asserts *evenness* as a
+property rather than only as a table: every step down the gauge is the same
+size, the eight steps sum to exactly the full tank, and every reading is a
+whole number of miles. A tank with uneven eighths could satisfy a table of
+literals; it cannot satisfy those three.
 
 ### v1.38.0
 
