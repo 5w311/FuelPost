@@ -1321,33 +1321,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.48.0"></script>
+<script src="lib/fuelplan.js?v=1.49.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.48.0"></script>
+<script src="lib/triptext.js?v=1.49.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.48.0"></script>
+<script src="lib/location.js?v=1.49.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.48.0"></script>
+<script src="lib/gauge.js?v=1.49.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.48.0"></script>
+<script src="lib/corridors.js?v=1.49.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.48.0"></script>
+<script src="lib/nearme.js?v=1.49.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.48.0"></script>
+<script src="lib/extract-version.js?v=1.49.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.48.0"></script>
+<script src="lib/autosuggest.js?v=1.49.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.48.0"></script>
+<script src="lib/baselayer.js?v=1.49.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.48.0"></script>
+<script src="lib/memocache.js?v=1.49.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.48.0"></script>
+<script src="lib/routerank.js?v=1.49.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.48.0"></script>
+<script src="lib/vehicleprofile.js?v=1.49.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.48.0"></script>
+<script src="lib/escape.js?v=1.49.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.48.0"></script>
+<script src="lib/navlinks.js?v=1.49.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1363,7 +1363,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.48.0')
+fetch('lib/fuelplan-adaptive.js?v=1.49.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1380,7 +1380,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.48.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.48.0')
+fetch('lib/shorttrip.js?v=1.49.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1391,7 +1391,7 @@ fetch('lib/shorttrip.js?v=1.48.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.48.0"></script>
+<script src="lib/flexible-polyline.js?v=1.49.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1563,7 +1563,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.48.0';
+const APP_VERSION = '1.49.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -3328,8 +3328,7 @@ function startWatch(){
       // not, and nothing about the STOPS button's first tap moves the map.
       if(locateBtnPending){
         locateBtnPending = false;
-        map.setCenter({ lat: liveFix.lat, lng: liveFix.lng });
-        map.setZoom(11);
+        frameFixWithNearestStops();
       }
     },
     err => handleLocationError(err),
@@ -3419,6 +3418,61 @@ $('locateBtn').addEventListener('pointerdown', e => {
 // A long press on touch otherwise raises the OS text/callout menu over it.
 $('locateBtn').addEventListener('contextmenu', e => e.preventDefault());
 
+/* ---- What a locate tap frames (v1.49.0) ----
+   It used to be a fixed zoom 11 — a fine picture of the truck and a poor one
+   of its options: on a sparse stretch the nearest fuel could sit well outside
+   it, so the button answered "where am I" and left "and what is near me"
+   to a separate panel. The view now zooms out as far as it must to hold the
+   two closest stops, and no further.
+
+   MIRRORED, not fitted to the points. Fitting a rect that merely covers the
+   fix and the stops would shove the dot to whichever edge the stops are not
+   on; reaching just as far the OTHER way keeps the driver in the middle,
+   which is what a locate button is for.
+
+   Never closer than the old zoom 11, so this only ever widens the view: two
+   stops a mile away would otherwise fill the screen with a picture of a
+   parking lot. The floor is expressed in miles rather than a zoom level
+   because the rect is built in degrees — 7.5 mi is what zoom 11 spanned
+   half-across on a phone, measured.
+
+   The ranking is FUEL_STOPS, unfiltered, exactly as the Near Me footer's is:
+   "what is near me" is a different question from "what am I looking for",
+   and the two answers must not disagree about which stop is closest. */
+const LOCATE_MIN_HALF_MI = 7.5;
+const LOCATE_STOPS_IN_VIEW = 2;
+const MI_PER_DEG_LAT = 69;
+
+function frameFixWithNearestStops(){
+  if(!liveFix) return;
+  const at = { lat: liveFix.lat, lng: liveFix.lng };
+  const near = NearMe.nearestStops(at.lat, at.lng, FUEL_STOPS,
+                                   FuelPlan.haversine, LOCATE_STOPS_IN_VIEW);
+  // Plain DEGREES, mirrored. A Mercator-corrected version of this was written
+  // first, on the theory that a degree-symmetric rect cannot be symmetric on
+  // screen — and measuring the dot's actual pixel position disproved it: the
+  // SDK's own bounds fit lands the driver 1px off centre with degrees and
+  // 16px off with the "correction". The projection is the SDK's business.
+  //
+  // (What sent the first version wrong was measuring the geographic centre of
+  // the resulting camera bounds against the fix, and reading the difference as
+  // a display fault. The fit expands the rect to the viewport's aspect ratio
+  // in projected space, so those two points genuinely differ while the dot is
+  // exactly where it should be. Measure pixels for a pixel question.)
+  let halfLat = 0, halfLng = 0;
+  for(const n of near){
+    halfLat = Math.max(halfLat, Math.abs(n.stop.lat - at.lat));
+    halfLng = Math.max(halfLng, Math.abs(n.stop.lng - at.lng));
+  }
+  // Longitude degrees shrink toward the poles; the clamp keeps the division
+  // finite at latitudes this app will never see rather than trusting it not to.
+  const cos = Math.max(0.2, Math.cos(at.lat * Math.PI / 180));
+  halfLat = Math.max(halfLat, LOCATE_MIN_HALF_MI / MI_PER_DEG_LAT);
+  halfLng = Math.max(halfLng, LOCATE_MIN_HALF_MI / (MI_PER_DEG_LAT * cos));
+  fitBoundsWithMargin(new H.geo.Rect(
+    at.lat + halfLat, at.lng - halfLng, at.lat - halfLat, at.lng + halfLng));
+}
+
 $('locateBtn').addEventListener('click', () => {
   if(locateHoldFired){ locateHoldFired = false; return; }  // the hold already acted
   if(locationOff){
@@ -3434,8 +3488,7 @@ $('locateBtn').addEventListener('click', () => {
   // title attribute never surfaces on touch.
   showLocateHint(HINT_TURN_OFF);
   if(liveFix){
-    map.setCenter({ lat: liveFix.lat, lng: liveFix.lng });
-    map.setZoom(11);
+    frameFixWithNearestStops();
     return;
   }
   locateBtnPending = true;
