@@ -11,6 +11,34 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const render = html.slice(html.indexOf('function render(){'));
 const body = render.slice(0, render.indexOf('\n}\n') + 3);
 
+console.log('=== a locate tap frames the two closest stops (v1.49.0) ===');
+// It used to be a fixed zoom 11 — a fine picture of the truck and a poor one
+// of its options. The view now widens as far as it must to hold the two
+// closest stops, and never tightens past what zoom 11 showed.
+{
+  const src = html.replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
+  ok('>>> the framing is computed from the two nearest stops',
+     /const LOCATE_STOPS_IN_VIEW = 2;/.test(src)
+     && /NearMe\.nearestStops\(at\.lat, at\.lng, FUEL_STOPS,\s*\n\s*FuelPlan\.haversine, LOCATE_STOPS_IN_VIEW\)/.test(src));
+  ok('  from FUEL_STOPS, so it cannot disagree with the Near Me footer',
+     !/nearestStops\(at\.lat, at\.lng, currentFiltered/.test(src));
+  // Mirrored, so the driver is in the middle rather than at whichever edge
+  // the stops are not on.
+  ok('>>> the rect is mirrored around the fix, not fitted to the points',
+     /at\.lat \+ halfLat, at\.lng - halfLng, at\.lat - halfLat, at\.lng \+ halfLng/.test(src));
+  ok('>>> and never tighter than the old fixed zoom',
+     /const LOCATE_MIN_HALF_MI = 7\.5;/.test(src)
+     && /halfLat = Math\.max\(halfLat, LOCATE_MIN_HALF_MI \/ MI_PER_DEG_LAT\);/.test(src));
+  // BOTH recenter paths — a tap with a fix in hand, and the first fix after a
+  // tap that had to acquire one. The old code duplicated setCenter+setZoom in
+  // each; either one left behind would frame differently from the other.
+  ok('>>> both recenter paths use it, and neither sets a zoom of its own',
+     (src.match(/frameFixWithNearestStops\(\);/g) || []).length === 2
+     && !/map\.setZoom\(11\)/.test(src),
+     String((src.match(/frameFixWithNearestStops\(\);/g) || []).length));
+}
+
 console.log('=== the search box has two jobs (v1.46.0) ===');
 // Open list -> filter the rows. Closed list -> look a place up on the map.
 // The failure mode this guards is a box doing BOTH: typing a city would then

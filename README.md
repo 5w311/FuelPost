@@ -1032,6 +1032,48 @@ overlay unmount it.
 
 ## Version history
 
+### v1.49.0
+
+**A locate tap now frames the truck AND its two closest fuel stops.** It used
+to be a fixed zoom 11 — a fine picture of the truck and a poor one of its
+options: on a sparse stretch the nearest fuel could sit well outside it, so the
+button answered *where am I* and left *and what is near me* to a separate
+panel.
+
+The view widens as far as it must to hold the two closest stops, and no
+further:
+
+- **Mirrored around the fix, not fitted to the points.** A rect that merely
+  covers the driver and the stops would shove the dot to whichever edge the
+  stops are not on; reaching just as far the other way keeps them in the
+  middle, which is what a locate button is for. Measured: the dot lands 1px
+  off centre.
+- **Never tighter than the old zoom 11.** Two stops a mile apart would
+  otherwise fill the screen with a picture of a parking lot — on Watt Road in
+  Knoxville, where two stops sit 0.1 mi apart, the floor holds the view at
+  ~18 mi across.
+- **Ranked over `FUEL_STOPS`, unfiltered**, exactly as the Near Me footer is:
+  the two answers must not disagree about which stop is closest.
+- **Both recenter paths use it** — a tap with a fix in hand, and the first fix
+  after a tap that had to acquire one. They each carried their own
+  `setCenter` + `setZoom(11)` before.
+
+**The consequence, stated rather than buried:** where the *second* stop is far,
+the view is legitimately wide. From Memphis, with fuel 5 mi away but the next
+stop 121 mi away, a tap frames ~271 mi across. That is the rule doing what it
+says; a cap would need a different rule.
+
+**A correction worth recording.** The first version of this mirrored the rect
+in *Mercator* rather than degrees, on the theory that a degree-symmetric rect
+cannot be symmetric on screen. Measuring the dot's actual pixel position
+disproved it: the SDK's own bounds fit lands the driver **1px** off centre with
+plain degrees and **16px** off with the "correction". What sent that version
+wrong was measuring the geographic centre of the resulting camera bounds
+against the fix and reading the difference as a display fault — the fit expands
+the rect to the viewport's aspect ratio in projected space, so those two points
+genuinely differ while the dot is exactly where it should be. Measure pixels
+for a pixel question.
+
 ### v1.48.0
 
 **Only a tapped suggestion pins a place.** Enter used to geocode whatever was
