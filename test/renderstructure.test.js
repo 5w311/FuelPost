@@ -11,15 +11,15 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const render = html.slice(html.indexOf('function render(){'));
 const body = render.slice(0, render.indexOf('\n}\n') + 3);
 
-console.log('=== a locate tap frames the two closest stops (v1.49.0) ===');
+console.log('=== a locate tap frames the three closest stops (v1.50.0) ===');
 // It used to be a fixed zoom 11 — a fine picture of the truck and a poor one
-// of its options. The view now widens as far as it must to hold the two
+// of its options. The view now widens as far as it must to hold the three
 // closest stops, and never tightens past what zoom 11 showed.
 {
   const src = html.replace(/\/\*[\s\S]*?\*\//g, '')
     .split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
-  ok('>>> the framing is computed from the two nearest stops',
-     /const LOCATE_STOPS_IN_VIEW = 2;/.test(src)
+  ok('>>> the framing is computed from the three nearest stops',
+     /const LOCATE_STOPS_IN_VIEW = 3;/.test(src)
      && /NearMe\.nearestStops\(at\.lat, at\.lng, FUEL_STOPS,\s*\n\s*FuelPlan\.haversine, LOCATE_STOPS_IN_VIEW\)/.test(src));
   ok('  from FUEL_STOPS, so it cannot disagree with the Near Me footer',
      !/nearestStops\(at\.lat, at\.lng, currentFiltered/.test(src));

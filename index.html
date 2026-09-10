@@ -1321,33 +1321,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.49.0"></script>
+<script src="lib/fuelplan.js?v=1.50.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.49.0"></script>
+<script src="lib/triptext.js?v=1.50.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.49.0"></script>
+<script src="lib/location.js?v=1.50.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.49.0"></script>
+<script src="lib/gauge.js?v=1.50.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.49.0"></script>
+<script src="lib/corridors.js?v=1.50.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.49.0"></script>
+<script src="lib/nearme.js?v=1.50.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.49.0"></script>
+<script src="lib/extract-version.js?v=1.50.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.49.0"></script>
+<script src="lib/autosuggest.js?v=1.50.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.49.0"></script>
+<script src="lib/baselayer.js?v=1.50.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.49.0"></script>
+<script src="lib/memocache.js?v=1.50.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.49.0"></script>
+<script src="lib/routerank.js?v=1.50.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.49.0"></script>
+<script src="lib/vehicleprofile.js?v=1.50.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.49.0"></script>
+<script src="lib/escape.js?v=1.50.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.49.0"></script>
+<script src="lib/navlinks.js?v=1.50.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1363,7 +1363,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.49.0')
+fetch('lib/fuelplan-adaptive.js?v=1.50.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1380,7 +1380,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.49.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.49.0')
+fetch('lib/shorttrip.js?v=1.50.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1391,7 +1391,7 @@ fetch('lib/shorttrip.js?v=1.49.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.49.0"></script>
+<script src="lib/flexible-polyline.js?v=1.50.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1563,7 +1563,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.49.0';
+const APP_VERSION = '1.50.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -3418,12 +3418,18 @@ $('locateBtn').addEventListener('pointerdown', e => {
 // A long press on touch otherwise raises the OS text/callout menu over it.
 $('locateBtn').addEventListener('contextmenu', e => e.preventDefault());
 
-/* ---- What a locate tap frames (v1.49.0) ----
+/* ---- What a locate tap frames (v1.49.0, three stops since v1.50.0) ----
    It used to be a fixed zoom 11 — a fine picture of the truck and a poor one
    of its options: on a sparse stretch the nearest fuel could sit well outside
    it, so the button answered "where am I" and left "and what is near me"
    to a separate panel. The view now zooms out as far as it must to hold the
-   two closest stops, and no further.
+   three closest stops, and no further.
+
+   THREE, not two: a driver choosing where to stop is choosing BETWEEN
+   options, and two is the smallest number that is not a choice at all — the
+   nearest, and the one you take if the nearest is wrong. The cost is a wider
+   view where the network thins out, which is the honest shape of the answer
+   there rather than a fault: see LOCATE_STOPS_IN_VIEW's measured spans.
 
    MIRRORED, not fitted to the points. Fitting a rect that merely covers the
    fix and the stops would shove the dot to whichever edge the stops are not
@@ -3440,7 +3446,14 @@ $('locateBtn').addEventListener('contextmenu', e => e.preventDefault());
    "what is near me" is a different question from "what am I looking for",
    and the two answers must not disagree about which stop is closest. */
 const LOCATE_MIN_HALF_MI = 7.5;
-const LOCATE_STOPS_IN_VIEW = 2;
+// Measured spans on a phone, so the trade is on the record rather than a
+// guess. Memphis (fuel 5 mi off, then 121, then 188): 407 mi across, against
+// 271 for two. Eastern Montana (214, 411, 505): 539 against 448. Northern
+// Nevada (121, 183, 190): 402, all but unchanged — the third stop is barely
+// further than the second. Watt Road in Knoxville, where two stops sit 0.1 mi
+// apart and the third is 35 mi out: 41 mi across, where two stops left it on
+// the floor at 18.
+const LOCATE_STOPS_IN_VIEW = 3;
 const MI_PER_DEG_LAT = 69;
 
 function frameFixWithNearestStops(){
