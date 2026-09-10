@@ -1032,6 +1032,32 @@ overlay unmount it.
 
 ## Version history
 
+### v1.50.0
+
+**A locate tap frames the three closest stops, not two.** A driver choosing
+where to stop is choosing *between* options, and two is the smallest number
+that is not a choice at all — the nearest, and the one you take if the nearest
+is wrong.
+
+Everything else is unchanged: mirrored around the fix so the driver stays
+centred, never tighter than the old zoom 11, ranked over `FUEL_STOPS`
+unfiltered.
+
+**What it costs, measured on a phone rather than guessed** — the whole trade is
+in how far the network thins out around you:
+
+| Where | Nearest three | Three in view | Two in view |
+|---|---|---|---|
+| Watt Rd, Knoxville | 0.1, 0.1, 35 mi | **41 mi across** | 18 (on the floor) |
+| Memphis | 5, 121, 188 mi | **407 mi** | 271 |
+| N. Nevada | 121, 183, 190 mi | **402 mi** | 402 |
+| E. Montana | 214, 411, 505 mi | **539 mi** | 448 |
+
+Where the network is dense the third stop costs almost nothing, and at Watt
+Road it actually *improves* the view — two stops 0.1 mi apart left the framing
+pinned to its minimum, showing a parking lot's worth of country. Where the
+network thins, the view is wide because the answer is wide.
+
 ### v1.49.0
 
 **A locate tap now frames the truck AND its two closest fuel stops.** It used
