@@ -11,6 +11,45 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const render = html.slice(html.indexOf('function render(){'));
 const body = render.slice(0, render.indexOf('\n}\n') + 3);
 
+console.log('=== the search box has two jobs (v1.46.0) ===');
+// Open list -> filter the rows. Closed list -> look a place up on the map.
+// The failure mode this guards is a box doing BOTH: typing a city would then
+// hide the very stops the lookup is about to measure against.
+{
+  const src = html.replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
+  ok('>>> one function decides which job is live, from the list state',
+     /function activeSearchQuery\(\)\{\s*\n\s*return listIsOpen\(\) \? state\.q : '';/.test(src));
+  ok('  and the row filter reads THAT, never state.q directly',
+     /const q = activeSearchQuery\(\);/.test(src)
+     && !/if\(state\.q\)\{/.test(src));
+  // Enter is the lookup's trigger and must stay inert while the list is
+  // filtering — a key that does nothing visible is better than one that
+  // silently geocodes what the driver meant as a filter.
+  const kd = src.slice(src.indexOf("getElementById('searchInput').addEventListener('keydown'"));
+  const kdBody = kd.slice(0, kd.indexOf('});') + 3);
+  ok('>>> enter runs the lookup ONLY with the list closed',
+     /if\(listIsOpen\(\)\) return;/.test(kdBody) && /lookupPlace\(q\)/.test(kdBody), kdBody);
+  ok('  and it is the only thing that triggers a lookup — typing does not',
+     (src.match(/lookupPlace\(/g) || []).length === 2,
+     String((src.match(/lookupPlace\(/g) || []).length));
+  // The pin belongs to the text that made it: clearing one clears the other,
+  // or a stale pin outlives the query it answered.
+  const cb = src.slice(src.indexOf("getElementById('searchClearBtn').addEventListener"));
+  ok('>>> clearing the search clears the pin with it',
+     /clearPlace\(\);/.test(cb.slice(0, cb.indexOf('});') + 3)), cb.slice(0, 300));
+  ok('  and the placeholder says which job is live, from the first paint',
+     /function syncSearchMode\(\)\{/.test(src)
+     && /Look up a city/.test(src) && /Search city, state, exit/.test(src)
+     && /syncSearchMode\(\);\s*\nrender\(\);/.test(src));
+  // The pin is not network data: it must never be ranked, filtered or planned.
+  ok('>>> the pin lives in its own group, apart from the stops',
+     /const placeGroup = new H\.map\.Group\(\);/.test(src)
+     && /placeGroup\.setVisibility\(!route\);/.test(src));
+  ok('  and a lookup never touches FUEL_STOPS or the filters',
+     !/FUEL_STOPS\.push/.test(src) && !/placeGroup[\s\S]{0,80}markerGroup/.test(src));
+}
+
 console.log('=== the legend closes on any chrome change (v1.44.0) ===');
 // It is a transient popover over the map, not a panel with state. The bug it
 // replaces: `#listview.show ~ #legendCard{display:none}` HID the card while
@@ -100,11 +139,16 @@ ok('the startup block DEFERS the network fit rather than fitting inline',
 
 const fnFn = html.slice(html.indexOf('function fitNetworkOnce('));
 const fnBody = fnFn.slice(0, fnFn.indexOf('\n}\n') + 3);
-ok('fitNetworkOnce fits markerGroup.getBoundingBox()',
-   /markerGroup\.getBoundingBox\(\)/.test(fnBody) && /setLookAtData\(\{ bounds: b \}\)/.test(fnBody));
+ok('fitNetworkOnce decides WHETHER to fit and delegates the mechanics',
+   /markerGroup\.getBoundingBox\(\)/.test(fnBody) && /fitBoundsWithMargin\(b\);/.test(fnBody));
 ok('it is one-shot', /if\(networkFitDone\) return;/.test(fnBody) && /networkFitDone = true;/.test(fnBody));
-const padIdx = fnBody.indexOf('setPadding(MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN)');
-const fitIdx = fnBody.indexOf('setLookAtData({ bounds: b })');
+// v1.46.0 moved the pad -> fit -> restore dance into fitBoundsWithMargin so
+// the place fit could not carry its own copy of the ordering bug below. The
+// assertions follow it there; there is now ONE site to get right.
+const fbFn = html.slice(html.indexOf('function fitBoundsWithMargin('));
+const fbBody = fbFn.slice(0, fbFn.indexOf('\n}\n') + 3);
+const padIdx = fbBody.indexOf('setPadding(MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN)');
+const fitIdx = fbBody.indexOf('setLookAtData({ bounds: b })');
 ok('the margin is applied BEFORE the fit', padIdx >= 0 && padIdx < fitIdx,
    JSON.stringify({ padIdx, fitIdx }));
 // THE BUG THIS PINS: restoring padding synchronously after setLookAtData
@@ -112,13 +156,23 @@ ok('the margin is applied BEFORE the fit', padIdx >= 0 && padIdx < fitIdx,
 // against the real SDK — the stub cannot catch it, because it computes no
 // zoom. Padding must be restored from the map's own settle event.
 ok('>>> padding is restored on mapviewchangeend, NOT synchronously after the fit',
-   /addEventListener\('mapviewchangeend', restorePadding\)/.test(fnBody)
-   && /removeEventListener\('mapviewchangeend', restorePadding\)/.test(fnBody),
-   fnBody.slice(-400));
-const syncAfterFit = fnBody.indexOf('syncMapPadding();', fitIdx);
-const listenerIdx = fnBody.indexOf('const restorePadding');
+   /addEventListener\('mapviewchangeend', restorePadding\)/.test(fbBody)
+   && /removeEventListener\('mapviewchangeend', restorePadding\)/.test(fbBody),
+   fbBody.slice(-400));
+const syncAfterFit = fbBody.indexOf('syncMapPadding();', fitIdx);
+const listenerIdx = fbBody.indexOf('const restorePadding');
 ok('  the only syncMapPadding after the fit is inside that listener',
    syncAfterFit > listenerIdx, JSON.stringify({ syncAfterFit, listenerIdx }));
+{
+  // A comment-stripped view, built here because codeOnly is declared further
+  // down this file — the prose above describes the dance and would otherwise
+  // be counted as a second site.
+  const src = html.replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
+  ok('  and exactly one site owns the dance, so the two fits cannot diverge',
+     (src.match(/setPadding\(MAP_FIT_MARGIN/g) || []).length === 1,
+     String((src.match(/setPadding\(MAP_FIT_MARGIN/g) || []).length));
+}
 ok('the startup fit never assigns lastFitBounds (route machinery stays route-only)',
    !/lastFitBounds\s*=/.test(buildBlock) && !/lastFitBounds\s*=/.test(fnBody));
 // The route re-fit keys on the FREE AREA, not the padding. Keying on
@@ -821,28 +875,49 @@ ok('  with 44px touch targets, for gloved hands on the move',
 // The ranking must never see a filter. This is the invariant the brief calls
 // out as most likely to be broken later.
 ok('>>> the ranking is fed FUEL_STOPS, never the filtered set',
-   /NearMe\.nearestStops\(liveFix\.lat, liveFix\.lng, FUEL_STOPS,/.test(codeOnly));
+   /NearMe\.nearestStops\(anchor\.lat, anchor\.lng, FUEL_STOPS,/.test(codeOnly));
 ok('  and never currentFiltered or passes()',
    !/nearestStops\([^)]*currentFiltered/.test(codeOnly) && !/nearestStops\([^)]*passes/.test(codeOnly));
 ok('  the real haversine is what measures every mile',
    /FuelPlan\.haversine, NEAR_ME_COUNT\)/.test(codeOnly));
-// One source of truth for "is location on".
-ok('>>> visibility keys off liveFix alone, with no second flag',
-   /if\(!liveFix\)\{\s*el\.hidden = true;/.test(codeOnly));
+// One source of truth for "where is this measured from". v1.46.0 widened it
+// from the live fix to an ANCHOR — the fix, or a place the driver looked up —
+// but it is still exactly one value, resolved in one function, and the panel
+// still appears if and only if there is one.
+ok('>>> visibility keys off the anchor alone, with no second flag',
+   /const anchor = nearAnchor\(\);\s*\n\s*if\(!anchor\)\{\s*\n?\s*el\.hidden = true;/.test(codeOnly));
+ok('  and the anchor is a place OR the fix, in that order, from one function',
+   /function nearAnchor\(\)\{[\s\S]{0,220}if\(placeAnchor\) return placeAnchor;[\s\S]{0,220}liveFix \?/.test(codeOnly));
+ok('  a looked-up place still ranks against FUEL_STOPS, never the filtered set',
+   !/nearestStops\([^)]*currentFiltered/.test(codeOnly));
 ok('  and it re-renders on every fix update', /renderLocationDot\(\);\s*renderNearMe\(\);/.test(codeOnly));
 ok('  and when location is switched off', /liveFix = null;[\s\S]{0,120}renderNearMe\(\);/.test(codeOnly));
 // Movement threshold, so watchPosition jitter does not rebuild the DOM.
 ok('>>> a movement threshold guards the rebuild',
-   /const NEAR_ME_MOVE_MI = 0\.25;/.test(codeOnly) && /if\(moved < NEAR_ME_MOVE_MI\) return;/.test(codeOnly));
+   /const NEAR_ME_MOVE_MI = 0\.25;/.test(codeOnly)
+   && /if\(isPlace \? moved === 0 : moved < NEAR_ME_MOVE_MI\) return;/.test(codeOnly));
+// Switching between a pin and the GPS must ALWAYS rebuild, however close the
+// two happen to be — otherwise dropping a pin beside the driver leaves the
+// GPS rows on screen under a place heading.
+ok('  and switching anchor kind always rebuilds, whatever the distance',
+   /if\(nearMeLastFix && nearMeLastFix\.place === isPlace\)\{/.test(codeOnly)
+   && /nearMeLastFix = \{ lat: anchor\.lat, lng: anchor\.lng, place: isPlace \};/.test(codeOnly));
 // No drive time, ever.
 ok('>>> the summary states miles and a direction, never a time',
    /\$\{Math\.round\(n\.miles\)\} mi \$\{n\.direction\}/.test(codeOnly) &&
    !/\bmin\b|minutes|hrs|hours/.test((/function nearMeDist[\s\S]{0,200}/.exec(codeOnly) || [''])[0]));
 ok('  and the over-cap message still names the distance',
-   /No network stop nearby — nearest is/.test(codeOnly));
-// v1.29.2: the line says what it IS, not just a distance and a name.
-ok('>>> the collapsed line is labelled "Nearest Fuel Stop:"',
-   /<span class="nm-lead">Nearest Fuel Stop:<\/span>/.test(codeOnly));
+   /nothing nearby — nearest is \$\{Esc\.escapeHtml\(nearMeDist\(first\)\)\}/.test(codeOnly));
+// v1.29.2: the line says what it IS, not just a distance and a name. v1.46.0:
+// and WHERE from, when that is not the driver's own position — a place answer
+// under the bare "Nearest Fuel Stop:" would read as "nearest to me", which is
+// the one thing it is not.
+ok('>>> the collapsed line is labelled, and names the place when there is one',
+   /const lead = placeAnchor/.test(codeOnly)
+   && /`Nearest to \$\{/.test(codeOnly)
+   && /: 'Nearest Fuel Stop:';/.test(codeOnly));
+ok('  and the label is escaped, since it is a geocoder string',
+   /Nearest to \$\{Esc\.escapeHtml\(/.test(codeOnly));
 ok('  the label is a smaller muted lead, so the stop keeps the width',
    /\.nm-lead\{font-size:11px;font-weight:600;color:var\(--sub\);\}/.test(html));
 // Measured with an unclipped clone: the longest line needs 311px, and a 320px

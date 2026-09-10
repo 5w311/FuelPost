@@ -1032,6 +1032,54 @@ overlay unmount it.
 
 ## Version history
 
+### v1.46.0
+
+**Look up a city on the Stops map and get the nearest fuel stop.** Type a
+place, press enter, and the map drops a pin and the footer answers from it.
+
+**The search box now has two jobs, decided by whether the list is open:**
+
+| Hamburger | The box does | Enter |
+|---|---|---|
+| **closed** (map) | looks a place up and pins it | runs the lookup |
+| **open** (list) | filters the stops, exactly as before | inert |
+
+`state.q` holds the typed text either way; only its *effect* changes, which is
+what lets the same string switch roles when the list opens without the driver
+retyping it. `activeSearchQuery()` is the one place that decides, and the
+placeholder says which job is live. Filtering the map from the same keystrokes
+that look a city up would mean typing a city both hid stops and searched for
+them.
+
+**The answer reuses Near Me rather than duplicating it.** "What is the nearest
+fuel stop to X" is the question that footer already answers; the only thing
+this adds is a second way to say where X is. So the panel now measures from an
+**anchor** — the GPS fix, or a looked-up place — and the ranking, the rows, the
+distance format and the over-cap sentence are all shared. A place wins over the
+live fix while it exists, because the driver asked for it in so many words;
+clearing the search hands the footer back to the GPS.
+
+The collapsed line names where it measured from — *"Nearest to Memphis, TN: 5
+mi W · Petro W. Memphis"* — because a place answer under the bare "Nearest Fuel
+Stop:" would read as *nearest to me*, which is the one thing it is not. It is
+also what makes a wrong geocode visible and correctable by retyping.
+
+The pin is a question, not a plan: it never enters `FUEL_STOPS`, never filters
+anything, is hidden in Route mode with the rest of the stops chrome, and
+disappears with the text that created it.
+
+**Two things fixed along the way:**
+
+- `shortAddr()` assumed a label with no country, so HERE's `"Memphis, TN,
+  United States"` rendered as **"TN, United States"** — and the Route tab's own
+  summary had been reading `"TX 75052, United States → NJ 07008-3510, United
+  States"` for the same reason. The country now comes off in `shortAddr`
+  itself, so both read as a city and state.
+- The pad → fit → restore-on-settle dance is now one function,
+  `fitBoundsWithMargin`, shared by the startup fit and the place fit. Getting
+  that order wrong silently does nothing at all, so the two fits must not each
+  carry their own copy of it.
+
 ### v1.45.0
 
 **The startup loading state now tracks whether the map is actually on screen.**

@@ -889,6 +889,11 @@
      faded and dashed so the map never makes a gapped route look routine. */
   .rpin.resume{opacity:.6;border-style:dashed;background:#E8D9B0;}
   .rpin.endpt{background:var(--navy);color:#fff;font-size:9.5px;letter-spacing:.3px;}
+  /* The looked-up place on the Stops map. A literal colour like .rpin.resume
+     above, and deliberately none of the four the network uses (gold, TA blue,
+     Petro green, navy): this pin is the QUESTION, not an answer, and a driver
+     scanning for a gold exclusive must never take it for one. */
+  .rpin.place{background:#7A3FBF;color:#fff;font-size:13px;}
   /* Available-but-not-planned stops render as FADED STATION PINS
      (.pin-faded, defined with the .pin family) — the dashed-circle marker
      that lived here read as an abstract shape, not a fuel stop. */
@@ -1315,33 +1320,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.45.0"></script>
+<script src="lib/fuelplan.js?v=1.46.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.45.0"></script>
+<script src="lib/triptext.js?v=1.46.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.45.0"></script>
+<script src="lib/location.js?v=1.46.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.45.0"></script>
+<script src="lib/gauge.js?v=1.46.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.45.0"></script>
+<script src="lib/corridors.js?v=1.46.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.45.0"></script>
+<script src="lib/nearme.js?v=1.46.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.45.0"></script>
+<script src="lib/extract-version.js?v=1.46.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.45.0"></script>
+<script src="lib/autosuggest.js?v=1.46.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.45.0"></script>
+<script src="lib/baselayer.js?v=1.46.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.45.0"></script>
+<script src="lib/memocache.js?v=1.46.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.45.0"></script>
+<script src="lib/routerank.js?v=1.46.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.45.0"></script>
+<script src="lib/vehicleprofile.js?v=1.46.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.45.0"></script>
+<script src="lib/escape.js?v=1.46.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.45.0"></script>
+<script src="lib/navlinks.js?v=1.46.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1357,7 +1362,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.45.0')
+fetch('lib/fuelplan-adaptive.js?v=1.46.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1374,7 +1379,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.45.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.45.0')
+fetch('lib/shorttrip.js?v=1.46.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1385,7 +1390,7 @@ fetch('lib/shorttrip.js?v=1.45.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.45.0"></script>
+<script src="lib/flexible-polyline.js?v=1.46.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1557,7 +1562,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.45.0';
+const APP_VERSION = '1.46.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2021,6 +2026,9 @@ let lastFitFree = null;
 // element has a size. The guard makes it one-shot; the driver owns the
 // camera from then on and nothing re-fits.
 let networkFitDone = false;
+// The one-shot startup fit: frame the whole network the first time the map
+// can honour a bounds fit. Every guard here is about WHETHER to fit; the
+// mechanics of fitting live in fitBoundsWithMargin below.
 function fitNetworkOnce(){
   if(networkFitDone) return;
   const r = document.getElementById('mapwrap').getBoundingClientRect();
@@ -2028,6 +2036,15 @@ function fitNetworkOnce(){
   const b = markerGroup.getBoundingBox();
   if(!b) return;
   networkFitDone = true;
+  fitBoundsWithMargin(b);
+}
+
+// The pad -> fit -> restore-on-settle dance, in one place because getting the
+// ORDER wrong silently does nothing at all (see the comment inside): the
+// startup fit and the place fit would otherwise each carry their own copy of
+// a bug that is invisible until someone looks at the camera.
+function fitBoundsWithMargin(b){
+  if(!b) return;
   // Symmetric margin so the extreme pins (Seattle, Maine, South Florida,
   // SoCal) aren't clipped.
   map.getViewPort().setPadding(MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN);
@@ -2342,6 +2359,11 @@ document.querySelectorAll('#themeSeg button').forEach(b=>b.addEventListener('cli
 
 const markerGroup = new H.map.Group();
 map.addObject(markerGroup);
+// The looked-up place sits in its own group: it is not network data, it must
+// never be filtered with the stops, and clearing it is one removeAll rather
+// than a search through the stop markers for the odd one out.
+const placeGroup = new H.map.Group();
+map.addObject(placeGroup);
 
 /* Amenity thresholds. These are judgment calls, named so each is one edit
    if it proves wrong in practice — and each was set against the real DATA
@@ -2583,7 +2605,13 @@ function passes(row){
   // — see ROW_CORRIDORS.
   if(state.corridor.size
      && !(ROW_CORRIDORS.get(row) || []).some(c => state.corridor.has(c))) return false;
-  if(state.q){
+  // THE SEARCH BOX HAS TWO JOBS (v1.46.0), and which one it is doing depends
+  // on whether the list is open. Open, it filters these rows, exactly as it
+  // always has. Closed — when the driver is looking at the MAP — it looks up
+  // a place instead, and filtering the map from the same keystrokes would
+  // mean typing a city both hid stops and searched for them.
+  const q = activeSearchQuery();
+  if(q){
     // Name, city, state, exit — and since v1.33.0 the NAV CODE, so a driver
     // holding a code off a dispatch message or a fuel receipt can look the
     // stop up instead of having no way to.
@@ -2604,7 +2632,7 @@ function passes(row){
     // deliberately not special-cased: no prefix anchoring, no field-scoped
     // syntax.
     const hay = (row[2]+' '+row[4]+' '+row[5]+' '+row[7]+' '+row[20]).toLowerCase();
-    if(!hay.includes(state.q)) return false;
+    if(!hay.includes(q)) return false;
   }
   // Amenity filters — the evening question, AND-combined with everything
   // above. Three, chosen for SELECTIVITY: a filter earns its place by landing
@@ -2955,10 +2983,46 @@ FILTER_MULTIS.forEach(m => {
   });
   refreshFilterSummary(m);
 });
+// WHICH JOB THE SEARCH BOX IS DOING. The list open means the driver is
+// reading rows, so the text filters them. The list closed means they are
+// looking at the map, where filtering by keystroke and looking a place up are
+// two different intentions competing for one box — so on the map the box is a
+// place lookup and does not filter at all.
+//
+// state.q always holds the typed text either way; only its EFFECT changes,
+// which is what lets the same string switch roles when the list opens without
+// the driver retyping it.
+function listIsOpen(){
+  return document.getElementById('listview').classList.contains('show');
+}
+function activeSearchQuery(){
+  return listIsOpen() ? state.q : '';
+}
+// The box says which job it is doing, because nothing else on screen would.
+function syncSearchMode(){
+  const inp = document.getElementById('searchInput');
+  const filtering = listIsOpen();
+  inp.placeholder = filtering ? 'Search city, state, exit…' : 'Look up a city — press enter';
+  // A mobile keyboard should offer "search" for the lookup and nothing
+  // special for a filter that applies as you type.
+  inp.setAttribute('enterkeyhint', filtering ? 'done' : 'search');
+}
 document.getElementById('searchInput').addEventListener('input', e=>{
   state.q=e.target.value.trim().toLowerCase();
   document.getElementById('searchClearBtn').hidden = !e.target.value.trim();
+  // Filtering is live; a place lookup waits for enter. Rendering here anyway
+  // is what keeps the list correct the moment it is opened — render() marks
+  // it dirty rather than rebuilding behind a closed panel.
   render();
+});
+// Enter runs the lookup, and ONLY on the map: with the list open the same key
+// would be a no-op the driver had no reason to expect.
+document.getElementById('searchInput').addEventListener('keydown', e=>{
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  if(listIsOpen()) return;
+  const q = e.target.value.trim();
+  if(q) lookupPlace(q);
 });
 document.querySelectorAll('#amenWrap button').forEach(b=>{
   b.addEventListener('click', ()=>{
@@ -3011,6 +3075,7 @@ document.getElementById('searchClearBtn').addEventListener('click', ()=>{
   inp.value='';
   state.q='';
   document.getElementById('searchClearBtn').hidden = true;
+  clearPlace();   // the pin came from this box, so it goes with the text
   render();
   inp.focus();
 });
@@ -3021,6 +3086,11 @@ document.getElementById('listToggle').addEventListener('click', ()=>{
   if(opening && listDirty) renderList(currentFiltered);
   el.classList.toggle('show');
   closeLegend();   // both directions — opening hid it, closing brought it back
+  // The box changes job with the panel, and the rows change with it: text
+  // that was filtering a moment ago must stop filtering the map, and vice
+  // versa. Both directions, from the one place that knows the panel moved.
+  syncSearchMode();
+  render();
 });
 // The legend is a transient popover over the map, not a panel with state.
 // Anything that rearranges the chrome around it — switching tabs, or opening
@@ -3050,6 +3120,9 @@ document.addEventListener('click', (e)=>{
   }
 });
 
+// The list starts closed, so the box starts as a place lookup — say so from
+// the first paint rather than only after the panel is toggled once.
+syncSearchMode();
 render();
 
 const $ = id => document.getElementById(id);
@@ -3408,6 +3481,83 @@ const NEAR_ME_MOVE_MI = 0.25;
 let nearMeLastFix = null;            // the fix the current rows were built from
 let nearMeExpanded = false;
 
+/* ---- Looking a place up on the Stops map (v1.46.0) ----
+   "What is the nearest fuel stop to X?" is the question the Near Me footer
+   already answers; the only thing this adds is a second way to say where X
+   is. So it drops a pin, sets the anchor, and lets the SAME panel, ranking
+   and rows do the work — a driver gets one answer in one place whether it
+   came from the GPS or from the search box.
+
+   The pin is a question, not a plan: it never enters FUEL_STOPS, never
+   filters anything, and disappears with the text that created it. */
+let placeAnchor = null;      // {lat,lng,label} from the search box, or null
+let placeToken = 0;          // guards against a slow lookup landing last
+
+// Where the footer is measuring from. A looked-up place WINS over the live
+// fix while it exists: the driver asked for it in so many words, and a GPS
+// answer they did not ask for silently replacing it would be the app
+// arguing with them. Clearing the search hands the footer back to the GPS.
+function nearAnchor(){
+  if(placeAnchor) return placeAnchor;
+  return liveFix ? { lat: liveFix.lat, lng: liveFix.lng, label: null } : null;
+}
+
+function dropPlacePin(lat, lng, label){
+  placeGroup.removeAll();
+  const w = document.createElement('div');
+  // Same DomIcon shape as the route endpoints — see endPin(): the wrapper
+  // div exists because the element handed to DomIcon would otherwise clobber
+  // .rpin's own -50%,-50% anchor transform.
+  w.innerHTML = '<div><div class="rpin place">&#9679;</div></div>';
+  placeGroup.addObject(new H.map.DomMarker({ lat, lng },
+    { icon: new H.map.DomIcon(w.firstElementChild) }));
+  placeAnchor = { lat, lng, label };
+}
+
+function clearPlace(){
+  if(!placeAnchor && !placeGroup.getObjects().length) return;
+  placeGroup.removeAll();
+  placeAnchor = null;
+  placeToken++;            // any lookup still in flight is now stale
+  renderNearMe();          // back to the GPS answer, or hidden if there is none
+}
+
+// Frame the place and the stop being offered, so the answer is visible as a
+// RELATIONSHIP rather than two facts in different parts of the screen.
+function fitPlaceAndNearest(near){
+  const pts = [new H.geo.Point(placeAnchor.lat, placeAnchor.lng)];
+  if(near && near.length) pts.push(new H.geo.Point(near[0].stop.lat, near[0].stop.lng));
+  // One point cannot make a rect worth fitting — centre on it instead and
+  // keep the zoom the driver already had.
+  if(pts.length < 2){ map.setCenter({ lat: placeAnchor.lat, lng: placeAnchor.lng }); return; }
+  fitBoundsWithMargin(H.geo.Rect.coverPoints(pts));
+}
+
+async function lookupPlace(q){
+  const token = ++placeToken;
+  hideLocateError();
+  try {
+    const cands = await geocodeCandidates(q);
+    if(token !== placeToken) return;      // superseded while we waited
+    if(!cands.length){
+      showLocateError(`No place found for “${q}”. Try a city and state — "Memphis, TN".`);
+      return;
+    }
+    // The top match, and the panel NAMES it: this box takes a city, not a
+    // street address, so the candidate list the route tab offers would be
+    // five near-identical rows. Naming what was matched is what makes a wrong
+    // match visible and correctable by retyping.
+    const best = cands[0];
+    dropPlacePin(best.lat, best.lng, best.label);
+    renderNearMe();
+    fitPlaceAndNearest(NearMe.nearestStops(best.lat, best.lng, FUEL_STOPS,
+                                           FuelPlan.haversine, 1));
+  } catch(err){
+    if(token !== placeToken) return;
+    showLocateError('Place lookup failed. Check your connection and try again.');
+  }
+}
+
 function renderNearMe(){
   const el = $('nearMe');
   if(!el) return;
@@ -3415,7 +3565,12 @@ function renderNearMe(){
   // location is off, denied, unavailable or still acquiring, because
   // setLocationOff clears it and nothing else sets it but a real fix.
   const wrap = $('mapwrap');
-  if(!liveFix){
+  // Since v1.46.0 the footer measures from an ANCHOR, not from the fix
+  // directly: a looked-up place answers the same question from a different
+  // starting point. Everything below — the ranking, the rows, the over-cap
+  // sentence — is unchanged and shared.
+  const anchor = nearAnchor();
+  if(!anchor){
     el.hidden = true;
     // Drop the lift: the map's bottom chrome goes back to its own positions.
     wrap.classList.remove('nm-on');
@@ -3426,17 +3581,23 @@ function renderNearMe(){
   el.hidden = false;
   wrap.classList.add('nm-on');
 
-  // Skip the rebuild if the driver hasn't moved far enough to change the
-  // answer. The panel stays exactly as it is — no flicker, no DOM churn.
-  if(nearMeLastFix){
-    const moved = FuelPlan.haversine(nearMeLastFix.lat, nearMeLastFix.lng, liveFix.lat, liveFix.lng);
-    if(moved < NEAR_ME_MOVE_MI) return;
+  // Skip the rebuild if nothing that could change the answer has changed. A
+  // pinned place never moves, so it rebuilds only when it is a DIFFERENT
+  // place; a GPS fix has to have moved far enough to matter, because
+  // watchPosition fires on jitter alone while parked. Switching between the
+  // two always rebuilds, which is what the `place` flag is for — without it,
+  // dropping a pin a hundred yards from the driver would leave the GPS rows
+  // on screen under a place heading.
+  const isPlace = !!placeAnchor;
+  if(nearMeLastFix && nearMeLastFix.place === isPlace){
+    const moved = FuelPlan.haversine(nearMeLastFix.lat, nearMeLastFix.lng, anchor.lat, anchor.lng);
+    if(isPlace ? moved === 0 : moved < NEAR_ME_MOVE_MI) return;
   }
-  nearMeLastFix = { lat: liveFix.lat, lng: liveFix.lng };
+  nearMeLastFix = { lat: anchor.lat, lng: anchor.lng, place: isPlace };
 
   // The real haversine, injected — lib/nearme.js never imports it, so that it
   // stays a plain script with no fetch and no offline dependency.
-  const near = NearMe.nearestStops(liveFix.lat, liveFix.lng, FUEL_STOPS,
+  const near = NearMe.nearestStops(anchor.lat, anchor.lng, FUEL_STOPS,
                                    FuelPlan.haversine, NEAR_ME_COUNT);
   if(!near.length){ el.hidden = true; return; }
 
@@ -3462,9 +3623,16 @@ function renderNearMe(){
   // network ("Petro North Little Rock", 54 characters with the label and a
   // three-digit distance) ellipsised away the end of the name — the one part
   // of the line that is the answer.
+  // The lead names WHERE this is measured from when that is not the driver's
+  // own position. A place answer under the bare "Nearest Fuel Stop:" would
+  // read as "nearest to me", which is the one thing it is not — and the
+  // matched label is also what makes a wrong geocode visible.
+  const lead = placeAnchor
+    ? `Nearest to ${Esc.escapeHtml(shortAddr(placeAnchor.label) || placeAnchor.label || 'pin')}:`
+    : 'Nearest Fuel Stop:';
   $('nmSummary').innerHTML = nearby
-    ? `<span class="nm-lead">Nearest Fuel Stop:</span> ${Esc.escapeHtml(nearMeDist(first) + ' · ' + first.stop.name)}`
-    : `No network stop nearby — nearest is ${Esc.escapeHtml(nearMeDist(first))}`;
+    ? `<span class="nm-lead">${lead}</span> ${Esc.escapeHtml(nearMeDist(first) + ' · ' + first.stop.name)}`
+    : `<span class="nm-lead">${lead}</span> nothing nearby — nearest is ${Esc.escapeHtml(nearMeDist(first))}`;
 
   const body = $('nearMeBody');
   body.innerHTML = '';
@@ -3754,7 +3922,13 @@ $('routeResultsBodyWrap').addEventListener('transitionend', e => {
 function shortAddr(label){
   if(!label) return '';
   const parts = label.split(',').map(s => s.trim()).filter(Boolean);
-  if(parts.length < 2) return label;
+  // HERE labels end with the country — "Memphis, TN, United States",
+  // "1234 Main St, Carteret, NJ 07008-3510, United States" — which shifted
+  // the city/state pair one part left and rendered as "TN, United States"
+  // and "NJ 07008-3510, United States". Every caller wants the city and the
+  // state, so the country comes off here rather than at each call site.
+  if(parts.length > 1 && /^(United States|USA|US)$/i.test(parts[parts.length - 1])) parts.pop();
+  if(parts.length < 2) return parts[0] || label;
   const city = parts[parts.length - 2];
   const stateMatch = parts[parts.length - 1].match(/^[A-Z]{2}\b/);
   return stateMatch ? `${city}, ${stateMatch[0]}` : `${city}, ${parts[parts.length - 1]}`;
@@ -3791,6 +3965,7 @@ function setMode(mode){
   document.querySelectorAll('#modeSeg button').forEach(b =>
     b.classList.toggle('active', b.dataset.v === mode));
   markerGroup.setVisibility(!route);
+  placeGroup.setVisibility(!route);
   routeGroup.setVisibility(route);
   $('routeResults').classList.toggle('show', route && !!$('routeResultsBody').innerHTML);
   syncRrTabShowing();
