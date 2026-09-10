@@ -1032,6 +1032,32 @@ overlay unmount it.
 
 ## Version history
 
+### v1.48.0
+
+**Only a tapped suggestion pins a place.** Enter used to geocode whatever was
+typed, which meant the app picked a place the driver had not chosen and dropped
+a pin on it — a guess wearing the same clothes as an answer. Enter now just
+puts the keyboard and the dropdown away; the pin comes from
+`selectSuggestion` and nowhere else, and the placeholder names that gesture:
+*"Look up a city — tap a match"*.
+
+The geocoder keeps exactly one caller: a chosen suggestion that carries **no
+position of its own** (a categoryQuery/chainQuery item). The driver did choose
+something there, so it still earns a pin, and its failure modes still speak.
+
+**A bug the browser suite caught while proving this.** `hideSuggest()` closed
+the dropdown but left the debounce timer and the in-flight request running, so
+a suggestion response landing a moment after enter re-opened a list the driver
+had just dismissed. Hiding now means "no suggestions wanted", including the
+ones not back yet: the timer is cleared and the per-field token bumped, so a
+late response is dropped rather than rendered.
+
+**And a second one in the test itself** — the same memoisation trap as
+v1.47.0, from the other end. `geocodeCandidates` caches by label, so the
+"dead geocoder" case was replaying the cached answer from the "no place found"
+case and asserting the wrong message. The fixture now gives each case its own
+label.
+
 ### v1.47.0
 
 **The Stops search box suggests cities as you type, and a found place is
