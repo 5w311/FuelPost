@@ -62,9 +62,15 @@ console.log('\n=== the mirror above still matches index.html ===');
 ok('>>> the haystack includes row[20], after the exit field',
    /const hay = \(row\[2\]\+' '\+row\[4\]\+' '\+row\[5\]\+' '\+row\[7\]\+' '\+row\[20\]\)\.toLowerCase\(\);/.test(code));
 ok('  and the match is still a plain lowercased substring',
-   /if\(!hay\.includes\(state\.q\)\) return false;/.test(code));
+   /if\(!hay\.includes\(q\)\) return false;/.test(code));
 ok('  with no prefix anchoring or field-scoped syntax added',
-   !/startsWith\(state\.q\)/.test(code) && !/state\.q\.split\(':'\)/.test(code));
+   !/startsWith\(q\)/.test(code) && !/\.split\(':'\)/.test(code));
+// v1.46.0 put the typed text through activeSearchQuery() so it only filters
+// while the LIST is open — on the map the same box looks a place up instead.
+// What is matched is unchanged; only whether it is matched at all.
+ok('  and what it matches is the ACTIVE query, so the map is not filtered by a lookup',
+   /const q = activeSearchQuery\(\);/.test(code)
+   && /return listIsOpen\(\) \? state\.q : '';/.test(code));
 
 console.log('\n=== searching by nav code ===');
 {
