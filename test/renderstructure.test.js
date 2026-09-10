@@ -23,13 +23,29 @@ console.log('=== the search box has two jobs (v1.46.0) ===');
   ok('  and the row filter reads THAT, never state.q directly',
      /const q = activeSearchQuery\(\);/.test(src)
      && !/if\(state\.q\)\{/.test(src));
-  // Enter is the lookup's trigger and must stay inert while the list is
-  // filtering — a key that does nothing visible is better than one that
-  // silently geocodes what the driver meant as a filter.
+  // v1.48.0 — ONLY a tapped suggestion pins a place. Enter used to geocode
+  // whatever was typed, which put a pin on a place the driver never chose.
   const kd = src.slice(src.indexOf("getElementById('searchInput').addEventListener('keydown'"));
   const kdBody = kd.slice(0, kd.indexOf('});') + 3);
-  ok('>>> enter runs the lookup ONLY with the list closed',
-     /if\(listIsOpen\(\)\) return;/.test(kdBody) && /lookupPlace\(q\)/.test(kdBody), kdBody);
+  ok('>>> enter never pins anything — it only dismisses',
+     !/lookupPlace\(/.test(kdBody) && /hideSuggest\('place'\);/.test(kdBody), kdBody);
+  ok('  and it stays out of the way entirely while the list is filtering',
+     /if\(listIsOpen\(\)\) return;/.test(kdBody), kdBody);
+  ok('>>> the ONLY caller that pins is the suggestion selection',
+     /if\(field === 'place'\)\{[\s\S]{0,400}showPlace\(cand\.lat, cand\.lng, cand\.label\);/.test(src)
+     && (src.match(/lookupPlace\(/g) || []).length === 2,   // the definition + the needsLookup fallback
+     String((src.match(/lookupPlace\(/g) || []).length));
+  ok('  and the copy names that gesture, not a key that no longer works',
+     /Look up a city — tap a match/.test(src) && !/press enter/.test(src));
+  // Hiding the dropdown has to cancel the work still coming, or a response
+  // that lands a moment after enter re-opens a list the driver dismissed.
+  {
+    const hs = src.slice(src.indexOf('function hideSuggest(field){'));
+    const hsBody = hs.slice(0, hs.indexOf('\n}\n') + 3);
+    ok('>>> hiding a dropdown cancels the pending debounce AND the in-flight fetch',
+       /clearTimeout\(suggestDebounce\[field\]\);/.test(hsBody)
+       && /suggestToken\[field\]\+\+;/.test(hsBody), hsBody);
+  }
   {
     const ih = src.slice(src.indexOf("getElementById('searchInput').addEventListener('input'"));
     const ihBody = ih.slice(0, ih.indexOf('});') + 3);

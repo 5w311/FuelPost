@@ -1321,33 +1321,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.47.0"></script>
+<script src="lib/fuelplan.js?v=1.48.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.47.0"></script>
+<script src="lib/triptext.js?v=1.48.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.47.0"></script>
+<script src="lib/location.js?v=1.48.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.47.0"></script>
+<script src="lib/gauge.js?v=1.48.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.47.0"></script>
+<script src="lib/corridors.js?v=1.48.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.47.0"></script>
+<script src="lib/nearme.js?v=1.48.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.47.0"></script>
+<script src="lib/extract-version.js?v=1.48.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.47.0"></script>
+<script src="lib/autosuggest.js?v=1.48.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.47.0"></script>
+<script src="lib/baselayer.js?v=1.48.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.47.0"></script>
+<script src="lib/memocache.js?v=1.48.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.47.0"></script>
+<script src="lib/routerank.js?v=1.48.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.47.0"></script>
+<script src="lib/vehicleprofile.js?v=1.48.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.47.0"></script>
+<script src="lib/escape.js?v=1.48.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.47.0"></script>
+<script src="lib/navlinks.js?v=1.48.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1363,7 +1363,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.47.0')
+fetch('lib/fuelplan-adaptive.js?v=1.48.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1380,7 +1380,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.47.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.47.0')
+fetch('lib/shorttrip.js?v=1.48.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1391,7 +1391,7 @@ fetch('lib/shorttrip.js?v=1.47.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.47.0"></script>
+<script src="lib/flexible-polyline.js?v=1.48.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1563,7 +1563,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.47.0';
+const APP_VERSION = '1.48.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -3003,7 +3003,9 @@ function activeSearchQuery(){
 function syncSearchMode(){
   const inp = document.getElementById('searchInput');
   const filtering = listIsOpen();
-  inp.placeholder = filtering ? 'Search city, state, exit…' : 'Look up a city — press enter';
+  // The lookup copy names the ONE gesture that pins a place, because that is
+  // now the only one: typing alone does nothing, and enter does not either.
+  inp.placeholder = filtering ? 'Search city, state, exit…' : 'Look up a city — tap a match';
   // A mobile keyboard should offer "search" for the lookup and nothing
   // special for a filter that applies as you type.
   inp.setAttribute('enterkeyhint', filtering ? 'done' : 'search');
@@ -3030,13 +3032,17 @@ document.getElementById('searchInput').addEventListener('blur', ()=>{
 });
 // Enter runs the lookup, and ONLY on the map: with the list open the same key
 // would be a no-op the driver had no reason to expect.
+// ONLY A TAPPED SUGGESTION PINS A PLACE (v1.48.0). Enter used to geocode
+// whatever was typed, which meant the app picked a place the driver had not
+// chosen and dropped a pin on it — a guess wearing the same clothes as an
+// answer. Enter now just puts the keyboard and the dropdown away; the pin
+// comes from selectSuggestion and nowhere else.
 document.getElementById('searchInput').addEventListener('keydown', e=>{
   if(e.key !== 'Enter') return;
-  e.preventDefault();
+  e.preventDefault();          // never submit; there is no form to submit to
   if(listIsOpen()) return;
   hideSuggest('place');
-  const q = e.target.value.trim();
-  if(q) lookupPlace(q);
+  e.target.blur();             // a phone keyboard covering the map helps nobody
 });
 document.querySelectorAll('#amenWrap button').forEach(b=>{
   b.addEventListener('click', ()=>{
@@ -3565,6 +3571,10 @@ function showPlace(lat, lng, label){
   centreOnPlace();
 }
 
+// The fallback for a chosen suggestion that carries NO position of its own —
+// categoryQuery/chainQuery items. Rare for a city, but the driver did choose
+// something, so it still earns a pin; the label they picked is what gets
+// resolved. This is no longer reachable by typing: see the enter handler.
 async function lookupPlace(q){
   const token = ++placeToken;
   hideLocateError();
@@ -5415,6 +5425,13 @@ function setSuggestClipping(field, clipped){
 
 function hideSuggest(field){
   const { list, input } = suggestFieldEls(field);
+  // Hiding means "no suggestions wanted", which has to include the ones not
+  // back yet: a debounce that fires after this, or a fetch that lands after
+  // it, would otherwise re-open a dropdown the driver just dismissed. Caught
+  // by the browser suite — enter closed the list and a keystroke's worth of
+  // in-flight request re-opened it a moment later.
+  clearTimeout(suggestDebounce[field]);
+  suggestToken[field]++;          // any response still in flight is now stale
   list.hidden = true;
   input.setAttribute('aria-expanded', 'false');
   list.innerHTML = '';
