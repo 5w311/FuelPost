@@ -969,10 +969,11 @@
     </button>
     <div class="search-wrap stops-only">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input id="searchInput" placeholder="Search city, state, exit…">
+      <input id="searchInput" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="placeSuggest" autocomplete="off" placeholder="Search city, state, exit…">
       <button type="button" id="searchClearBtn" class="rb-clear-field-btn" title="Clear search" aria-label="Clear search" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
+      <div class="suggest-list" id="placeSuggest" hidden></div>
     </div>
     <button class="iconbtn stops-only" id="listToggle" title="List view">☰</button>
   </div>
@@ -1320,33 +1321,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.46.0"></script>
+<script src="lib/fuelplan.js?v=1.47.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.46.0"></script>
+<script src="lib/triptext.js?v=1.47.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.46.0"></script>
+<script src="lib/location.js?v=1.47.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.46.0"></script>
+<script src="lib/gauge.js?v=1.47.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.46.0"></script>
+<script src="lib/corridors.js?v=1.47.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.46.0"></script>
+<script src="lib/nearme.js?v=1.47.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.46.0"></script>
+<script src="lib/extract-version.js?v=1.47.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.46.0"></script>
+<script src="lib/autosuggest.js?v=1.47.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.46.0"></script>
+<script src="lib/baselayer.js?v=1.47.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.46.0"></script>
+<script src="lib/memocache.js?v=1.47.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.46.0"></script>
+<script src="lib/routerank.js?v=1.47.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.46.0"></script>
+<script src="lib/vehicleprofile.js?v=1.47.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.46.0"></script>
+<script src="lib/escape.js?v=1.47.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.46.0"></script>
+<script src="lib/navlinks.js?v=1.47.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1362,7 +1363,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.46.0')
+fetch('lib/fuelplan-adaptive.js?v=1.47.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1379,7 +1380,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.46.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.46.0')
+fetch('lib/shorttrip.js?v=1.47.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1390,7 +1391,7 @@ fetch('lib/shorttrip.js?v=1.46.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.46.0"></script>
+<script src="lib/flexible-polyline.js?v=1.47.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1562,7 +1563,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.46.0';
+const APP_VERSION = '1.47.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -3010,10 +3011,22 @@ function syncSearchMode(){
 document.getElementById('searchInput').addEventListener('input', e=>{
   state.q=e.target.value.trim().toLowerCase();
   document.getElementById('searchClearBtn').hidden = !e.target.value.trim();
+  // Suggestions belong to the LOOKUP job only: offering cities to tap while
+  // the driver is filtering rows would be a dropdown over the very list they
+  // are reading. Same debounce and 3-char minimum as the route fields, for
+  // the same reason — autosuggest fires far more often than anything else
+  // here, on a shared key.
+  if(listIsOpen()) hideSuggest('place'); else queueSuggest('place');
   // Filtering is live; a place lookup waits for enter. Rendering here anyway
   // is what keeps the list correct the moment it is opened — render() marks
   // it dirty rather than rebuilding behind a closed panel.
   render();
+});
+// A dropdown left open over the map after the box loses focus is stale by
+// definition. mousedown on a row already preventDefaults the blur, so this
+// cannot eat a tap on a suggestion.
+document.getElementById('searchInput').addEventListener('blur', ()=>{
+  setTimeout(()=>hideSuggest('place'), 120);
 });
 // Enter runs the lookup, and ONLY on the map: with the list open the same key
 // would be a no-op the driver had no reason to expect.
@@ -3021,6 +3034,7 @@ document.getElementById('searchInput').addEventListener('keydown', e=>{
   if(e.key !== 'Enter') return;
   e.preventDefault();
   if(listIsOpen()) return;
+  hideSuggest('place');
   const q = e.target.value.trim();
   if(q) lookupPlace(q);
 });
@@ -3076,6 +3090,7 @@ document.getElementById('searchClearBtn').addEventListener('click', ()=>{
   state.q='';
   document.getElementById('searchClearBtn').hidden = true;
   clearPlace();   // the pin came from this box, so it goes with the text
+  hideSuggest('place');
   render();
   inp.focus();
 });
@@ -3090,6 +3105,7 @@ document.getElementById('listToggle').addEventListener('click', ()=>{
   // that was filtering a moment ago must stop filtering the map, and vice
   // versa. Both directions, from the one place that knows the panel moved.
   syncSearchMode();
+  hideSuggest('place');   // the box just changed job; its suggestions go with it
   render();
 });
 // The legend is a transient popover over the map, not a panel with state.
@@ -3522,15 +3538,31 @@ function clearPlace(){
   renderNearMe();          // back to the GPS answer, or hidden if there is none
 }
 
-// Frame the place and the stop being offered, so the answer is visible as a
-// RELATIONSHIP rather than two facts in different parts of the screen.
-function fitPlaceAndNearest(near){
-  const pts = [new H.geo.Point(placeAnchor.lat, placeAnchor.lng)];
-  if(near && near.length) pts.push(new H.geo.Point(near[0].stop.lat, near[0].stop.lng));
-  // One point cannot make a rect worth fitting — centre on it instead and
-  // keep the zoom the driver already had.
-  if(pts.length < 2){ map.setCenter({ lat: placeAnchor.lat, lng: placeAnchor.lng }); return; }
-  fitBoundsWithMargin(H.geo.Rect.coverPoints(pts));
+// CENTRE ON THE PIN, at a fixed regional zoom. v1.46.0 framed the pin and the
+// nearest stop together, which sounds better than it looks: the zoom then
+// depended on how far the nearest stop happened to be, so the same gesture
+// landed somewhere different every time and the pin was rarely in the middle.
+// A constant zoom puts the place where the driver pointed, every time.
+//
+// 8 is measured, not guessed: on a 390px phone it shows ~119 mi across and
+// ~228 mi top to bottom, which holds a city and the network around it — the
+// nearest stop is usually in frame, and the footer names the distance and
+// direction when it is not.
+const PLACE_ZOOM = 8;
+function centreOnPlace(){
+  map.getViewModel().setLookAtData({
+    position: { lat: placeAnchor.lat, lng: placeAnchor.lng },
+    zoom: PLACE_ZOOM
+  });
+}
+
+// One path for "a place is now the anchor", whether it came from a typed
+// query or a tapped suggestion: pin, answer, centre. Two call sites doing
+// these three things in their own order is how they drift apart.
+function showPlace(lat, lng, label){
+  dropPlacePin(lat, lng, label);
+  renderNearMe();
+  centreOnPlace();
 }
 
 async function lookupPlace(q){
@@ -3548,10 +3580,7 @@ async function lookupPlace(q){
     // five near-identical rows. Naming what was matched is what makes a wrong
     // match visible and correctable by retyping.
     const best = cands[0];
-    dropPlacePin(best.lat, best.lng, best.label);
-    renderNearMe();
-    fitPlaceAndNearest(NearMe.nearestStops(best.lat, best.lng, FUEL_STOPS,
-                                           FuelPlan.haversine, 1));
+    showPlace(best.lat, best.lng, best.label);
   } catch(err){
     if(token !== placeToken) return;
     showLocateError('Place lookup failed. Check your connection and try again.');
@@ -5344,7 +5373,7 @@ function resetPreConfirmed(field){
    autosuggest fires far more often than the once-per-plan geocode/route
    calls elsewhere in this app; don't lower either value without weighing
    that tradeoff again. */
-const suggestDebounce = { pickup: null, delivery: null };
+const suggestDebounce = { pickup: null, delivery: null, place: null };
 // Where autosuggest looks from when there's no GPS fix yet. Deliberately
 // mirrors the map's own initial center (the H.Map constructor above) — the
 // network's geographic center is already the app's "no better information"
@@ -5354,22 +5383,32 @@ const SUGGEST_FALLBACK_AT = '39.5000,-98.3500';
 // keeps typing, an earlier request's response can land after a later one.
 // Whichever request's token no longer matches current when it resolves is
 // stale and gets dropped rather than rendered as if it were current.
-const suggestToken = { pickup: 0, delivery: 0 };
-let suggestItems = { pickup: [], delivery: [] };
+const suggestToken = { pickup: 0, delivery: 0, place: 0 };
+let suggestItems = { pickup: [], delivery: [], place: [] };
 
 function suggestFieldEls(field){
-  return field === 'pickup'
-    ? { input: $('pickupInput'), list: $('pickupSuggest') }
-    : { input: $('deliveryInput'), list: $('deliverySuggest') };
+  if(field === 'pickup')   return { input: $('pickupInput'),   list: $('pickupSuggest') };
+  if(field === 'delivery') return { input: $('deliveryInput'), list: $('deliverySuggest') };
+  // 'place' — the Stops search box, which suggests cities rather than
+  // addresses but rides the same debounce, token, cache and markup.
+  return { input: $('searchInput'), list: $('placeSuggest') };
 }
 
-// #routebar and .rb-body are overflow:hidden for the collapse-to-a-tab
-// animation elsewhere — that would clip the dropdown (position:absolute,
-// see the CSS) since it can run taller than the field's own remaining
-// space. Lifting the clipping only while a dropdown is actually open (and
-// only on those two ancestors, not permanently) keeps the collapse
-// animation's own overflow:hidden intact the rest of the time.
-function setSuggestClipping(clipped){
+// A dropdown hangs BELOW its field, and both places a field can live are
+// clipped for their own reasons: #routebar and .rb-body are overflow:hidden
+// for the collapse-to-a-tab animation, and .toolbar is overflow-x:auto so the
+// control row can scroll on a narrow screen — which clips the Y axis too,
+// because a non-visible value on one axis forces the other to clip as well.
+// Either way the dropdown can run taller than the field's remaining space.
+//
+// Lift the clipping only while a dropdown is actually open, and only on the
+// ancestor that belongs to that field: the collapse animation and the
+// horizontal scroll both keep working the rest of the time.
+function setSuggestClipping(field, clipped){
+  if(field === 'place'){
+    document.querySelector('.toolbar').style.overflow = clipped ? '' : 'visible';
+    return;
+  }
   $('routebar').style.overflow = clipped ? '' : 'visible';
   $('routebarBody').style.overflow = clipped ? '' : 'visible';
 }
@@ -5380,7 +5419,8 @@ function hideSuggest(field){
   input.setAttribute('aria-expanded', 'false');
   list.innerHTML = '';
   suggestItems[field] = [];
-  if($('pickupSuggest').hidden && $('deliverySuggest').hidden) setSuggestClipping(true);
+  if(field === 'place'){ setSuggestClipping('place', true); return; }
+  if($('pickupSuggest').hidden && $('deliverySuggest').hidden) setSuggestClipping(field, true);
 }
 
 function queueSuggest(field){
@@ -5453,17 +5493,43 @@ async function fireSuggest(field, q){
   renderSuggest(field, items);
 }
 
+// The Stops box asks for a CITY, so city-like results come first — but
+// nothing is dropped. Filtering by resultType would mean betting the whole
+// dropdown on a guess about a response this app cannot observe from a
+// domain-locked key; a stable sort that merely reorders costs nothing if the
+// guess is wrong, and puts "Memphis, TN" above "Memphis Ave" when it is right.
+const CITYISH_RESULT_TYPES = ['locality', 'administrativeArea'];
+function cityFirst(items){
+  const rank = it => CITYISH_RESULT_TYPES.indexOf(it && it.resultType) === -1 ? 1 : 0;
+  return items
+    .map((it, i) => ({ it, i }))                       // index keeps it stable
+    .sort((a, b) => rank(a.it) - rank(b.it) || a.i - b.i)
+    .map(x => x.it);
+}
+
+// What the row SHOWS. The country is noise in a US-only app and pushes the
+// part that identifies the place off the end of a phone-width row — the same
+// trailing ", United States" that shortAddr strips. The full label still
+// travels with the item, so nothing is lost from what gets pinned.
+function suggestRowLabel(label){
+  const parts = String(label || '').split(',').map(t => t.trim()).filter(Boolean);
+  if(parts.length > 1 && /^(United States|USA|US)$/i.test(parts[parts.length - 1])) parts.pop();
+  return parts.join(', ');
+}
+
 function renderSuggest(field, items){
   const { list } = suggestFieldEls(field);
+  if(field === 'place') items = cityFirst(items);
   if(!items.length){ hideSuggest(field); return; }
   suggestItems[field] = items;
   // Same label resolution as AutoSuggest.candidateFromSuggestItem, so what's
   // shown in the dropdown always matches what actually fills the field.
   list.innerHTML = items.map((item, i) => {
     const label = (item.address && item.address.label) || item.title || '';
-    return `<button type="button" class="suggest-item" role="option" aria-selected="false" data-idx="${i}">${Esc.escapeHtml(label)}</button>`;
+    const shown = field === 'place' ? suggestRowLabel(label) : label;
+    return `<button type="button" class="suggest-item" role="option" aria-selected="false" data-idx="${i}">${Esc.escapeHtml(shown)}</button>`;
   }).join('');
-  setSuggestClipping(false);
+  setSuggestClipping(field, false);
   list.hidden = false;
   // Standard combobox shape: the input owns an expanded listbox of options.
   // Roles only — arrow-key navigation is deliberately out of scope for a
@@ -5487,6 +5553,20 @@ async function selectSuggestion(field, idx){
 
   let cand = AutoSuggest.candidateFromSuggestItem(item);
   if(!cand) return; // malformed — leave the typed text alone; forward-geocode-on-submit still handles it
+
+  // The Stops box: a tapped suggestion already carries its position, so this
+  // pins it directly. Re-geocoding the label would be a second call that can
+  // only agree with, or contradict, the answer the driver just chose.
+  if(field === 'place'){
+    if(cand.needsLookup) { lookupPlace(suggestRowLabel(cand.label)); return; }
+    const inp = $('searchInput');
+    inp.value = suggestRowLabel(cand.label);
+    state.q = inp.value.trim().toLowerCase();
+    $('searchClearBtn').hidden = !inp.value.trim();
+    placeToken++;                    // any typed-and-entered lookup is now stale
+    showPlace(cand.lat, cand.lng, cand.label);
+    return;
+  }
 
   if(cand.needsLookup){
     // categoryQuery/chainQuery items carry no position of their own — should

@@ -1032,6 +1032,45 @@ overlay unmount it.
 
 ## Version history
 
+### v1.47.0
+
+**The Stops search box suggests cities as you type, and a found place is
+centred rather than framed.** Both from the road, after v1.46.0 shipped.
+
+**Suggestions.** The box is now a combobox with its own dropdown, riding the
+same debounce, 3-char minimum, per-field token and cache the Route tab's
+address fields already use — the machinery gained a third field rather than a
+second copy. Suggestions belong to the LOOKUP job only: with the list open the
+dropdown never appears and no autosuggest call is made, because offering
+cities to tap over the rows a driver is reading is a dropdown in the way.
+
+- **City-like results are re-ordered first, and nothing is dropped.** Filtering
+  by `resultType` would bet the whole dropdown on a guess about a response this
+  app cannot observe (the API key is domain-locked, correctly). A *stable sort*
+  costs nothing if the guess is wrong and puts "Memphis, TN" above "Memphis
+  Avenue" when it is right.
+- **Rows drop the trailing country**, the same noise `shortAddr` strips: it
+  pushes the part that identifies a place off the end of a phone-width row.
+- **A tapped suggestion pins its own position**, with no second geocode — that
+  call could only agree with, or contradict, the answer the driver just chose.
+- `.toolbar` is `overflow-x:auto` so the control row can scroll on a narrow
+  screen, which clips the Y axis too. It is unclipped only while the dropdown
+  is open, the same contract `#routebar` already had for its collapse
+  animation — one function, the right ancestor per field.
+
+**Centred, not framed.** v1.46.0 fitted the pin and the nearest stop together,
+which sounds better than it looks: the zoom then depended on how far the
+nearest stop happened to be, so the same gesture landed somewhere different
+every time and the pin was rarely in the middle. The map now centres the pin at
+a fixed **zoom 8** — measured, not guessed: on a 390px phone that frames
+~119 mi across and ~228 mi top to bottom, which holds a city and the network
+around it. The footer still names the distance and direction when the nearest
+stop falls outside that.
+
+`showPlace()` is the one path for "a place is now the anchor" — pin, answer,
+centre — because two entry points (a typed query and a tapped suggestion)
+doing those three things in their own order is how they drift apart.
+
 ### v1.46.0
 
 **Look up a city on the Stops map and get the nearest fuel stop.** Type a

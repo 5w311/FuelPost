@@ -30,9 +30,14 @@ console.log('=== the search box has two jobs (v1.46.0) ===');
   const kdBody = kd.slice(0, kd.indexOf('});') + 3);
   ok('>>> enter runs the lookup ONLY with the list closed',
      /if\(listIsOpen\(\)\) return;/.test(kdBody) && /lookupPlace\(q\)/.test(kdBody), kdBody);
-  ok('  and it is the only thing that triggers a lookup — typing does not',
-     (src.match(/lookupPlace\(/g) || []).length === 2,
-     String((src.match(/lookupPlace\(/g) || []).length));
+  {
+    const ih = src.slice(src.indexOf("getElementById('searchInput').addEventListener('input'"));
+    const ihBody = ih.slice(0, ih.indexOf('});') + 3);
+    ok('  and typing NEVER triggers a lookup — only enter or a tapped suggestion',
+       !/lookupPlace\(/.test(ihBody), ihBody);
+    ok('  typing does ask for suggestions, but only in lookup mode',
+       /if\(listIsOpen\(\)\) hideSuggest\('place'\); else queueSuggest\('place'\);/.test(ihBody), ihBody);
+  }
   // The pin belongs to the text that made it: clearing one clears the other,
   // or a stale pin outlives the query it answered.
   const cb = src.slice(src.indexOf("getElementById('searchClearBtn').addEventListener"));
@@ -42,6 +47,29 @@ console.log('=== the search box has two jobs (v1.46.0) ===');
      /function syncSearchMode\(\)\{/.test(src)
      && /Look up a city/.test(src) && /Search city, state, exit/.test(src)
      && /syncSearchMode\(\);\s*\nrender\(\);/.test(src));
+  // v1.47.0 — suggestions on the Stops box, and a centred view.
+  ok('>>> the box is a combobox with its own dropdown',
+     /id="searchInput"[^>]*role="combobox"[^>]*aria-controls="placeSuggest"/.test(html)
+     && /id="placeSuggest"/.test(html));
+  ok('  and the toolbar is unclipped only while that dropdown is open',
+     /if\(field === 'place'\)\{\s*\n\s*document\.querySelector\('\.toolbar'\)\.style\.overflow = clipped \? '' : 'visible';/.test(src));
+  ok('>>> city-like results are re-ordered first, and NOTHING is dropped',
+     /function cityFirst\(items\)\{/.test(src)
+     && /\.map\(x => x\.it\);/.test(src)
+     && !/items\.filter\([^)]*resultType/.test(src));
+  ok('  and renderSuggest actually APPLIES it to the place field',
+     /if\(field === 'place'\) items = cityFirst\(items\);/.test(src));
+  ok('  the sort is stable, so equal ranks keep the geocoder\'s own order',
+     /rank\(a\.it\) - rank\(b\.it\) \|\| a\.i - b\.i/.test(src));
+  ok('>>> a tapped suggestion pins its OWN position, with no second geocode',
+     /if\(field === 'place'\)\{[\s\S]{0,400}showPlace\(cand\.lat, cand\.lng, cand\.label\);/.test(src));
+  ok('>>> the map centres on the pin at a fixed zoom, never a fit',
+     /const PLACE_ZOOM = 8;/.test(src)
+     && /position: \{ lat: placeAnchor\.lat, lng: placeAnchor\.lng \},\s*\n\s*zoom: PLACE_ZOOM/.test(src)
+     && !/fitPlaceAndNearest/.test(src));
+  ok('  and pin, answer and centre happen in ONE place for both entry paths',
+     /function showPlace\(lat, lng, label\)\{[\s\S]{0,200}dropPlacePin[\s\S]{0,80}renderNearMe\(\);[\s\S]{0,80}centreOnPlace\(\);/.test(src)
+     && (src.match(/showPlace\(/g) || []).length === 3);
   // The pin is not network data: it must never be ranked, filtered or planned.
   ok('>>> the pin lives in its own group, apart from the stops',
      /const placeGroup = new H\.map\.Group\(\);/.test(src)
