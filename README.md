@@ -315,6 +315,11 @@ Several entries below record a test that passed for the wrong reason.
 Newest first, one line each. The full reasoning for any release is in its commit
 and in the code comments. Nothing below is needed to use the app.
 
+### v1.55.0
+Tidied the results panel: the final leg now sits inside the delivery box, the
+skipped-stop note is one short sentence, and the green "fewest-stop plan" line is
+gone as redundant.
+
 ### v1.54.0
 Trimmed the skipped-stop note.
 
