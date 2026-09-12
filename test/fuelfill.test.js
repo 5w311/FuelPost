@@ -340,5 +340,145 @@ console.log('\n=== the skip rule: the three conditions, each one load-bearing ==
   }
 }
 
+// ===========================================================================
+// v1.53.0 — the second reason a forced stop stops being worth taking, found on
+// the road rather than in a fixture. Coppell TX -> Redlands CA, 1375 mi at the
+// 900-mi tier, leaving at 7/8: Auto added TA Tonopah at mile 1105 for a 490-mi
+// leg (59 gal, a gallon under the line) while TA Ontario sits 19 mi from the
+// receiver. Two stops to earn one credit, where one stop plus fuelling after
+// the drop earns the same one. v1.52.0's window could never catch it —
+// Tonopah is 270 mi out — because it measured from the wrong end.
+// ===========================================================================
+console.log('\n=== the near-delivery path: fuel waiting at the destination ===');
+{
+  const tl = G.targetFillMiles();
+  const base = { creditMiles: G.CREDIT_MILES, withinMiles: G.SKIP_NEAR_RECEIVER_MI };
+  const withFuel = { ...base, fuelNearDelivery: true };
+  ok('50 mi is what counts as fuel near the delivery', G.FUEL_NEAR_DELIVERY_MI === 50);
+
+  // THE REPORTED RUN, to scale. Both stops are the real ones, at their real
+  // miles; startBurned is the 7/8 reading from the screenshot.
+  const route = 1375, range = 900;
+  const burned = G.computeStartBurned(range, G.plannableMilesForTick(7));
+  const reserve = G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK);
+  const real = [
+    { id: 'ep', name: 'Petro El Paso', mile: 614, detour: 0.1 },
+    { id: 'tn', name: 'TA Tonopah', mile: 1105, detour: 0.3 }
+  ];
+  const off  = planFuel(route, real, range, burned, 0, 0);
+  const v152 = planFuel(route, real, range, burned, reserve, tl, base);
+  const v153 = planFuel(route, real, range, burned, reserve, tl, withFuel);
+
+  ok('fixture: it reproduces the screenshots — 1 stop off, 2 on, 74 and 59 gal',
+     off.plan.length === 1 && v152.plan.length === 2
+       && Math.round(gal(v152.plan[0].legMiles)) === 74
+       && Math.round(gal(v152.plan[1].legMiles)) === 59,
+     JSON.stringify([off.plan.map(s => s.mile), v152.plan.map(s => s.mile),
+                     v152.plan.map(s => Math.round(gal(s.legMiles)))]));
+  ok('  and the forced stop is 270 mi out, far outside the near-receiver window',
+     route - v152.plan[1].mile === 270 && 270 > G.SKIP_NEAR_RECEIVER_MI,
+     String(route - v152.plan[1].mile));
+  ok('>>> so the v1.52.0 window alone cannot skip it — which is the bug',
+     v152.droppedFinal === null, JSON.stringify(v152.droppedFinal));
+  ok('>>> with fuel near the delivery, Auto declines it and matches the OFF plan',
+     v153.droppedFinal !== null && v153.droppedFinal.name === 'TA Tonopah'
+       && JSON.stringify(v153.plan.map(s => s.mile)) === JSON.stringify(off.plan.map(s => s.mile)),
+     JSON.stringify([v153.plan.map(s => s.mile), v153.droppedFinal
+                     && v153.droppedFinal.name]));
+  ok('  the one stop that remains still earns its credit',
+     G.earnsCredit(v153.plan[0].legMiles), String(Math.round(gal(v153.plan[0].legMiles))));
+  ok('  so the skip costs zero credits — one from one stop instead of one from two',
+     v153.plan.filter(st => G.earnsCredit(st.legMiles)).length
+       === v152.plan.filter(st => G.earnsCredit(st.legMiles)).length,
+     JSON.stringify([v152.plan.filter(st => G.earnsCredit(st.legMiles)).length,
+                     v153.plan.filter(st => G.earnsCredit(st.legMiles)).length]));
+  // The arrival is the trade, and it is the one the driver accepted: a quarter
+  // tank at the receiver with a station 19 mi past it.
+  ok('>>> and it still arrives on the quarter-tank floor, not below it',
+     G.tickAtArrival(G.FULL_TANK_MILES, v153.finalLegMiles) >= G.RESERVE_TICKS - 1e-9,
+     String(G.tickAtArrival(G.FULL_TANK_MILES, v153.finalLegMiles)));
+
+  // THE FLAG IS NOT A LICENCE. Everything else still binds — this is the test
+  // that stops "fuel near the delivery" from becoming "skip whatever you like".
+  {
+    // Still needs to be credit-less.
+    const earns = [
+      { id: 'a', name: 'Mid', mile: 420, detour: 2 },
+      { id: 'z', name: 'Near', mile: 1080, detour: 2 }
+    ];
+    const r = planFuel(1100, earns, 700, 0, 300, tl, withFuel);
+    ok('>>> a stop that earns its credit is still kept, fuel at the receiver or not',
+       r.droppedFinal === null,
+       JSON.stringify([r.plan.map(s => s.mile), r.droppedFinal && r.droppedFinal.mile]));
+  }
+  {
+    // Still needs to be reserve-forced, not range-needed.
+    const r = planFuel(560, [{ id: 'z', name: 'Near', mile: 470, detour: 2 }],
+                       500, 0, 300, tl, withFuel);
+    ok('>>> a stop the RANGE needs is still kept, fuel at the receiver or not',
+       r.ok && r.plan.length === 1 && r.droppedFinal === null,
+       JSON.stringify([r.ok, r.plan.map(s => s.mile), r.droppedFinal]));
+  }
+  {
+    // And with no reserve there is nothing forced to skip.
+    const stops = dense(60, 1080);
+    let fired = null;
+    for (const routeMiles of [700, 900, 1100, 1300]) {
+      for (const range of [500, 700, 900]) {
+        const r = planFuel(routeMiles, stops, range, 0, 0, tl, withFuel);
+        if (r.ok && r.droppedFinal) fired = { routeMiles, range };
+      }
+    }
+    ok('>>> and with no reserve the flag changes nothing — nothing forced a stop',
+       fired === null, JSON.stringify(fired));
+  }
+  // The two tests are independent: the near-receiver path must still work on
+  // its own, with no fuel at the destination.
+  {
+    const forced = [
+      { id: 'a', name: 'Mid', mile: 620, detour: 2 },
+      { id: 'z', name: 'Near', mile: 1080, detour: 2 }
+    ];
+    const r = planFuel(1100, forced, 700, 0, 300, tl, base);
+    ok('>>> the near-receiver path still stands alone, with no fuel near delivery',
+       r.droppedFinal !== null && r.droppedFinal.mile === 1080,
+       JSON.stringify(r.droppedFinal && r.droppedFinal.mile));
+  }
+  // The flag must be an explicit true. A truthy-ish value arriving from a
+  // caller that did not mean it would silently widen the rule.
+  {
+    const forced = [
+      { id: 'a', name: 'Mid', mile: 614, detour: 2 },
+      { id: 'z', name: 'Far', mile: 1105, detour: 2 }
+    ];
+    const r = planFuel(1375, forced, 900, burned, reserve, tl,
+                       { ...base, fuelNearDelivery: 'yes' });
+    ok('>>> the flag is read as a strict true, so a stray truthy value cannot widen it',
+       r.droppedFinal === null, JSON.stringify(r.droppedFinal));
+  }
+}
+
+// WHICH WAY 8.5 MPG ERRS. The fleet keeps 8.5, but an earlier comment claimed
+// under-stating mpg under-states gallons, and that is arithmetically backwards
+// — gallons are miles DIVIDED by mpg. Pinned because the labels this release
+// leans on are built on it, and because a wrong justification is how a wrong
+// number gets adopted later.
+console.log('\n=== the direction of the mpg assumption ===');
+{
+  const at = (mi, mpg) => mi / mpg * (1 + G.DEF_RATIO);
+  ok('the fleet figure is still 8.5', G.MPG === 8.5);
+  ok('>>> 8.5 produces a HIGHER gallon estimate than the measured 8.9, not lower',
+     at(500, 8.5) > at(500, 8.9),
+     JSON.stringify([at(500, 8.5).toFixed(1), at(500, 8.9).toFixed(1)]));
+  ok('  so a leg just over the credit line here can still miss it at the pump',
+     at(500, 8.5) >= G.CREDIT_GALLONS && at(500, 8.9) < G.CREDIT_GALLONS,
+     JSON.stringify([at(500, 8.5).toFixed(1), at(500, 8.9).toFixed(1)]));
+  ok('  which is the opposite of how 8.5 behaves for RANGE, where it is conservative',
+     G.MPG < 8.9);
+  ok('  and the module says so in as many words, rather than the reverse',
+     /for GALLONS, 8\.5 is optimistic/.test(
+       require('fs').readFileSync(require('path').join(__dirname, '../lib/gauge.js'), 'utf8')));
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

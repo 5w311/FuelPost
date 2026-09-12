@@ -862,9 +862,9 @@ ok('>>> "anything to clear" is measured against the DEFAULT, not against off',
      /FuelGauge\.rangeForTick\(gaugeTick\)/.test(rrBody));
 }
 ok('>>> the reserve AND the fill target are passed into planAdaptive',
-   /planAdaptive\([\s\S]{0,240}ranges\.arrivalReserve, ranges\.targetLeg, ranges\.skipShortFinal\)/.test(codeOnly));
+   /planAdaptive\([\s\S]{0,240}ranges\.arrivalReserve, ranges\.targetLeg, skipShortFinal\)/.test(codeOnly));
 ok('  and into planBeyondGap the same way',
-   /planBeyondGap\([\s\S]{0,240}ranges\.arrivalReserve, ranges\.targetLeg, ranges\.skipShortFinal\)/.test(codeOnly));
+   /planBeyondGap\([\s\S]{0,240}ranges\.arrivalReserve, ranges\.targetLeg, skipShortFinal\)/.test(codeOnly));
 ok('  readRanges returns them alongside the rest',
    /return \{ maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve,\s*\n\s*onBackupReserve, pickupFuelMiles, targetLeg, skipShortFinal \};/.test(codeOnly));
 // The target is Auto's own lever: off, it must be zero so the planner is
@@ -880,6 +880,32 @@ ok('>>> the fill target is zero with Auto off, so OFF plans as it always did',
 // only thing standing between OFF and a changed plan.
 ok('>>> the skip thresholds come from the gauge model, not literals',
    /creditMiles: FuelGauge\.CREDIT_MILES, withinMiles: FuelGauge\.SKIP_NEAR_RECEIVER_MI/.test(codeOnly));
+// v1.53.0 — the near-delivery path. The flag has to be measured against the
+// DELIVERY, once per load, and it must reach the planner: readRanges cannot
+// know it (it sees settings, not the load), so planLoad adds it. A version
+// that passed ranges.skipShortFinal straight through would silently lose it.
+ok('>>> planLoad measures the network around the DELIVERY, not the route',
+   /const deliveryFuel = delivery \? NearMe\.nearestStops\(\s*\n\s*delivery\.lat, delivery\.lng, FUEL_STOPS, FuelPlan\.haversine, 1\)\[0\] : null;/.test(codeOnly));
+ok('  and the threshold is the gauge constant, not a literal 50',
+   /deliveryFuel\.miles <= FuelGauge\.FUEL_NEAR_DELIVERY_MI/.test(codeOnly));
+ok('>>> the planner is handed planLoad\'s object, not the one readRanges built',
+   /ranges\.arrivalReserve, ranges\.targetLeg, skipShortFinal\);[\s\S]{0,400}ranges\.arrivalReserve, ranges\.targetLeg, skipShortFinal\);/.test(codeOnly)
+   && !/ranges\.targetLeg, ranges\.skipShortFinal\)/.test(codeOnly));
+// The note said "that close to the receiver" for every skip in v1.52.0, which
+// is false for the 270-mi case the road reported. Each reason gets its own.
+ok('>>> the skipped-stop note gives the reason that actually applied',
+   /const wasNearReceiver = skipped\.milesFromDelivery <= FuelGauge\.SKIP_NEAR_RECEIVER_MI;/.test(codeOnly)
+   && /sits \$\{mi\(nearDel\.miles\)\} mi from your/.test(codeOnly));
+// Pinned as the JOINED expression, not as two facts that happen to both be
+// present: a mutation that kept `wasNearReceiver` and the receiver wording but
+// branched on a constant passed the looser version of this and was caught only
+// by the browser suite.
+ok('  and the receiver wording is chosen BY that test, not unconditionally',
+   /const because = wasNearReceiver\s*\n\s*\? 'that close to the receiver\.'/.test(codeOnly));
+ok('  and nearDel is resolved BEFORE the note that names it',
+   codeOnly.indexOf('nearDel = shortTrip.applies') < codeOnly.indexOf('const wasNearReceiver'),
+   JSON.stringify([codeOnly.indexOf('nearDel = shortTrip.applies'),
+                   codeOnly.indexOf('const wasNearReceiver')]));
 ok('  and Auto off hands the planner null, so OFF cannot take the skip branch at all',
    /const skipShortFinal = arrivalOn\(\)\s*\n\s*\? \{ creditMiles: FuelGauge\.CREDIT_MILES, withinMiles: FuelGauge\.SKIP_NEAR_RECEIVER_MI \}\s*\n\s*: null;/.test(codeOnly));
 // The skipped stop is the one decision the stop list cannot show — it is
@@ -896,7 +922,7 @@ ok('>>> and a skip opens the nearest-fuel-to-delivery panel, which is the next q
 // Auto's help line claims three things now. If the copy names fewer than the
 // code does, the driver is surprised by the third.
 ok('>>> the Auto help line names the skip alongside the fills and the arrival',
-   /skips a last stop near the receiver that wouldn't earn a credit/.test(codeOnly));
+   /skips a last stop that wouldn't earn a credit when there's fuel near your delivery anyway/.test(codeOnly));
 
 // v1.41.0 — the backup reserve. The band between 1/8 and 1/4 is dipped into
 // only when the reading is already at or under the planning floor, and the

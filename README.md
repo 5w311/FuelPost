@@ -1032,6 +1032,66 @@ overlay unmount it.
 
 ## Version history
 
+### v1.53.0
+
+**Auto now measures "is this stop worth taking?" from both ends of the run.**
+Reported from the road, with screenshots: Coppell TX → Redlands CA, 1,375 mi
+at the 900-mi tier, leaving at 7/8. Auto planned two stops — Petro El Paso at
+mile 614 (74 gal, a credit) and **TA Tonopah at mile 1,105 for a 490-mi leg:
+59 gal, one gallon under the line** — while TA Ontario sits 19 mi from the
+receiver. Auto off planned one stop and said so. Two stops to earn one credit,
+where one stop plus fuelling after the drop earns the same one.
+
+v1.52.0's `SKIP_NEAR_RECEIVER_MI` could never catch it: Tonopah is **270 mi**
+from the delivery, and widening a window measured from the *skipped stop* to
+270 mi would start skipping stops that are genuinely mid-route. The thing that
+made the skip acceptable here was never where the forced stop sat — it was that
+**fuel is waiting at the destination**. So that is measured at the destination
+instead, as `FUEL_NEAR_DELIVERY_MI` (50 mi), and the two tests are
+independent: either the forced stop is close enough to the receiver to take
+afterwards, *or* there is network fuel close enough to the receiver to use
+instead. 50 mi is a hop once the trailer is off; on that run the nearest stop
+to the delivery is 19 mi and the next nearest is 177, so the threshold sits
+nowhere near either edge of the decision.
+
+The flag is the **caller's** to set — the planner sees miles along one route
+and cannot know what sits near the destination — so `planLoad` measures it once
+per load and passes it in. It is read as a strict `true`, and it is not a
+licence: credit-less, reserve-forced and legal all still bind, which is pinned
+directly. The skip still costs zero credits by construction, and on the
+reported run it still arrives on the quarter-tank floor with a station 19 mi
+past the receiver.
+
+**The note now gives the reason that applied.** v1.52.0 ended every skip with
+"that close to the receiver", which is simply false for a stop 270 mi out. A
+skip justified by fuel at the destination now names the station and its
+distance, because asking the driver to take that on faith is worse than not
+saying it.
+
+#### The mpg assumption was documented backwards
+
+Found while checking the 59-gallon figure. **Gallons are miles *divided* by
+mpg**, so planning on 8.5 when the truck really gets 8.9 produces a *higher*
+gallon estimate, not a lower one. The comment in `lib/gauge.js` claimed the
+opposite — that under-stating mpg under-states the gallons a leg will pump —
+and used that to argue the estimates were conservative. They are not:
+
+| Leg | at 8.5 mpg | at a measured 8.9 |
+| --- | --- | --- |
+| 490 mi (the reported stop) | 59.1 gal | 56.4 gal |
+| 500 mi | 60.3 gal | 57.6 gal |
+| miles needed for a real 60 gal | 498 | **521** |
+
+So a leg sitting just above the credit line can still miss it at the pump, and
+the reported stop was 3.6 gal short rather than the 0.9 the label implied.
+
+8.5 remains the fleet's figure and the number is unchanged — it is genuinely
+conservative for **range**, where fewer miles per gallon means planning short.
+One constant cannot be safe in both directions, so the gap is now documented
+rather than argued away: `lib/gauge.js` states which way it errs for each
+question, and a test pins the direction so a future edit cannot quietly
+restore the wrong reasoning.
+
 ### v1.52.0
 
 **Auto may now decline a stop that is not worth taking.** The direct
