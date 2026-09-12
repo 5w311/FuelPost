@@ -236,7 +236,7 @@ console.log('\n=== the code appears in all FOUR places (v1.34.0) ===');
      /id="copyAddrBtn"/.test(code) && !/copyNavBtn|copyCodeBtn/.test(code));
   ok('>>> 2. the route result cards still render it — the flow with no list',
      /const navLine = row =>/.test(code)
-     && /class="rr-meta rr-nav">Nav code <span class="mono">\$\{row\[20\]\}<\/span>/.test(code));
+     && /class="rr-meta rr-nav">Nav code <b class="mono">\$\{row\[20\]\}<\/b>/.test(code));
   // v1.34.0 added a fourth surface: the Near Me footer's rows, which are the
   // other place a driver picks a stop without opening it.
   const nmFn = code.slice(code.indexOf('function renderNearMe('));
