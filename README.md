@@ -278,6 +278,23 @@ the live key is domain-locked to the Pages origin.
 - **Don't chase satellite resolution** — already `size=512`, capped at z20, no
   native detail past z17; USGS 404s above z16 and measures softer.
 
+### Updating this README
+
+Written for a driver, not a developer. Keep it that way.
+
+- **The guide above comes first, in plain words.** No code identifiers, no
+  variable names, no file paths in it. Say "the app holds back the bottom quarter
+  of the tank", not the name of the constant that does it.
+- **Everything technical lives down here**, under this heading.
+- **Short.** Tables and bullets over paragraphs. State the fact, skip the
+  reasoning about why the wording is good.
+- **Keep the honest caveats in the driver's half** — the gallon estimates reading
+  high, the over-claimed walking-trail flag, the fuel-book revision. Those cost
+  someone something if they're buried.
+- **Every release gets one line** in the version history, newest first. A release
+  that taught us something worth not relearning gets its warning added to *Things
+  not to undo* instead of a longer entry.
+
 ### How this project tests
 
 Several entries below record a test that passed for the wrong reason.
