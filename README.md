@@ -1032,6 +1032,74 @@ overlay unmount it.
 
 ## Version history
 
+### v1.52.0
+
+**Auto may now decline a stop that is not worth taking.** The direct
+consequence of what v1.51.0 measured: the arrival reserve is what *creates*
+short fills. Holding a cushion for the receiver can force a stop 20 miles from
+the door that pumps 55 gallons — no credit, a full pull-in, and a bay the
+driver could have used after dropping the trailer instead.
+
+Three conditions have to hold at once before Auto skips one, and each was
+tested on its own:
+
+- **reserve-forced** — the truck reaches the receiver without it. This test
+  doubles as the "was a reserve even asked for" test: the greedy loop only ever
+  adds a stop the truck genuinely cannot skip, so with no reserve in play the
+  rule is inert by construction rather than by a flag.
+- **credit-less** — its fill is under `CREDIT_MILES` (~498 mi, 60 combined gal).
+- **near the receiver** — inside `SKIP_NEAR_RECEIVER_MI`, which is 100.
+
+**Why this cannot strand anyone**, which is the only reason the trade is
+allowed at all: the range the planner spends is already net of
+`RESERVE_TICKS`. Spending every plannable mile lands the truck at a *quarter
+tank* — 300 real miles of diesel — not at empty. Measured over 112 real
+corridor/tier/reserve combinations the skip fired 18 times and **every one of
+them still arrived at half a tank or better**; the reported 1100-mile case
+goes from two stops arriving near-full to one stop arriving at 1/2.
+
+**It runs after the spacing pass, not before**, and the order is the whole
+difference between skipping a stop and fixing it. Spacing can push the last
+stop later, which lengthens its own fill; a stop that would have pumped 55
+gallons where the greedy put it often clears the credit once moved, and a stop
+that earns its credit is never skipped. One of the fixtures exists purely to
+hold that ordering in place.
+
+**Opt-in, because it is the one thing here that can leave less fuel at the
+receiver than the reserve implied.** `planFuel` takes `skipShortFinal` and
+does nothing without it, so the v1.42.0 invariant — *asking for fuel at
+delivery never arrives with less than not asking* — remains literally true for
+every caller that does not ask for the relaxation. Auto off passes `null`
+rather than an object of zeroes, so OFF cannot reach the branch at all.
+
+**Two things the mutation run found, one of them in the test harness itself.**
+Nine mutations; seven were caught immediately, and the two survivors were both
+real:
+
+- Passing the surrendered reserve to the re-spacing pass — instead of zero —
+  kept a constraint the skip had just given up, so `spaceFills` rejected every
+  arrangement and the stops stayed where the greedy put them. Finding a
+  corridor that showed it took a search over 40,000 random ones; on the one it
+  found, the kept stop moves from mile 457 to 232 and its fill halves, 55 gal
+  to 28. Now pinned.
+- The other survivor was not a survivor. `test/run.js` counted only the `FAIL`
+  lines a test file prints, and a file that *crashes* prints none — so the
+  summary read `0 failed` on a run whose per-file line said `FAIL` and whose
+  exit code was 1. The mutation looked like it had escaped. The cause was a
+  test of mine whose *evidence* string dereferenced the value under test, so a
+  false assertion threw instead of failing and swallowed the eight assertions
+  below it. Both are fixed: evidence must be safe to build when the assertion
+  is false, and the summary line now says `· N CRASHED` so it can never read
+  clean on a broken run.
+
+**What the driver sees.** A skipped stop is the one decision the stop list
+cannot show, because the stop simply is not in it — so it is stated: which
+station, how far before delivery, roughly what it would have pumped, and what
+the tank still reads on arrival. A skip also opens the
+nearest-fuel-to-delivery panel, since "where do I fuel after this" is exactly
+the question a skip raises. The two thresholds come off the gauge model rather
+than being retyped, so the plan and the labels cannot drift apart.
+
 ### v1.51.0
 
 **"Auto" — the reserve switch becomes a fuel-stop planner that knows what a

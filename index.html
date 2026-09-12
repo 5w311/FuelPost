@@ -759,6 +759,8 @@
   .rr-arrive b{color:var(--ink);}
   .rr-arrive-low{color:var(--danger-text);}
   .rr-arrive-low b{color:var(--danger-text);}
+  .rr-skipped{font-size:12.5px;color:var(--sub);line-height:1.45;margin-top:6px;}
+  .rr-skipped b{color:var(--ink);}
   .rr-ok{background:#E4F3EA;border:1px solid #BFE3CC;border-radius:10px;padding:9px 12px;margin-top:10px;font-size:12.5px;color:#0F6B33;line-height:1.45;}
   .rr-warn{background:#FDECEC;border:1px solid #F0BEBE;border-radius:10px;padding:10px 12px;margin-top:12px;font-size:12.5px;color:#8A1C1C;line-height:1.45;}
   .rr-warn b{display:block;margin-bottom:4px;font-size:13px;}
@@ -1344,33 +1346,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.51.0"></script>
+<script src="lib/fuelplan.js?v=1.52.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.51.0"></script>
+<script src="lib/triptext.js?v=1.52.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.51.0"></script>
+<script src="lib/location.js?v=1.52.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.51.0"></script>
+<script src="lib/gauge.js?v=1.52.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.51.0"></script>
+<script src="lib/corridors.js?v=1.52.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.51.0"></script>
+<script src="lib/nearme.js?v=1.52.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.51.0"></script>
+<script src="lib/extract-version.js?v=1.52.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.51.0"></script>
+<script src="lib/autosuggest.js?v=1.52.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.51.0"></script>
+<script src="lib/baselayer.js?v=1.52.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.51.0"></script>
+<script src="lib/memocache.js?v=1.52.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.51.0"></script>
+<script src="lib/routerank.js?v=1.52.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.51.0"></script>
+<script src="lib/vehicleprofile.js?v=1.52.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.51.0"></script>
+<script src="lib/escape.js?v=1.52.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.51.0"></script>
+<script src="lib/navlinks.js?v=1.52.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1386,7 +1388,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.51.0')
+fetch('lib/fuelplan-adaptive.js?v=1.52.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1403,7 +1405,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.51.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.51.0')
+fetch('lib/shorttrip.js?v=1.52.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1414,7 +1416,7 @@ fetch('lib/shorttrip.js?v=1.51.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.51.0"></script>
+<script src="lib/flexible-polyline.js?v=1.52.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1586,7 +1588,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.51.0';
+const APP_VERSION = '1.52.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -4839,6 +4841,19 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     h += `<div class="rr-arrive${belowHalf ? ' rr-arrive-low' : ''}">Pulling in at about
       <b>${arriveLabel} of a tank</b>${
       belowHalf ? ' — under half, so fuel before your next load rather than after it.' : '.'}</div>`;
+    // WHAT AUTO DECIDED NOT TO DO, said out loud. A skipped stop is the one
+    // choice here the driver cannot see by reading the list — the stop simply
+    // isn't in it — so it is the one that most needs stating. It sits under the
+    // arrival reading on purpose: the reading is lower than the reserve alone
+    // would have made it, and this is why.
+    const skipped = result.droppedFinal;
+    if(skipped){
+      const skipGal = Math.round(FuelGauge.combinedGallons(skipped.legMiles));
+      h += `<div class="rr-skipped">Auto skipped <b>${Esc.escapeHtml(skipped.name)}</b>,
+        ${mi(skipped.milesFromDelivery)} mi before delivery &mdash; it would only have taken
+        about <b>${skipGal} gal</b>, short of a credit, that close to the receiver.
+        You still get there with ${arriveLabel} of a tank.</div>`;
+    }
     // Where fuel sits once the truck stops moving — the number that decides
     // whether arriving full matters. Searches ALL network stops, not just
     // on-route ones, and it matters most when the on-route list is empty.
@@ -4850,7 +4865,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     // ranking the Near Me footer uses, over the whole network rather than the
     // on-route stops, since the truck will be sitting still at the receiver.
     nearDel = shortTrip.applies ? shortTrip.nearestToDelivery : null;
-    if(!nearDel && belowHalf && delivery){
+    if(!nearDel && (belowHalf || result.droppedFinal) && delivery){
       const n = NearMe.nearestStops(delivery.lat, delivery.lng, FUEL_STOPS,
                                     FuelPlan.haversine, 1)[0];
       if(n) nearDel = { name: n.stop.name, id: n.stop.id, miles: Math.round(n.miles) };
@@ -5108,7 +5123,7 @@ function setArrivalOn(on){
   const fillLabel = FuelGauge.tickLabel(FuelGauge.TARGET_FILL_TICK);
   const fillGal = Math.round(FuelGauge.combinedGallons(FuelGauge.targetFillMiles()));
   $('arrivalHelp').textContent = on
-    ? `Spaces your stops to fill at about ${fillLabel} a tank — roughly ${fillGal} gal a stop, enough for a shower credit — and gets you there with at least about ${minLabel} of a tank.`
+    ? `Spaces your stops to fill at about ${fillLabel} a tank — roughly ${fillGal} gal a stop, enough for a shower credit — gets you there with at least about ${minLabel} of a tank, and skips a last stop near the receiver that wouldn't earn a credit.`
     : `Off — fewest stops, and no cushion held for the receiver. Turn Auto on to fill at about ${fillLabel} a tank (~${fillGal} gal, a shower credit) and arrive with at least ${minLabel}.`;
   updateClearVisibility();
 }
@@ -5157,8 +5172,16 @@ function readRanges(){
   // Auto also asks the planner to aim each fill at half a tank's driving.
   // Off, this is 0 and the planner behaves exactly as it did before v1.51.0.
   const targetLeg = arrivalOn() ? FuelGauge.targetFillMiles() : 0;
+  // And it may hand back a stop the reserve forced that nothing else wants —
+  // credit-less and inside the last SKIP_NEAR_RECEIVER_MI. Both thresholds
+  // come from the gauge model so the planner never carries its own copy of
+  // what a worthwhile fill is. Null when Auto is off: no reserve, nothing to
+  // skip, and the planner takes its pre-v1.52.0 path untouched.
+  const skipShortFinal = arrivalOn()
+    ? { creditMiles: FuelGauge.CREDIT_MILES, withinMiles: FuelGauge.SKIP_NEAR_RECEIVER_MI }
+    : null;
   return { maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve,
-           onBackupReserve, pickupFuelMiles, targetLeg };
+           onBackupReserve, pickupFuelMiles, targetLeg, skipShortFinal };
 }
 
 /* ---- Vehicle profile (dimensions, weight, hazmat) ----
@@ -6031,14 +6054,14 @@ async function planLoad(pickup, delivery){
       const routeMiles = cum[cum.length - 1];
       const result = FuelPlanAdaptive.planAdaptive(
         r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, ranges.startBurned, DETOUR_TIERS,
-        ranges.arrivalReserve, ranges.targetLeg);
+        ranges.arrivalReserve, ranges.targetLeg, ranges.skipShortFinal);
       // A gapped route usually doesn't stay empty past the dry line — show
       // what the rest of the run fuels like, so the driver comparing the map
       // against the plan isn't left wondering where all that Texas fuel went.
       if(!result.ok){
         result.resume = FuelPlanAdaptive.planBeyondGap(
           r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, result.gap, result.detourMax,
-          ranges.arrivalReserve, ranges.targetLeg);
+          ranges.arrivalReserve, ranges.targetLeg, ranges.skipShortFinal);
       }
       // Short-trip options are computed ONCE here, per option, and cached on
       // the option object — three consumers need them (the map's available

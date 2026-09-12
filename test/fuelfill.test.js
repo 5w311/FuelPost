@@ -143,5 +143,202 @@ console.log('\n=== spaceFills: the pass that keeps fills worth stopping for ==='
      !G.earnsCredit(Math.min(...legsOf(spaced))));
 }
 
+// ===========================================================================
+// v1.52.0 — the stop Auto declines to take.
+//
+// The measured finding behind this: the arrival reserve is what CREATES short
+// fills. Forcing the truck to reach the receiver with a cushion can add a stop
+// 20 mi from the door that pumps 55 gal, earns no credit, and costs a full
+// pull-in. Option 3 of three: skip it, but only within the last stretch of the
+// run, where the same fuel can be bought after dropping the trailer.
+// ===========================================================================
+console.log('\n=== the skip rule: the three conditions, each one load-bearing ===');
+{
+  const skip = { creditMiles: G.CREDIT_MILES, withinMiles: G.SKIP_NEAR_RECEIVER_MI };
+  const tl = G.targetFillMiles();
+  ok('100 mi is the near-receiver threshold', G.SKIP_NEAR_RECEIVER_MI === 100);
+
+  // THE REPORTED SHAPE, reduced to the two stops that make it. One usable stop
+  // before the thin stretch and one near the receiver, so NO arrangement can
+  // give the final leg a credit — which is what makes the stop skippable
+  // rather than movable.
+  const forced = [
+    { id: 'a', name: 'Mid', mile: 620, detour: 2 },
+    { id: 'z', name: 'Near', mile: 1080, detour: 2 }
+  ];
+  const off  = planFuel(1100, forced, 700, 0, 0, 0);
+  const on   = planFuel(1100, forced, 700, 0, 300, tl);
+  const skpd = planFuel(1100, forced, 700, 0, 300, tl, skip);
+
+  ok('>>> the reserve forces a second stop the range did not need',
+     off.plan.length === 1 && on.plan.length === 2,
+     JSON.stringify([off.plan.map(s => s.mile), on.plan.map(s => s.mile)]));
+  ok('  and that forced stop earns no credit — 55 gal, 20 mi from the door',
+     Math.round(gal(on.plan[1].legMiles)) === 55 && Math.round(1100 - on.plan[1].mile) === 20,
+     JSON.stringify([gal(on.plan[1].legMiles), 1100 - on.plan[1].mile]));
+  ok('>>> Auto skips it, and reports WHICH stop it skipped',
+     skpd.plan.length === 1 && skpd.droppedFinal && skpd.droppedFinal.mile === 1080,
+     JSON.stringify([skpd.plan.map(s => s.mile), skpd.droppedFinal]));
+  ok('  the report carries the distance from delivery, so the UI need not recompute it',
+     skpd.droppedFinal.milesFromDelivery === 20, String(skpd.droppedFinal.milesFromDelivery));
+  ok('  the plan that remains is the one the switch OFF would have driven',
+     JSON.stringify(skpd.plan.map(s => s.mile)) === JSON.stringify(off.plan.map(s => s.mile)),
+     JSON.stringify(skpd.plan.map(s => s.mile)));
+
+  // THE SAFETY ARGUMENT, PINNED. This is the whole reason the trade is
+  // allowed: the range the planner spends is already net of RESERVE_TICKS, so
+  // spending all of it lands at a quarter tank, not at empty.
+  const arriveTick = G.tickAtArrival(G.FULL_TANK_MILES, skpd.finalLegMiles);
+  ok('>>> skipping cannot strand anyone: the arrival is still half a tank here',
+     arriveTick >= 4 - 1e-9, String(arriveTick));
+  ok('  and at worst it is the quarter-tank floor, never below it — that floor is why',
+     G.plannableMilesForTick(G.RESERVE_TICKS) === 0
+       && G.milesForTick(G.RESERVE_TICKS) === 300,
+     String(G.milesForTick(G.RESERVE_TICKS)));
+
+  // EACH CONDITION ON ITS OWN. Remove one at a time; the stop must survive.
+  {
+    // (a) not reserve-forced: the truck cannot reach the receiver without it.
+    // Being near the receiver AND range-needed only coexist in a narrow window
+    // — the leg has to miss a credit, so the range must be under ~600 — hence
+    // the tight numbers: 560 mi of route on 500 mi of range, one stop at 470
+    // that is 90 mi from the door and pumps 56 gal. Short, close, and
+    // unskippable, because without it the truck stops 60 mi shy.
+    const needed = planFuel(560, [{ id: 'z', name: 'Near', mile: 470, detour: 2 }],
+                            500, 0, 300, tl, skip);
+    ok('>>> a stop the RANGE needs is never skipped, credit or no credit',
+       needed.ok && needed.plan.length === 1 && needed.droppedFinal === null,
+       JSON.stringify([needed.ok, needed.plan.map(s => s.mile), needed.droppedFinal]));
+    ok('  and that stop really was short and really was near the door',
+       !G.earnsCredit(needed.plan[0].legMiles) && 560 - needed.plan[0].mile <= 100,
+       JSON.stringify([Math.round(gal(needed.plan[0].legMiles)), 560 - needed.plan[0].mile]));
+  }
+  {
+    // (b) earns a credit: move the near-receiver stop out so its leg is long.
+    const earns = [
+      { id: 'a', name: 'Mid', mile: 420, detour: 2 },
+      { id: 'z', name: 'Near', mile: 1080, detour: 2 }
+    ];
+    const r = planFuel(1100, earns, 700, 0, 300, tl, skip);
+    ok('>>> a stop that EARNS its credit is kept, even 20 mi from the receiver',
+       r.droppedFinal === null && r.plan.length === 2 && G.earnsCredit(r.plan[1].legMiles),
+       // Evidence must survive the assertion being FALSE: dereferencing
+       // plan[1] here crashes the file when the stop was wrongly skipped,
+       // which swallows every assertion below it and reads as a pass.
+       JSON.stringify([r.plan.map(s => s.mile), r.droppedFinal && r.droppedFinal.mile]));
+  }
+  {
+    // (c) near the receiver: same short fill, but 300 mi out — mid-route, and
+    // mid-route is where a fuel stop belongs however small the fill.
+    const midRoute = [
+      { id: 'a', name: 'Mid', mile: 620, detour: 2 },
+      { id: 'z', name: 'Far', mile: 800, detour: 2 }
+    ];
+    const r = planFuel(1100, midRoute, 700, 0, 300, tl, skip);
+    ok('>>> a short fill 300 mi from delivery is NOT near the receiver, so it stays',
+       r.droppedFinal === null,
+       JSON.stringify([r.plan.map(s => s.mile), r.droppedFinal]));
+  }
+
+  // THE ORDER OF THE TWO PASSES, which is not arbitrary. Spacing runs first so
+  // that a stop it can rescue is rescued rather than skipped.
+  {
+    const rescuable = [];
+    for (let m = 100; m <= 620; m += 60) rescuable.push({ id: 'a' + m, name: 'a' + m, mile: m, detour: 2 });
+    for (const m of [1000, 1040, 1080]) rescuable.push({ id: 'z' + m, name: 'z' + m, mile: m, detour: 2 });
+    const r = planFuel(1100, rescuable, 700, 0, 300, tl, skip);
+    ok('>>> spacing runs FIRST: a stop it can move into a credit is kept, not skipped',
+       r.droppedFinal === null && r.plan.length === 2 && G.earnsCredit(r.plan[1].legMiles),
+       JSON.stringify([r.plan.map(s => s.mile), r.plan.map(s => Math.round(gal(s.legMiles))),
+                       r.droppedFinal && r.droppedFinal.mile]));
+  }
+
+  // INERTNESS. The v1.42.0 invariant — asking for fuel at delivery never
+  // arrives with less than not asking — is deliberately relaxed by this rule,
+  // and ONLY by explicit opt-in. Every caller that does not pass the option
+  // must plan identically, and a caller with no reserve must be unaffected
+  // even if it does pass it.
+  {
+    const stops = dense(60, 1080);
+    let drift = null, firedNoReserve = null;
+    for (const routeMiles of [500, 700, 900, 1100, 1300]) {
+      for (const range of [500, 700, 900]) {
+        for (const res of [0, 150, 300, 450]) {
+          const a = planFuel(routeMiles, stops, range, 0, res, tl);
+          const b = planFuel(routeMiles, stops, range, 0, res, tl, skip);
+          if (!a.ok || !b.ok) continue;
+          if (res === 0 && b.droppedFinal) firedNoReserve = { routeMiles, range };
+          if (!b.droppedFinal &&
+              JSON.stringify(a.plan.map(s => s.mile)) !== JSON.stringify(b.plan.map(s => s.mile))) {
+            drift = { routeMiles, range, res };
+          }
+        }
+      }
+    }
+    ok('>>> with no reserve the rule is inert — nothing forced the stop, nothing to skip',
+       firedNoReserve === null, JSON.stringify(firedNoReserve));
+    ok('>>> and when it does not fire it changes nothing at all',
+       drift === null, JSON.stringify(drift));
+  }
+
+  // LEGALITY, swept. A skipped plan must still be drivable: the final leg can
+  // never exceed what the truck leaves its last stop (or the shipper) with.
+  {
+    const stops = dense(40, 1400);
+    let illegal = null, fired = 0;
+    for (const routeMiles of [600, 900, 1200, 1450]) {
+      for (const range of [500, 700, 900]) {
+        for (const res of [150, 300, 450]) {
+          for (const burned of [0, 200]) {
+            const r = planFuel(routeMiles, stops, range, burned, res, tl, skip);
+            if (!r.ok) continue;
+            if (r.droppedFinal) fired++;
+            const lastPos = r.plan.length ? r.plan[r.plan.length - 1].mile : 0;
+            const avail = r.plan.length ? range : Math.max(0, range - burned);
+            if (routeMiles - lastPos > avail + 1e-6) {
+              illegal = { routeMiles, range, res, burned, final: routeMiles - lastPos, avail };
+            }
+          }
+        }
+      }
+    }
+    ok('>>> every skipped plan is still drivable — the final leg always fits',
+       illegal === null, JSON.stringify(illegal));
+    ok('  and the sweep actually exercised the skip', fired > 0, String(fired));
+  }
+
+  // THE RESPACE MUST DROP THE RESERVE IT JUST SURRENDERED. Found by a
+  // mutation that survived both suites: passing `arrivalReserve` to the
+  // re-spacing pass instead of 0 keeps a constraint the skip has just given
+  // up, so spaceFills rejects every arrangement, returns null, and the stops
+  // stay where the greedy put them. It is not a cosmetic difference — on this
+  // fixture (found by searching 40,000 random corridors for a disagreement)
+  // the kept stop moves from mile 457 to mile 232 and its fill halves, from
+  // 55 gal to 28. A release whose whole point is the size of a fill cannot
+  // leave that untested.
+  {
+    const fixture = [91, 232, 457, 518, 528, 641, 652]
+      .map((m, i) => ({ id: 'x' + i, name: 'x' + i, mile: m, detour: 1 }));
+    const r = planFuel(682, fixture, 500, 0, 300, tl, skip);
+    ok('>>> after a skip the stops are re-spaced WITHOUT the surrendered reserve',
+       r.droppedFinal && r.droppedFinal.mile === 652 && r.plan.length === 1
+         && r.plan[0].mile === 457,
+       JSON.stringify([r.plan.map(s => s.mile), r.droppedFinal && r.droppedFinal.mile]));
+    ok('  which is worth 55 gal at that stop rather than the 28 the greedy left',
+       Math.round(gal(r.plan[0].legMiles)) === 55 && Math.round(gal(232)) === 28,
+       JSON.stringify([gal(r.plan[0].legMiles), gal(232)]));
+  }
+
+  // Skipping the ONLY stop is allowed and turns the run into a no-stop one,
+  // which is a real answer the app already knows how to render.
+  {
+    const one = [{ id: 'z', name: 'Near', mile: 480, detour: 2 }];
+    const r = planFuel(500, one, 700, 0, 300, tl, skip);
+    ok('>>> the only stop can be skipped, leaving a no-fuel-required run',
+       r.ok && r.plan.length === 0 && r.droppedFinal && r.droppedFinal.mile === 480,
+       JSON.stringify([r.plan.length, r.droppedFinal]));
+  }
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

@@ -35,7 +35,10 @@ console.log('=== Auto: what a stop is worth, and the needle at the receiver (v1.
   ok('>>> under half it says so and offers fuel past the delivery',
      /belowHalf \? ' — under half/.test(src)
      && /arriveTick < FuelGauge\.TARGET_FILL_TICK/.test(src)
-     && /belowHalf && delivery/.test(src));
+     // v1.52.0 widened this condition to cover a skipped stop as well; what
+     // this pin is here for is that being under half STILL opens the panel,
+     // so it matches the belowHalf arm rather than the whole expression.
+     && /\(belowHalf \|\| result\.droppedFinal\) && delivery/.test(src));
   ok('  the near-delivery button is wired from the value that rendered it',
      /if\(ndBtn && nearDel\)\{/.test(src));
   ok('  and the old duplicate arrival figure is gone from the no-stop copy',
@@ -859,15 +862,41 @@ ok('>>> "anything to clear" is measured against the DEFAULT, not against off',
      /FuelGauge\.rangeForTick\(gaugeTick\)/.test(rrBody));
 }
 ok('>>> the reserve AND the fill target are passed into planAdaptive',
-   /planAdaptive\([\s\S]{0,240}ranges\.arrivalReserve, ranges\.targetLeg\)/.test(codeOnly));
+   /planAdaptive\([\s\S]{0,240}ranges\.arrivalReserve, ranges\.targetLeg, ranges\.skipShortFinal\)/.test(codeOnly));
 ok('  and into planBeyondGap the same way',
-   /planBeyondGap\([\s\S]{0,240}ranges\.arrivalReserve, ranges\.targetLeg\)/.test(codeOnly));
+   /planBeyondGap\([\s\S]{0,240}ranges\.arrivalReserve, ranges\.targetLeg, ranges\.skipShortFinal\)/.test(codeOnly));
 ok('  readRanges returns them alongside the rest',
-   /return \{ maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve,\s*\n\s*onBackupReserve, pickupFuelMiles, targetLeg \};/.test(codeOnly));
+   /return \{ maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve,\s*\n\s*onBackupReserve, pickupFuelMiles, targetLeg, skipShortFinal \};/.test(codeOnly));
 // The target is Auto's own lever: off, it must be zero so the planner is
 // byte-identical to pre-v1.51.0.
 ok('>>> the fill target is zero with Auto off, so OFF plans as it always did',
    /const targetLeg = arrivalOn\(\) \? FuelGauge\.targetFillMiles\(\) : 0;/.test(codeOnly));
+
+// v1.52.0 — the skip. Both thresholds must come off the gauge model; a literal
+// 100 or 498 here is how the planner and the labels drift apart, and the drift
+// would be invisible (the plan would simply skip a stop the labels call worth
+// taking). Auto OFF must hand the planner null, not an object with zeroes:
+// zeroes would still take the opt-in branch and the legality test would be the
+// only thing standing between OFF and a changed plan.
+ok('>>> the skip thresholds come from the gauge model, not literals',
+   /creditMiles: FuelGauge\.CREDIT_MILES, withinMiles: FuelGauge\.SKIP_NEAR_RECEIVER_MI/.test(codeOnly));
+ok('  and Auto off hands the planner null, so OFF cannot take the skip branch at all',
+   /const skipShortFinal = arrivalOn\(\)\s*\n\s*\? \{ creditMiles: FuelGauge\.CREDIT_MILES, withinMiles: FuelGauge\.SKIP_NEAR_RECEIVER_MI \}\s*\n\s*: null;/.test(codeOnly));
+// The skipped stop is the one decision the stop list cannot show — it is
+// absent from it — so the note is the only place the driver learns of it.
+ok('>>> a skipped stop is reported, with its gallons and its distance from delivery',
+   /const skipped = result\.droppedFinal;/.test(codeOnly)
+   && /class="rr-skipped">Auto skipped/.test(codeOnly)
+   && /FuelGauge\.combinedGallons\(skipped\.legMiles\)/.test(codeOnly)
+   && /mi\(skipped\.milesFromDelivery\)/.test(codeOnly));
+ok('  the name is escaped like every other station name on the screen',
+   /Esc\.escapeHtml\(skipped\.name\)/.test(codeOnly));
+ok('>>> and a skip opens the nearest-fuel-to-delivery panel, which is the next question',
+   /if\(!nearDel && \(belowHalf \|\| result\.droppedFinal\) && delivery\)\{/.test(codeOnly));
+// Auto's help line claims three things now. If the copy names fewer than the
+// code does, the driver is surprised by the third.
+ok('>>> the Auto help line names the skip alongside the fills and the arrival',
+   /skips a last stop near the receiver that wouldn't earn a credit/.test(codeOnly));
 
 // v1.41.0 — the backup reserve. The band between 1/8 and 1/4 is dipped into
 // only when the reading is already at or under the planning floor, and the

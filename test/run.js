@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 
 const files = fs.readdirSync(__dirname).filter(f => f.endsWith('.test.js')).sort();
-let totalPass = 0, totalFail = 0, hardFail = false;
+let totalPass = 0, totalFail = 0, hardFail = false, crashed = 0;
 
 for (const f of files) {
   let out = '', code = 0;
@@ -25,9 +25,15 @@ for (const f of files) {
   totalPass += pass;
   totalFail += fail;
   if (fail || code !== 0) hardFail = true;
+  // A file that throws reports no FAIL line of its own, and every assertion
+  // after the throw never runs. Counted separately so the summary can never
+  // read "0 failed" on a run that actually broke — and so the assertions the
+  // crash swallowed are visible as a number rather than as a quiet absence.
+  if (code !== 0 && fail === 0) crashed++;
   console.log(`${fail || code ? 'FAIL' : 'ok  '}  ${f.padEnd(24)} ${String(pass).padStart(3)} passed${fail ? `, ${fail} FAILED` : ''}${code ? ` (exit ${code})` : ''}`);
   if (fail || code) console.log(out.split('\n').filter(l => /FAIL|Error/.test(l)).map(l => '      ' + l).join('\n'));
 }
 
-console.log(`\n${files.length} files · ${totalPass} passed · ${totalFail} failed`);
+console.log(`\n${files.length} files · ${totalPass} passed · ${totalFail} failed${
+  crashed ? ` · ${crashed} CRASHED` : ''}`);
 process.exit(hardFail ? 1 : 0);
