@@ -11,6 +11,38 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const render = html.slice(html.indexOf('function render(){'));
 const body = render.slice(0, render.indexOf('\n}\n') + 3);
 
+console.log('=== Auto: what a stop is worth, and the needle at the receiver (v1.51.0) ===');
+{
+  const src = html.replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
+  ok('>>> every stop row carries what it will pump',
+     (src.match(/class="rr-fill/g) || []).length >= 2
+     && /function fillNote\(legMiles\)\{/.test(src)
+     && /shower credit/.test(src) && /short of a credit/.test(src));
+  ok('  and a short fill is coloured, not just worded',
+     /\.rr-fill-short\{color:var\(--danger-text\)/.test(html)
+     && /rr-fill-short.*: ''/.test(src.replace(/\n/g, ' ')));
+  // A MUTATION CAUGHT THIS ONE: reading the arrival off ranges.maxRange
+  // instead of the tank passed every unit test there was. The tier is a
+  // policy about how far to run between stops; the needle shows fuel.
+  ok('>>> the arrival reading comes from the TANK, never the tier',
+     /const fuelLeaving = stops\.length \? FuelGauge\.FULL_TANK_MILES : ranges\.pickupFuelMiles;/.test(src)
+     && !/fuelAtArrival\(ranges\.maxRange/.test(src));
+  ok('  floored to the eighth below, so it can never over-state the tank',
+     /FuelGauge\.tickLabel\(Math\.floor\(arriveTick\)\)/.test(src));
+  ok('  and it reports a tank level, not a mileage',
+     /of a tank<\/b>/.test(src) && !/of a tank<\/b>\$\{'' \}? ?\(/.test(src));
+  ok('>>> under half it says so and offers fuel past the delivery',
+     /belowHalf \? ' — under half/.test(src)
+     && /arriveTick < FuelGauge\.TARGET_FILL_TICK/.test(src)
+     && /belowHalf && delivery/.test(src));
+  ok('  the near-delivery button is wired from the value that rendered it',
+     /if\(ndBtn && nearDel\)\{/.test(src));
+  ok('  and the old duplicate arrival figure is gone from the no-stop copy',
+     /No fuel stop <b>required<\/b> for this run\./.test(src)
+     && !/required<\/b> — you arrive with about/.test(src));
+}
+
 console.log('=== a locate tap frames the three closest stops (v1.50.0) ===');
 // It used to be a fixed zoom 11 — a fine picture of the truck and a poor one
 // of its options. The view now widens as far as it must to hold the three
@@ -316,8 +348,13 @@ ok('the card tap still opens the station sheet, unchanged',
 
 ok('navLine is defined exactly once, not copied per card',
    (html.match(/const navLine =/g) || []).length === 1);
-ok('it renders a labelled, mono code at the existing meta weight',
-   /class="rr-meta rr-nav">Nav code <span class="mono">\$\{row\[20\]\}<\/span>/.test(html));
+// v1.51.0 bolded the CODE and left the label muted: on the results screen
+// this is the string the driver keys into the truck, so it takes the weight
+// and the ink colour while "Nav code" stays quiet. The colour is the point —
+// bold alone inside .rr-meta would still have rendered grey.
+ok('it renders a labelled, BOLD mono code in the ink colour',
+   /class="rr-meta rr-nav">Nav code <b class="mono">\$\{row\[20\]\}<\/b>/.test(html)
+   && /\.rr-nav b\{color:var\(--ink\);font-weight:800;\}/.test(html));
 ok('it is unconditional — every stop reaching a card has a code',
    !/const navLine = row =>[^\n]*\?/.test(html), 'no empty-string branch on the result path');
 // v1.33.0 removed the sheet's Nav code row; v1.33.1 put it back. The code now
@@ -330,7 +367,12 @@ ok('  conditionally, because the HQ terminal has no code',
    /if\(nav\) html \+= `<div class="row"><div class="k">Nav code<\/div>/.test(html));
 ok('  from the destructured column', /,scale,ulsd,nav\] = row;/.test(html));
 ok('>>> and the RESULT CARDS still render theirs (the planning flow keeps it)',
-   /class="rr-meta rr-nav">Nav code <span class="mono">\$\{row\[20\]\}<\/span>/.test(html));
+   /class="rr-meta rr-nav">Nav code <b class="mono">\$\{row\[20\]\}<\/b>/.test(html));
+// The sheet's own row is deliberately NOT bolded with it: there the code sits
+// in a table of facts at the same weight as the rest, and making one row
+// shout would be noise. Bold belongs on the screen the driver acts from.
+ok('  while the sheet keeps its code at the weight of every other row',
+   /<div class="k">Nav code<\/div><div class="v mono">\$\{nav\}<\/div>/.test(html));
 
 console.log('\n=== the share text carries the codes without coupling to DATA ===');
 // lib/triptext.js is a pure formatter with a documented input shape. The
@@ -719,8 +761,12 @@ ok('  and the default lives in ONE constant the whole file reads',
    String((codeOnly.match(/setArrivalOn\(ARRIVAL_DEFAULT_ON\)/g) || []).length));
 ok('  with no bare setArrivalOn(false)/(true) left to disagree with it',
    !/setArrivalOn\(false\)/.test(codeOnly) && !/setArrivalOn\(true\)/.test(codeOnly));
-ok('  its label still asks the question rather than naming a feature',
-   /Want fuel left when you get there\?/.test(html));
+// v1.51.0 — it stopped being a question and became a MODE. The fleet's own
+// framing: "Auto", dimmed when off, because the control is something that is
+// running rather than something waiting for an answer.
+ok('  its label names the mode, and the row dims when it is off',
+   /Auto &mdash; plan real fuel stops/.test(html)
+   && /\.rb-switchrow\[aria-checked="false"\] \.rb-switch-text\{color:var\(--sub\)/.test(html));
 // The literal cannot read FuelGauge at that point in the file, so the test
 // reads the module and requires the two to agree — against whichever constant
 // the default selects. v1.40.0's floor move would have been caught by this,
@@ -752,17 +798,18 @@ ok('>>> ON maps to the gauge\'s toggle tick, never a local number',
 // numbers, never a hardcoded 450 or 150. Since v1.38.0 the ON copy carries
 // BOTH numbers: the 1/2 aim (what the plan lands closest to) and the 1/4
 // floor (what it never goes under).
-ok('>>> the off state explains the floor and the affordance',
-   /Off — plans just keep the standard reserve/.test(codeOnly)
-   && /Turn on to arrive with at least about/.test(codeOnly));
-// v1.42.0: the switch is a MINIMUM, and the copy has to say so — "at least",
-// not "about". The releases that read as a target described a planner that
-// could hand the driver LESS fuel than leaving the switch off.
-ok('  the on state states it as a minimum, in the planner\'s own figures',
-   /arrive with at least about \$\{minLabel\} of a tank/.test(codeOnly)
-   && /as much more as the route allows/.test(codeOnly));
-ok('  it reads the model — no literal 300 in the copy',
-   /arrivalReserveMiles\(FuelGauge\.ARRIVAL_TOGGLE_TICK\)/.test(codeOnly)
+// v1.51.0 — Auto does TWO things and the copy names both, because they are
+// exactly the two a driver would otherwise have to infer from the stop list:
+// how big each fill is, and how full the tank is at the receiver.
+ok('>>> the off state names what turning it on buys',
+   /Off — fewest stops, and no cushion held for the receiver/.test(codeOnly)
+   && /Turn Auto on to fill at about/.test(codeOnly));
+ok('  the on state states the fill target AND the arrival minimum',
+   /Spaces your stops to fill at about \$\{fillLabel\} a tank/.test(codeOnly)
+   && /at least about \$\{minLabel\} of a tank/.test(codeOnly));
+ok('  both figures read the model — no literal gallons or ticks in the copy',
+   /tickLabel\(FuelGauge\.TARGET_FILL_TICK\)/.test(codeOnly)
+   && /combinedGallons\(FuelGauge\.targetFillMiles\(\)\)/.test(codeOnly)
    && /tickLabel\(FuelGauge\.ARRIVAL_TOGGLE_TICK\)/.test(codeOnly));
 ok('>>> and the separate "aim" is gone from the app entirely',
    !/arrivalTarget/.test(codeOnly) && !/ARRIVAL_TARGET_TICK/.test(html));
@@ -811,12 +858,16 @@ ok('>>> "anything to clear" is measured against the DEFAULT, not against off',
   ok('  and the range at pickup comes from rangeForTick, likewise',
      /FuelGauge\.rangeForTick\(gaugeTick\)/.test(rrBody));
 }
-ok('>>> the reserve is passed into planAdaptive',
-   /planAdaptive\([\s\S]{0,220}ranges\.arrivalReserve\)/.test(codeOnly));
+ok('>>> the reserve AND the fill target are passed into planAdaptive',
+   /planAdaptive\([\s\S]{0,240}ranges\.arrivalReserve, ranges\.targetLeg\)/.test(codeOnly));
 ok('  and into planBeyondGap the same way',
-   /planBeyondGap\([\s\S]{0,220}ranges\.arrivalReserve\)/.test(codeOnly));
-ok('  readRanges returns it alongside the rest',
-   /return \{ maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve,\s*\n\s*onBackupReserve \};/.test(codeOnly));
+   /planBeyondGap\([\s\S]{0,240}ranges\.arrivalReserve, ranges\.targetLeg\)/.test(codeOnly));
+ok('  readRanges returns them alongside the rest',
+   /return \{ maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve,\s*\n\s*onBackupReserve, pickupFuelMiles, targetLeg \};/.test(codeOnly));
+// The target is Auto's own lever: off, it must be zero so the planner is
+// byte-identical to pre-v1.51.0.
+ok('>>> the fill target is zero with Auto off, so OFF plans as it always did',
+   /const targetLeg = arrivalOn\(\) \? FuelGauge\.targetFillMiles\(\) : 0;/.test(codeOnly));
 
 // v1.41.0 — the backup reserve. The band between 1/8 and 1/4 is dipped into
 // only when the reading is already at or under the planning floor, and the

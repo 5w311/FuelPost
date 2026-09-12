@@ -739,9 +739,26 @@
   .rr-info{flex:1;min-width:0;}
   .rr-name{font-weight:700;font-size:13.5px;}
   .rr-meta{font-size:11.5px;color:var(--sub);margin-top:2px;}
+  /* The nav code is the string the driver keys into the truck, so on the
+     results screen it takes the ink colour and the weight while its label
+     stays muted. Bold alone inside .rr-meta would still have been grey. */
+  .rr-nav b{color:var(--ink);font-weight:800;}
   .rr-chev{align-self:center;color:var(--sub);font-size:16px;flex-shrink:0;}
   .rr-final{border-top:1px solid var(--line);padding-top:10px;font-size:12.5px;color:var(--sub);}
   .rr-final b{color:var(--ink);}
+  /* What a stop is worth at the pump, under its own leg figure. Muted when
+     it earns the credit (it is confirmation, not news) and coloured when it
+     does not, because a short fill is the one thing here worth interrupting
+     a scan for. --danger-text rather than a raw red: it is already the
+     theme-aware pair used by every other caution in this file. */
+  .rr-fill{font-size:11px;font-weight:700;color:var(--sub);margin-top:2px;}
+  .rr-fill-short{color:var(--danger-text);}
+  /* The arrival estimate sits with the final leg, in the same muted voice —
+     until it drops under half, when it becomes the line that matters. */
+  .rr-arrive{font-size:12.5px;color:var(--sub);line-height:1.45;margin-top:6px;}
+  .rr-arrive b{color:var(--ink);}
+  .rr-arrive-low{color:var(--danger-text);}
+  .rr-arrive-low b{color:var(--danger-text);}
   .rr-ok{background:#E4F3EA;border:1px solid #BFE3CC;border-radius:10px;padding:9px 12px;margin-top:10px;font-size:12.5px;color:#0F6B33;line-height:1.45;}
   .rr-warn{background:#FDECEC;border:1px solid #F0BEBE;border-radius:10px;padding:10px 12px;margin-top:12px;font-size:12.5px;color:#8A1C1C;line-height:1.45;}
   .rr-warn b{display:block;margin-bottom:4px;font-size:13px;}
@@ -806,6 +823,12 @@
      2.5:1 on the dark surface — measured, an AA failure on 12.5px text.
      --navy-text swaps to #6EA8FE in dark mode for exactly this situation. */
   .rb-switch-text{font-size:12.5px;font-weight:700;color:var(--navy-text);}
+  /* DIMMED WHEN OFF, at the fleet's request: the switch reads as a mode that
+     is running rather than a question waiting for an answer, so "off" should
+     look switched off. The knob already moves and recolours; this dims the
+     label with it so the state is legible from the row as a whole and not
+     just from a 16px slider. */
+  .rb-switchrow[aria-checked="false"] .rb-switch-text{color:var(--sub);opacity:.75;}
   .rb-switch{flex-shrink:0;position:relative;width:40px;height:24px;border-radius:12px;
     background:var(--line);transition:background .15s;}
   .rb-switch::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;
@@ -1051,7 +1074,7 @@
          driver with LESS fuel than the switch being off, and planFuel's own
          comment records why it is gone. -->
     <button type="button" id="arrivalToggle" class="rb-switchrow" role="switch" aria-checked="true">
-      <span class="rb-switch-text">Want fuel left when you get there?</span>
+      <span class="rb-switch-text">Auto &mdash; plan real fuel stops</span>
       <span class="rb-switch" aria-hidden="true"></span>
     </button>
     <div class="rb-help" id="arrivalHelp"></div>
@@ -1321,33 +1344,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.50.0"></script>
+<script src="lib/fuelplan.js?v=1.51.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.50.0"></script>
+<script src="lib/triptext.js?v=1.51.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.50.0"></script>
+<script src="lib/location.js?v=1.51.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.50.0"></script>
+<script src="lib/gauge.js?v=1.51.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.50.0"></script>
+<script src="lib/corridors.js?v=1.51.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.50.0"></script>
+<script src="lib/nearme.js?v=1.51.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.50.0"></script>
+<script src="lib/extract-version.js?v=1.51.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.50.0"></script>
+<script src="lib/autosuggest.js?v=1.51.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.50.0"></script>
+<script src="lib/baselayer.js?v=1.51.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.50.0"></script>
+<script src="lib/memocache.js?v=1.51.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.50.0"></script>
+<script src="lib/routerank.js?v=1.51.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.50.0"></script>
+<script src="lib/vehicleprofile.js?v=1.51.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.50.0"></script>
+<script src="lib/escape.js?v=1.51.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.50.0"></script>
+<script src="lib/navlinks.js?v=1.51.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1363,7 +1386,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.50.0')
+fetch('lib/fuelplan-adaptive.js?v=1.51.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1380,7 +1403,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.50.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.50.0')
+fetch('lib/shorttrip.js?v=1.51.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1391,7 +1414,7 @@ fetch('lib/shorttrip.js?v=1.50.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.50.0"></script>
+<script src="lib/flexible-polyline.js?v=1.51.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1563,7 +1586,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.50.0';
+const APP_VERSION = '1.51.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -4351,7 +4374,11 @@ function tierBadge(tier){
 // FUEL_STOPS filters type 'term' out of planning, so no stop reaching a
 // result card can be missing one. openSheet keeps its own conditional,
 // because terminals genuinely do reach the sheet.
-const navLine = row => `<div class="rr-meta rr-nav">Nav code <span class="mono">${row[20]}</span></div>`;
+// BOLD in the results, plain everywhere else. This is the string a driver
+// keys into the truck's nav while rolling, so on the one screen where they
+// are acting on the plan it should be the thing their eye lands on — the
+// label stays muted, the code itself carries the weight.
+const navLine = row => `<div class="rr-meta rr-nav">Nav code <b class="mono">${row[20]}</b></div>`;
 
 // summary: pass a short string (e.g. "4 fuel stops · 3,058 mi") to offer the
 // collapse tab for this render — the final plan/gap result only. Omit it for
@@ -4569,6 +4596,24 @@ function nearPickupLine(stop){
 // nearPickup is stopsNearPickup(pickup, NEAR_PICKUP_RADIUS_GAP) — always
 // computed for the confirmed pickup, whether or not the plan actually gaps,
 // because it also drives the quiet top-off tip on a successful plan.
+/* What a leg is worth at the pump, as one string used by every row that shows
+   one. Gallons are an ESTIMATE from an assumed mpg (see lib/gauge.js) and are
+   labelled "~" for that reason — the pump is the authority, this is what to
+   expect before you get there.
+
+   The credit is the point of showing it at all: a stop that pumps 55 gallons
+   costs the same time as one that pumps 75 and earns nothing, and until now
+   the plan gave a driver no way to see that coming. A short fill names how
+   far short it is, because "5 gal short" is actionable and "no credit" is
+   not — it is the difference between skipping a stop and tolerating it. */
+function fillNote(legMiles){
+  const gal = FuelGauge.combinedGallons(legMiles);
+  if(FuelGauge.earnsCredit(legMiles))
+    return `~${Math.round(gal)} gal &middot; shower credit`;
+  const short = FuelGauge.CREDIT_GALLONS - gal;
+  return `~${Math.round(gal)} gal &middot; ${short < 1 ? 'just' : Math.round(short) + ' gal'} short of a credit`;
+}
+
 function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, shortTrip){
   const stops = result.plan;
   // Post-gap stops ride along in planStops so their rows tap through to the
@@ -4648,6 +4693,10 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     fuelBookRev: FUEL_BOOK_REV
   };
   const { maxRange, rangeAtPickup, startBurned } = ranges;
+  // Declared out here because the button's HTML is built inside the plan
+  // branch and its click handler is wired at the end of the function — a
+  // block-scoped value would render a button that does nothing.
+  let nearDel = null;
   // Only call the search "widened" when it actually produced a plan — a failed
   // attempt at 30 mi is a dead end, not a plan that uses 30 mi stops.
   const widened = result.ok && result.detourMax > DETOUR_TIERS[0];
@@ -4710,6 +4759,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
       <div class="rr-info">
         <div class="rr-name">${i+1}. ${s.name} ${tierBadge(s.tier)}</div>
         <div class="rr-meta mono">${mi(s.legMiles)} mi this leg &middot; ${s.detour.toFixed(1)} mi off route</div>
+        <div class="rr-fill${FuelGauge.earnsCredit(s.legMiles) ? '' : ' rr-fill-short'}">${fillNote(s.legMiles)}</div>
         <div class="rr-meta">${s.row[7] || ''}</div>
         ${navLine(s.row)}
       </div>
@@ -4729,8 +4779,11 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     // would grow the plan itself.
     if(shortTrip.applies){
       planStops = [];
-      h += `<div class="rr-avail-intro">No fuel stop <b>required</b> — you arrive with about
-        <b>${mi(shortTrip.arrivalRange)} mi</b> of range.</div>`;
+      // The arrival figure used to live here too. It does not any more: the
+      // rr-arrive line below owns that fact, states it as a gauge reading
+      // rather than bare miles, and adds what to do about it — two copies of
+      // the same number on one screen is how they drift apart.
+      h += `<div class="rr-avail-intro">No fuel stop <b>required</b> for this run.</div>`;
       if(shortTrip.noneOnRoute){
         h += `<div class="rr-avail-none">No network fuel stops on this route itself.</div>`;
       } else {
@@ -4765,13 +4818,46 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
         <div class="rr-endaddr">${Esc.escapeHtml(delivery.label)}<button class="rr-fix" data-end="delivery">not right?</button></div></div></div>`;
     h += `<div class="rr-final">Final leg <b>${mi(result.finalLegMiles)} mi</b>${
       stops.length ? ' from your last fuel stop to delivery.' : ' — the whole run is inside your range, no stop needed.'}</div>`;
+    // WHAT THE NEEDLE WILL READ AT THE RECEIVER. Measured from the tank, not
+    // the tier: a full tank at the last stop, or whatever the driver said
+    // they left the shipper with if the plan has no stop in it.
+    const fuelLeaving = stops.length ? FuelGauge.FULL_TANK_MILES : ranges.pickupFuelMiles;
+    const arriveMiles = FuelGauge.fuelAtArrival(fuelLeaving, result.finalLegMiles);
+    const arriveTick = FuelGauge.tickAtArrival(fuelLeaving, result.finalLegMiles);
+    // A TANK READING, not a mileage: this is the number the driver will see on
+    // the needle when they shut down, and miles of range is the planner's
+    // language rather than theirs.
+    //
+    // FLOORED to the eighth below, never rounded to the nearest. 1140 mi is
+    // 7.6 ticks, and rounding calls that "F" — a gauge reading that
+    // over-states what is in the tank, which is the one direction that costs
+    // something. The needle a driver actually sees sits between marks and
+    // gets read down; so does this. The half-tank test below uses the exact
+    // tick, so the advice is not affected by the rounding.
+    const arriveLabel = FuelGauge.tickLabel(Math.floor(arriveTick));
+    const belowHalf = arriveTick < FuelGauge.TARGET_FILL_TICK - 1e-9;
+    h += `<div class="rr-arrive${belowHalf ? ' rr-arrive-low' : ''}">Pulling in at about
+      <b>${arriveLabel} of a tank</b>${
+      belowHalf ? ' — under half, so fuel before your next load rather than after it.' : '.'}</div>`;
     // Where fuel sits once the truck stops moving — the number that decides
     // whether arriving full matters. Searches ALL network stops, not just
     // on-route ones, and it matters most when the on-route list is empty.
     // Tappable: opens the same station sheet as any listed stop.
-    if(shortTrip.applies && shortTrip.nearestToDelivery){
+    // Offered whenever it is actually useful: the zero-stop case it was built
+    // for, and now any plan that lands under half a tank — that is precisely
+    // when "where do I fuel after this" is the driver's next question.
+    // shortTrip computes this itself when it applies; otherwise ask the same
+    // ranking the Near Me footer uses, over the whole network rather than the
+    // on-route stops, since the truck will be sitting still at the receiver.
+    nearDel = shortTrip.applies ? shortTrip.nearestToDelivery : null;
+    if(!nearDel && belowHalf && delivery){
+      const n = NearMe.nearestStops(delivery.lat, delivery.lng, FUEL_STOPS,
+                                    FuelPlan.haversine, 1)[0];
+      if(n) nearDel = { name: n.stop.name, id: n.stop.id, miles: Math.round(n.miles) };
+    }
+    if(nearDel){
       h += `<button type="button" class="rr-near-del" id="rrNearDel">Nearest network fuel to your delivery:
-        <b>${shortTrip.nearestToDelivery.name}</b>, ${mi(shortTrip.nearestToDelivery.miles)} mi away<span class="rr-chev">›</span></button>`;
+        <b>${nearDel.name}</b>, ${mi(nearDel.miles)} mi away<span class="rr-chev">›</span></button>`;
     }
     if(stops.length){
       h += `<div class="rr-ok">Fewest-stop plan on network fuel. Every leg is inside your ${mi(maxRange)} mi range.</div>`;
@@ -4844,6 +4930,8 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
           <div class="rr-info">
             <div class="rr-name">${stops.length + i + 1}. ${s.name} ${tierBadge(s.tier)}</div>
             <div class="rr-meta mono">${mi(s.legMiles)} mi this leg &middot; ${s.detour.toFixed(1)} mi off route</div>
+            <div class="rr-fill${FuelGauge.earnsCredit(s.legMiles) ? '' : ' rr-fill-short'}">${fillNote(s.legMiles)}</div>
+        <div class="rr-fill${FuelGauge.earnsCredit(s.legMiles) ? '' : ' rr-fill-short'}">${fillNote(s.legMiles)}</div>
             <div class="rr-meta">${s.row[7] || ''}</div>
             ${navLine(s.row)}
           </div>
@@ -4883,8 +4971,8 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     availToggle.hidden = true;
   });
   const ndBtn = $('rrNearDel');
-  if(ndBtn && shortTrip.applies && shortTrip.nearestToDelivery){
-    const nd = FUEL_STOPS.find(f => f.id === shortTrip.nearestToDelivery.id);
+  if(ndBtn && nearDel){
+    const nd = FUEL_STOPS.find(f => f.id === nearDel.id);
     if(nd) ndBtn.addEventListener('click', () => openSheet(nd.row));
   }
 
@@ -5002,15 +5090,26 @@ function renderRangeHelp(){
 // control itself: an on switch in a collapsed panel is still an on switch.
 // arrivalTick stays the model (the shortfall copy and readRanges read it);
 // the switch just writes one of its two values.
+// One reading of the switch's state, so the copy, the planner inputs and the
+// clear-visibility check cannot disagree about whether Auto is on.
+function arrivalOn(){
+  return $('arrivalToggle').getAttribute('aria-checked') === 'true';
+}
 function setArrivalOn(on){
   arrivalTick = on ? FuelGauge.ARRIVAL_TOGGLE_TICK : FuelGauge.RESERVE_TICKS;
   $('arrivalToggle').setAttribute('aria-checked', String(on));
   // One number, worded from the model: a MINIMUM, and the planner beats it
   // wherever the route allows — which is why this says "at least".
+  // Auto does two things, and the copy names both because they are the two
+  // the driver would otherwise have to infer from the stop list: how big each
+  // fill is, and how full the tank is at the receiver. Both figures come off
+  // the model, so neither can drift from what the planner actually did.
   const minLabel = FuelGauge.tickLabel(FuelGauge.ARRIVAL_TOGGLE_TICK);
+  const fillLabel = FuelGauge.tickLabel(FuelGauge.TARGET_FILL_TICK);
+  const fillGal = Math.round(FuelGauge.combinedGallons(FuelGauge.targetFillMiles()));
   $('arrivalHelp').textContent = on
-    ? `Plans a late enough stop that you arrive with at least about ${minLabel} of a tank (${FuelGauge.arrivalReserveMiles(FuelGauge.ARRIVAL_TOGGLE_TICK)} mi of range) — and as much more as the route allows.`
-    : `Off — plans just keep the standard reserve (the bottom ${FuelGauge.tickLabel(FuelGauge.RESERVE_TICKS)}, about ${FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)} mi). Turn on to arrive with at least about ${minLabel} of a tank.`;
+    ? `Spaces your stops to fill at about ${fillLabel} a tank — roughly ${fillGal} gal a stop, enough for a shower credit — and gets you there with at least about ${minLabel} of a tank.`
+    : `Off — fewest stops, and no cushion held for the receiver. Turn Auto on to fill at about ${fillLabel} a tank (~${fillGal} gal, a shower credit) and arrive with at least ${minLabel}.`;
   updateClearVisibility();
 }
 
@@ -5050,8 +5149,16 @@ function readRanges(){
   // still be in it at delivery. Both can bind at once, and when they can't
   // both be satisfied the planner reports it rather than quietly dropping one.
   const arrivalReserve = FuelGauge.arrivalReserveMiles(arrivalTick);
+  // PHYSICAL fuel leaving the shipper, not the plannable range above the
+  // floor: the arrival estimate is about what the needle will read, so it
+  // needs the real number. A closed disclosure still means "full".
+  const pickupFuelMiles = pickupOpen
+    ? FuelGauge.milesForTick(gaugeTick) : FuelGauge.FULL_TANK_MILES;
+  // Auto also asks the planner to aim each fill at half a tank's driving.
+  // Off, this is 0 and the planner behaves exactly as it did before v1.51.0.
+  const targetLeg = arrivalOn() ? FuelGauge.targetFillMiles() : 0;
   return { maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve,
-           onBackupReserve };
+           onBackupReserve, pickupFuelMiles, targetLeg };
 }
 
 /* ---- Vehicle profile (dimensions, weight, hazmat) ----
@@ -5924,14 +6031,14 @@ async function planLoad(pickup, delivery){
       const routeMiles = cum[cum.length - 1];
       const result = FuelPlanAdaptive.planAdaptive(
         r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, ranges.startBurned, DETOUR_TIERS,
-        ranges.arrivalReserve);
+        ranges.arrivalReserve, ranges.targetLeg);
       // A gapped route usually doesn't stay empty past the dry line — show
       // what the rest of the run fuels like, so the driver comparing the map
       // against the plan isn't left wondering where all that Texas fuel went.
       if(!result.ok){
         result.resume = FuelPlanAdaptive.planBeyondGap(
           r.poly, routeMiles, FUEL_STOPS, ranges.maxRange, result.gap, result.detourMax,
-          ranges.arrivalReserve);
+          ranges.arrivalReserve, ranges.targetLeg);
       }
       // Short-trip options are computed ONCE here, per option, and cached on
       // the option object — three consumers need them (the map's available

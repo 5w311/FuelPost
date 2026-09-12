@@ -1032,6 +1032,84 @@ overlay unmount it.
 
 ## Version history
 
+### v1.51.0
+
+**"Auto" — the reserve switch becomes a fuel-stop planner that knows what a
+stop is worth at the pump.** Asked for from the road: *"when we fuel the goal
+is combined gallons of 60+ so we can earn shower credits"*, and a stop that
+pumps 40 gallons costs the same time as one that pumps 75 and earns nothing.
+
+**The app now knows about gallons.** It was pure miles until now. `lib/gauge.js`
+carries the assumptions, stated as assumptions: **8.5 mpg** (deliberately under
+the 8.9 currently measured — under-stating mpg under-states the gallons, so a
+stop this app calls a credit is one the pump agrees with), DEF at **2.5%** of
+diesel volume, a **60 combined gallon** credit, and **180 usable gallons** (dual
+100s at 90%). That last one does not contradict the 1200-mi tank model: 180 gal
+at 8.5 mpg would be 1530 mi, and 1200 is the *comfortable* full-to-empty the
+fleet plans on.
+
+| Fill at | Miles burned | Combined gal | Credit? |
+|---|---|---|---|
+| 5/8 tank | 450 | ~54 | no |
+| **~1/2 tank** | **600** | **~72** | yes, ~12 gal spare |
+| the credit line | 498 | 60 | exactly |
+
+**Every stop is labelled** with what it will pump — *"~75 gal · shower credit"*
+or *"~55 gal · 5 gal short of a credit"*. Naming how far short matters: "5 gal
+short" is actionable where "no credit" is not.
+
+**The arrival estimate.** The panel now says what the needle will read at the
+receiver — *"Pulling in at about 5/8 of a tank"* — as a **tank level, not a
+mileage**: miles of range is the planner's language, the needle is the
+driver's. It is measured against the **tank**, not the tier, because the tier
+is a policy about how far to run between stops while the needle shows physical
+fuel; a truck that filled 134 mi ago reads 7/8 whether its tier says 500 or
+900. And it is **floored** to the eighth below rather than rounded — 1140 mi is
+7.6 ticks, and rounding calls that "F", which over-states what is in the tank.
+The half-tank test uses the exact tick, so the advice is unaffected by the
+rounding.
+
+Under half it says so and offers the nearest fuel to the delivery, which is
+exactly when "where do I fuel after this" is the next question. The no-stop
+copy dropped its own arrival figure in the process: two statements of the same
+number on one screen is how they drift apart.
+
+**Stop placement (`spaceFills`).** The greedy loop answers "how few stops" by
+taking the furthest reachable stop every time, which front-loads the distance
+and leaves a short leg — a short leg being a short fill. A new pass keeps the
+**count** and reconsiders the **positions**, aiming each fill at half a tank's
+driving. It never adds a stop (more stops mean smaller fills), never turns a
+plan into a gap, and the penalty is **one-sided**: only legs *shorter* than the
+target score against an arrangement. A first cut penalised both directions and
+promptly pulled a good 700-mi leg (84 gal) back to 600 (72) for nothing.
+
+**What the spacing pass is actually worth, measured — and it is less than it
+looks.** Across 39 real corridor/tier/length combinations on five interstates:
+it improved the worst fill in **2**, tied in 37, and never made anything worse.
+More tellingly, in **18 of 39** cases *no* arrangement can give every stop a
+credit — the network is the binding constraint, not the algorithm. The pass is
+kept because it is free and monotone, but the honest headline is the labelling:
+the driver can now see which stops are worth the time.
+
+**A test gap this release found in itself.** The browser suite drives Auto over
+a real corridor — and on that corridor the spacing pass is *inert*. So a
+mutation disabling the pass entirely, and one flipping its penalty back to the
+two-sided version that measurably made plans worse, both sailed through every
+test that existed. Behaviour that only shows on some geographies needs fixtures
+that guarantee the geography: `test/fuelfill.test.js` now exercises the pass
+directly, and the same run added pins for the capacity ceiling and for reading
+the arrival off the tank rather than the tier — two more mutations that had
+escaped both suites.
+
+**The switch is a mode, not a question.** Labelled "Auto", dimmed when off, per
+the fleet's own framing. Off is unchanged: fewest stops, no cushion, and a zero
+fill target so the planner is byte-identical to pre-v1.51.0.
+
+**Nav codes are bold in the results** — that is the string a driver keys into
+the truck, so on the screen they act from it takes the weight and the ink
+colour while its label stays muted. The station sheet keeps its own code at the
+weight of every other row.
+
 ### v1.50.0
 
 **A locate tap frames the three closest stops, not two.** A driver choosing
