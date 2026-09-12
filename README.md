@@ -1032,6 +1032,17 @@ overlay unmount it.
 
 ## Version history
 
+### v1.54.0
+
+**Trimmed the skipped-stop note.** It ended with "so that fuel is there once
+the trailer is off", explaining why a station near the delivery is useful — a
+thing the driver already knows better than the app does. The note now stops at
+the fact:
+
+> Auto skipped **TA Tonopah**, 255 mi before delivery — it would only have
+> taken about **51 gal**, short of a credit, and **TA Ontario** sits 24 mi from
+> your delivery. You still get there with 3/8 of a tank.
+
 ### v1.53.0
 
 **Auto now measures "is this stop worth taking?" from both ends of the run.**
