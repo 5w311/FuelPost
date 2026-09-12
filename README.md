@@ -1,4732 +1,752 @@
 # FuelPost
 
-Covenant network fuel stop finder for drivers. Single-page app, no build step,
-deployed to GitHub Pages.
+**Finds Covenant network fuel stops, and plans where to fuel on a load.**
 
-Two modes:
+Type in where you're picking up and where you're delivering. FuelPost works out
+the truck route and tells you which network stops to fuel at, at what mile, using
+as few stops as it can.
 
-- **Stops** — map and list of all 144 Covenant network locations, filterable by
-  state, corridor, amenities and free text search — including by nav code.
-  Works with no signal once loaded.
-- **Route** — enter the pickup and delivery addresses off a dispatch, get a truck
-  route from HERE and a fuel plan: which network stops to fuel at, at what mile
-  marker, with the fewest stops possible.
+It's a web page, not an app store download. Once it's loaded it keeps working
+with no signal — you'll only need bars for the map picture and for planning a new
+route.
 
-## Layout
+**Two tabs:**
 
-```
-index.html                  the app — markup, styles, DATA array, map + UI wiring
-icons/                      favicon / home-screen icon PNGs
-lib/fuelplan.js             pure fuel-planning logic (no DOM, no network)
-lib/fuelplan-adaptive.js    widens the detour search before declaring a gap
-lib/triptext.js             formats a plan as plain text for share / save
-lib/location.js             GPS fix labeling and precision checks (no DOM, no network)
-lib/gauge.js                fuel-gauge tick <-> miles math (no DOM, no network)
-lib/autosuggest.js          query threshold + suggestion-item parsing for the address dropdowns
-lib/baselayer.js            pure nextBaseLayer() — which road layer (if any) a theme change applies
-lib/memocache.js            session-only memo cache for repeat HERE lookups (no DOM, no network)
-lib/routerank.js            orders alternative routes by fuel viability (no DOM, no network)
-lib/vehicleprofile.js       vehicle dimensions/weight/hazmat -> HERE vehicle[...] params (no DOM, no network)
-lib/escape.js               HTML-escapes external strings before they reach innerHTML (no DOM, no network)
-lib/navlinks.js             station -> Apple/Google Maps URLs, address line, Apple-platform test (no DOM, no network)
-lib/extract-version.js      pulls APP_VERSION out of fetched page source for the update check
-lib/flexible-polyline.js    HERE's reference polyline decoder, vendored unmodified (MIT)
-test/*.test.js              plain-node tests, no framework
-test/run.js                 runs every test file and reports a combined total
-tools/geocode.js            one-off script that geocoded the station coordinates
-tools/geocode-report.txt    output of that run
-```
+- **Stops** — every one of the 144 network locations on a map and in a list.
+  Search, filter, or look up a city to see what fuel is near it.
+- **Route** — paste the addresses off your dispatch and get a fuel plan.
 
-`lib/` and `tools/` are CommonJS so the tests run under plain `node` with no
-install and no build step. `index.html` loads the `lib/` files as classic
-scripts behind a three-line `module.exports` shim.
+---
 
-## Fuel stop selection
+# Planning a load
 
-The rule is **fewest stops**: from each position, push to the furthest network
-stop still in range. That is provably minimal for stop count. Station tier
-(Exclusive vs Primary) is informational only and does not influence selection —
-it shows as a badge on each result.
+## How it picks your stops
 
-Three inputs shape the plan:
+**It uses as few stops as possible.** From wherever you are, it goes to the
+furthest network stop you can still reach, then does it again from there.
 
-- **Range between stops** — the distance at which the driver must have fueled.
-  Because the rule is fewest-stops, only this maximum matters; a
-  "don't stop before X" value would have no effect. Chosen as a **tier** since
-  v1.27.0 — see below.
-- **Range leaving shipper** — how far the truck can go when it rolls out of the
-  pickup. Maps to `startBurned = max(0, maxRange - rangeAtPickup)`.
-- **Fuel left at delivery** — the *arrival reserve*, new in v1.27.0 and a
-  simple on/off switch since v1.35.0 (on = arrive with **at least half a
-  tank**, and as much more as the route allows — one number again since
-  v1.42.0).
-  Everything above shapes where the driver stops; this one decides whether they
-  stop at all near the end of the run.
+Exclusive and Primary stops are both used — the badge tells you which is which,
+but it doesn't change the plan.
 
-### Range tiers, and the default that moved (v1.27.0)
+## How far you run between stops
 
-> **The default range is 700 mi** (675 in v1.30.0–v1.34.x, 625 in
-> v1.27.0–v1.29.x, 875 before v1.27.0).
-> A familiar route plans **more stops** than it did before v1.27.0. That is the
-> intended improvement, not a bug — but if a plan looks busier than you
-> remember, this is why.
+Pick the one that matches how you run:
 
-The old control was a number box asking "how far do you run between fuel
-stops?", and its own help text conceded the problem: *set this once, most
-drivers leave it alone*. It asked for a figure nobody reliably knows, handed it
-a default, and hoped. Because that default was 875 — the **most** a truck can
-be planned on — every driver who never touched the field was silently on the
-fewest-stops setting.
-
-| Tier | Miles | On the tank scale | Stop frequency |
-|---|---|---|---|
-| Regular | 500 | 3.33 ticks — *not* a whole tick | Most stops |
-| **Long** (default) | **700** | 4.67 ticks — *not* a whole tick | Fewer stops |
-| Max | 900 | exactly 6 ticks — three quarters of the tank | Fewest stops |
-| Custom | 300–1200 | whatever you type | — |
-
-Only Max sits on the fuel gauge's own scale: with `FULL_TANK_MILES` **1200**
-over `TICKS` 8, a tick is 150 mi, and 900 is exactly six of them. Regular and
-Long are road-practice numbers, and `gauge.test.js` asserts they are *not*
-whole ticks so nobody "corrects" them.
-
-**Max 900 IS a full tank's plannable range, exactly.** Since v1.40.0 the tank
-is sized so that what's left above the held-back quarter is a round 900 — the
-same number as the Max tier. The biggest range a driver can pick is precisely
-the range a full tank gives: no overhang (v1.35.0 and v1.39.0 each had Max
-sitting 25 mi past plannable-full, leaning on a `startBurned` debit for the
-first leg), and nothing left on the table either. No tier carries a debit on a
-full tank now, and the test proves it with the real planner rather than
-arithmetic: a full Max tank covers a 900-mi run outright, and 901 is honestly a
-gap.
-
-**The tick-scale claim has now changed six times** — 400/625 had Long on the
-scale, 500/675 had Max, 500/700/900-on-the-1000-tank had Regular, the 1200 tank
-handed it to Max, evening the tank to 1000 handed it to Regular, and sizing the
-plannable span to 900 hands it back to Max — this time on the scale that
-matters, since Max is now a full tank's range rather than merely a whole number
-of ticks. The test reads
-`RANGE_TIERS` out of `index.html` instead of restating the numbers: its old
-form asserted arithmetic about literals, claims that stay true forever no
-matter what the tiers say, and it sailed through the v1.35.0 change silently —
-the exact drift it existed to catch. This time it fired.
-
-The tier names the tradeoff the driver is actually making — how often they stop
-— while each button still shows its mile figure, because that number is what
-feeds the planner and a driver checking the app's arithmetic is entitled to see
-it. **Custom** keeps the original number input, clamping and all, for drivers
-who know their number; a typed value is never replaced by the new default.
-
-Neither the tier nor the reserve is remembered across sessions. A driver's
-range is a property of the truck they are in today.
-
-### The arrival reserve
-
-Before v1.27.0 the planner had no notion of arriving with fuel left. `planFuel`
-looped `while (pos + reach < routeMiles)`, so it stopped planning the moment the
-destination was reachable and the final leg was simply whatever remained. On an
-870 mi route at the old 875 default it planned **zero stops** and put the driver
-at the receiver sitting on the bottom reserve. The only way to force a stop
-before delivery was to type a smaller range — to lie to the app about the truck
-until the loop ran again.
-
-The reserve is that missing input, and it is deliberately built as a **raising
-of the floor that already existed** rather than a new parallel concept.
-`RESERVE_TICKS` holds back the bottom of the tank — a quarter of it since
-v1.40.0 (300 mi), one eighth before that. Since v1.41.0 that quarter has two
-halves: the eighth below it is untouchable (`BACKUP_RESERVE_TICKS`), and the
-amber band between them is a **backup reserve** the app dips into only when
-the driver is already down there — see below as never-plannable range. Since **v1.35.0** the control is a **switch**:
-
-**The switch is ON by default since v1.43.0.** Every release from v1.27.0 to
-v1.42.0 defaulted it off, so a driver who never touched it got plans that could
-put them at the receiver on the bottom reserve — the very case v1.27.0 was
-built for. The default now leaves them half a tank. `ARRIVAL_DEFAULT_ON` in
-`index.html` is the single place it lives: startup, Clear trip, the static
-`aria-checked` in the markup, and the "is there anything to clear" check all
-read it, because four copies of a boolean disagreeing is exactly how a switch
-ends up looking on while planning as if it were off.
-
-| Switch | What it holds for arrival | Effect |
+| | Miles | |
 |---|---|---|
-| **off** | nothing extra | the standard reserve — exactly the behaviour of every release before v1.27.0 |
-| **on** | **1/2** (300 mi), as a minimum | arrive with at least half a tank — the planner beats it wherever the route allows |
+| Regular | 500 | Most stops |
+| **Long** | **700** | Fewer stops — this is the default |
+| Max | 900 | Fewest stops |
+| Custom | 300–1200 | Type your own |
 
-#### The backup reserve (v1.41.0)
+**Max (900) is everything a full tank gives you.** The app treats a full tank as
+1,200 miles and holds back the bottom quarter — 300 miles — as yours, not to be
+planned on. That leaves 900.
 
-Refusing to *plan* on the bottom quarter and refusing to *look* are different
-things. Until v1.41.0 they were the same code path: a driver sitting on a
-quarter tank got no routing call and a blank panel — the exact moment they most
-need to see what is near them.
+This setting resets every time you open the app, because it's about the truck
+you're in today.
 
-So the band between **1/8 and 1/4** — one tick, 150 mi, the amber stretch on
-the gauge — is a backup reserve rather than a dead zone:
+## What the gauge is for
 
-| Gauge reading | Plans on | Flagged |
-|---|---|---|
-| 3/8 and above | ordinary plannable range (150 mi at 3/8, 900 at F) | no |
-| **1/4** | **150 mi of backup** | yes — caution on the plan |
-| 1/8 | nothing. The floor panel, unchanged | — |
+Tell it where your needle sits leaving the shipper, and it plans from there
+instead of assuming you're full.
 
-Two floors answering two questions: `RESERVE_TICKS` (1/4) is what a normal plan
-may not touch, `BACKUP_RESERVE_TICKS` (1/8) is what nothing may touch, ever.
-`FuelGauge.rangeForTick()` is the single place that chooses between them —
-readout, planner input and results caution all read it, because the choice is
-the same one every time and splitting it is how the three drift apart.
-
-The invariant that keeps v1.40.0 intact: **an ordinary plan never spends the
-backup.** A driver at 3/8 gets the 150 mi above the quarter-tank floor, not the
-300 the backup scale would hand them; otherwise this would have quietly
-restored the old 1/8 floor for everyone. `gauge.test.js` asserts that for every
-tick above the floor, and proves the rest with the real planner — at a quarter
-tank a stop 140 mi out is now reachable and one at 160 still isn't.
-
-A backup plan is captioned before the stops, never left to read as an ordinary
-one: it names the reading, the two floors, and the 150 mi it is spending, and
-says to treat the first stop as the one to make.
-
-The control narrowed release by release as the real choice got clearer. v1.27.0
-offered a 1/8–1/2 dial. v1.30.1 dropped 1/8 — nobody arrives on an eighth by
-choice. v1.35.0 collapsed the rest into one switch at 1/2, v1.37.0 raised it to
-5/8 — and v1.38.0 split what "on" means into **two numbers doing two different
-jobs**: a **floor** (1/4 — a hard constraint, the plan is not allowed to land
-under it) and an **aim** (1/2 — a preference, the plan lands as close to it as
-the stops on the route allow). One tap still asks the only question the fleet
-found drivers answering: *do you want fuel left when you get there?*
-
-`ARRIVAL_TOGGLE_TICK = 4` in `lib/gauge.js` is the whole setting. It must sit
-above `RESERVE_TICKS` to cost anything at all — every figure on this scale is
-measured above that floor, so a switch set to the floor asks for zero — and
-`gauge.test.js` pins that, which is what caught it when v1.40.0 moved the floor
-underneath it.
-
-What half a tank costs is stated rather than buried: the last stop must sit
-within `range − 300` of the delivery — **200 mi on Regular, 400 on Long, 600 on
-Max**. Where a route's late stops cannot meet it, the planner flags a reserve
-shortfall rather than lying (below).
-
-#### Why the "aim" was deleted (v1.42.0)
-
-v1.38.0 split the switch into a floor and an **aim**: the planner re-picked the
-final stop to land the arrival *closest to* half a tank. That target was
-**symmetric** — an arrival above it counted as just as wrong as one below — and
-for a control a driver reads as *"leave me some fuel"*, that is backwards. Two
-faults, both measured on a real Dallas → Carteret run:
-
-| Range | Switch OFF arrives with | v1.38.0 switch ON arrived with |
-|---|---|---|
-| 700 (Long) | 566 mi | **350 mi** — the switch made it *worse* |
-| 900 (Max) | 237 mi | 237 mi — **inert**, no change at all |
-
-The first is the aim pulling the last stop *earlier* because greedy had
-overshot the target. The second is the re-pick only being allowed to choose
-among stops reachable from the *second-to-last* stop — on a one-stop plan it
-has nothing to choose from, which is exactly what a driver reported.
-
-A minimum has neither fault. The loop runs until the destination is reachable
-while still holding the reserve, and because it always takes the **furthest**
-reachable stop, the final leg is as short as the route allows and the arrival
-as full. On that same run at 900 mi range it now adds a late stop and arrives
-with **855 mi** instead of 237.
-
-The invariant that replaces the aim is the one a driver actually cares about,
-and `fuelplan.test.js` sweeps it across routes, ranges and reserves rather than
-asserting it on one fixture: **asking for fuel at delivery never arrives with
-less than not asking.**
-
-The old disclosure needed a reset-on-close contract (a raised reserve behind a
-collapsed field silently steered every plan). A switch does not: its state is
-visible on the control itself, so an on switch in a collapsed panel is still
-legibly on. `role="switch"` means a screen reader announces on/off rather than
-expanded/collapsed, and the help line under it explains the aim and the floor —
-worded from the gauge's own numbers, never a hardcoded figure (which is why the
-v1.36.0 tank change, the v1.37.0 tick change, and the v1.38.0 split all moved
-the copy without string edits).
-
-Mechanically the floor is one changed loop condition: the planner runs until it
-can reach `routeMiles + reserve`, which is exactly the condition
-`maxRange - finalLeg >= reserve`. The aim is a **re-pick of the final stop
-only**: after the fewest-stops loop finishes, the planner looks at every stop
-it could legally have used as the last one (reachable from the previous
-position, still leaving the floor intact) and swaps in the one whose arrival
-range sits closest to 300 mi, breaking near-ties within 15 mi toward the
-smaller detour. Stops before the last are never touched, a zero-stop plan never
-gains one, and with the switch off both numbers are 0 — `fuelplan.test.js` runs
-every pre-existing fixture through both call shapes and deep-compares the
-results, because "existing plans are untouched" is the claim most worth
-proving.
-
-`planFuel` stays pure: it takes the floor and the aim **in miles**, not ticks,
-so it never learns that a tank has eighths. `FuelGauge.arrivalReserveMiles()`
-does the conversion, which keeps the tank scale in one file.
-
-Worth knowing about the behaviour: before v1.38.0 the reserve was a threshold
-only — it decided *whether* a late stop was needed, and the greedy planner
-could then overshoot the mark by hundreds of miles (arrive at 5 mi off, or at
-865). The aim is what closes that: the *number* of stops is still the fewest
-that respect the floor, but the *last* of them is now placed for the arrival,
-not just legality. On a route with sparse stops the aim degrades gracefully to
-the nearest achievable arrival, above or below 300.
-
-**When the reserve can't be met.** A driver can ask for more than a route can
-give — a Custom range typed below the floor's needs, or a route whose last
-stops all sit too far out. That is a real state and it reads as one: the app shows the plan
-it *can* make, says what the arrival actually works out to, and points at the
-settings that move it. It is explicitly **not** shown as a fuel gap. Every leg
-of a shortfall plan is drivable and the delivery is reached; only the cushion
-falls short, so the "won't make it / you run dry / call the Fuel Dept" wording
-would be false. `planFuel` tells the two apart by where the dead mile lands — at
-or past the destination means nothing is stranded — and flags only that case,
-which is also why a plain no-reserve gap keeps exactly the object shape it
-always had.
-
-Selection uses `lib/fuelplan-adaptive.js`'s `planAdaptive`, which tries stops
-within 8 miles of the route first and only widens to 15, then 30, if the tight
-search would strand the driver — most routes solve at 8 and are never widened.
-When the search still comes up short even at 30 miles, `stopsNearPickup` looks
-for a network stop within 50 miles of the pickup in any direction (not just
-along the route) before the app calls it a dead end: a station near the
-shipper — off to the side, behind, wherever — is worth naming as a top-off
-option even though it isn't on the route.
-
-Covenant has **no network stops in New Mexico**, which leaves a ~490 mile run on
-I-40 between TA Holbrook AZ and TA Amarillo TX with nothing on it. When no
-network stop is reachable at all — not on the widened route search, and not
-near the pickup either — the app shows the partial plan and names the gap
-rather than returning a plan that strands the driver. Out-of-network fuel needs
-Driver Support approval first: 423-463-3680.
-
-## Tests
-
-```
-node test/run.js          # everything
-node test/fuelplan.test.js  # just the planning logic
-```
-
-No dependencies, no install step.
-
-## Two version strings, on purpose
-
-They answer different questions and must not be conflated:
-
-- **`FUEL_BOOK_REV`** (`Rev 01-2026`) — which edition of the Covenant fuel book
-  the 144 stations in `DATA` came from. Shown in the **header**, because when the
-  book is reissued stations join and leave the network, and fueling at a station
-  that has left it is a compliance violation. A driver cannot tell stale station
-  data from current station data without it. Bump this only when the station data
-  is re-sourced from a new book.
-- **`APP_VERSION`** (`1.3.0`) — the code. Shown in the **legend card** as a
-  support detail. Bumped for every shipped change.
-
-### One station is marked closed, pending the next fuel book
-
-`DATA` holds **144 rows**, and **142** are plannable: one Covenant terminal,
-plus one station that is shut.
-
-- **TA Gary** (`IN1`, nav `CVENTA010`) — 2510 Burr St., Gary IN.
-  **Temporarily closed, parking only.** The lot is open and taking trucks;
-  fuel, showers and the service bays are not available. Reported by the fleet,
-  08-2026 — an *operational status* rather than a master-list lookup, and
-  labelled as such in the source rather than dressed up as a citation. It was
-  not confirmable against TA's public site from the build environment.
-
-It is listed in `CLOSED_STOP_IDS` in `index.html` and dropped by the
-`FUEL_STOPS` filter. **"Parking only" is excluded exactly as hard as a
-permanent closure would be** — the tempting half-measure, leaving it plannable
-because the gate is open, routes a driver to an island that cannot sell them
-fuel, which is the whole failure this set exists to prevent. What differs is
-what a driver *reads*, never what the router branches on.
-
-The wording lives in `CLOSED_STOP_INFO`, keyed by id: the list chip, the banner
-headline, the sentence under it, the id of a real alternative, and **how that
-alternative relates to this stop**. That last field is not decoration — the
-sentence used to end with a hardcoded *"— same exit"*, which was true of the
-entry this table has since lost and **false** of Petro Gary, 2.5 mi east at
-exit 9 against TA Gary's exit 6. The table keeps its per-station shape at one
-entry on purpose: the next closure should be a row added to it, not a renderer
-rewritten.
-
-TA Gary's banner also names the amenity rows below it. Those rows are the fuel
-book's record of the site and still read *14 showers, 6 bays*; without the
-banner disowning them, a driver who has just read "temporarily closed" would
-plan a shower stop there anyway.
-
-Being temporary, `IN1` expires on its own terms: when the stop reopens, delete
-the id and its `CLOSED_STOP_INFO` entry, and nothing else has to change.
-
-> **Correction (v1.22.1).** v1.22.0 also marked **TA Saginaw** (`MI3`) closed.
-> That was wrong, and the error was in the lookup rather than the master: the
-> station was searched for under *Saginaw*, and TA lists it as **TA Bridgeport**
-> (site 0528) — same address, same phone, same coordinates. It is open, and it
-> was wrongly unplannable for the whole of v1.22.0. It is plannable again as of
-> v1.22.1. If you saw a closed banner on TA Saginaw, that banner was an error.
->
-> **A station being absent under its old name is not evidence of closure.** TA
-> renames stations and the fuel book keeps the old name. Match on address,
-> phone and coordinates before adding an id to `CLOSED_STOP_IDS`.
-
-> **A closed row is not its neighbour.** TA Gary is not **Petro Gary** (`IN2`) —
-> two stations 2.5 mi apart on I-80/I-94, at exits 6 and 9, with different
-> addresses, phones and nav codes. Petro Gary is open, stays plannable, and is
-> what TA Gary's sheet points at. `datastops.test.js` asserts the separation, so
-> a future over-broad exclusion cannot quietly take the sibling.
-
-### Closed is not deleted
-
-These are two different decisions and v1.31.0 made the difference explicit,
-because in a diff they look identical:
-
-- A row is **deleted** only when the fuel book never had it. v1.31.0 removed
-  **TA Corning** (`CA5`) and the **Covenant Greenville Terminal** (`TN7`), which
-  had entered `DATA` through an error in the original data collection and were
-  never in Rev 01-2026. `DATA` went 146 → 144, and it now reproduces the book
-  *more* faithfully than before — the count going down is the data agreeing with
-  the book, not departing from it.
-- A row is **closed, and kept**, when the book has it but the station is shut.
-  It keeps its marker, its list entry and its station sheet — a driver who knows
-  the stop and goes looking should find it and learn what happened, rather than
-  wonder whether the app lost it — and it is simply never selected for a plan.
-
-Deleting a closed row throws that explanation away, so *"it's closed anyway"* is
-not a reason to delete it. `CLOSED_STOP_IDS` stays a set rather than a column on
-`DATA` for the same reason it always did: entries expire, and a column would
-drag `FIELD_COUNT`, `tools/geocode.js` and the data tests along for a marker
-with a known end date.
-
-TA Gary stays visible on the map, in the list behind a `Parking only` chip, and
-in a station sheet whose banner says which kind of shut it is and that it is not
-used for planning. It keeps its **Call** and **Navigate** buttons on purpose: a
-driver can still go park there.
-
-TA Saginaw keeps the name the fuel book gives it, not TA's current one — that
-is the name a Covenant driver recognises — and keeps nav code `CVENTA198`.
-
-The header reads **144 stops**, derived from the filtered row count rather than
-written down anywhere, so it followed the deletion on its own.
-
-### Covenant Logistics HQ is never a fuel stop
-
-`TN6` is a yard, not a truck stop, and routing a driver there expecting diesel
-is the failure the `tier === 'term'` filter exists to prevent. It is excluded
-in exactly one place — the `FUEL_STOPS` filter — and every path that can select
-a stop is fed `FUEL_STOPS`, so that one filter is the whole story.
-
-That is asserted rather than assumed. `datastops.test.js` builds a synthetic
-route straight through the HQ's coordinates and confirms `TN6` is absent from
-**every** entry point: `planFuel`, `planAdaptive`, `stopsNearPickup` (standing
-in the yard), `planBeyondGap`, the short-trip list *with the delivery set to the
-terminal itself*, and Near Me. Each negative is paired with a positive check so
-a path that silently returns nothing cannot pass by being empty — the 50-mile
-`stopsNearPickup` radius did exactly that at first, since the nearest fuel stop
-to the HQ is TA Cartersville at **60.7 mi**. A final assertion greps the
-call sites in `index.html` and requires every one of them to be handed
-`FUEL_STOPS`, since a future edit passing `DATA` would defeat all of the above
-at once.
-
-## Amenity codes
-
-Column 16 of each `DATA` row, comma-separated, labelled by `AMEN_LABEL` in
-`index.html`. Every code in use **must** have a label: `amenChips` falls back to
-printing the raw code, so a missing entry shows the driver a bare `R` chip
-rather than failing. `datastops` pins that.
-
-| Code | Label | Source |
-|---|---|---|
-| `F` | Fitness room | Covenant fuel book, corrected against TA's location master 08-2026 |
-| `O` | Outdoor fitness | Covenant fuel book |
-| `W` | Walking trail | Covenant fuel book — **known over-claimed**, see below |
-| `H` | Horseshoes | Covenant fuel book |
-| `B` | Basketball court | Covenant fuel book |
-| `T` | Bean bag toss | Covenant fuel book |
-| `R` | Sit-down restaurant | **TA's location master, 08-2026** |
-
-`R` always sits **last** in a code string, so every pre-existing string keeps
-its `F,O,W,H,B,T` prefix and ordering untouched.
-
-`R` is a *food* amenity in a column of *recreation* amenities. That mixing is
-deliberate: a separate `DATA` column for one boolean would mean touching
-`FIELD_COUNT`, `tools/geocode.js` and the row-shape tests. Equally deliberate,
-`R` records only **that** a sit-down exists, never which brand — Country Pride,
-Iron Skillet, IHOP, Black Bear Diner and the rest are known per stop, but
-storing them needs a column.
-
-### What is trustworthy here, and what isn't
-
-- **`R` is complete and current** for every stop that matched TA's master,
-  straight from it. `IN1` matched and is still in TA's data — it is closed for
-  business, not delisted — but is excluded from the 142 plannable stops. The
-  one row that had *no* match, `CA5` (TA Corning), was deleted outright in
-  v1.31.0: it was never in the fuel book to begin with, which is consistent with
-  it having no match in TA's data either.
-- **`F` is good but not complete.** Of 34 claimed fitness rooms, 32 were
-  confirmed and one contradicted — so what is recorded is largely right. But
-  only ~20 of the 110 non-fitness stops were sampled, and two of those turned
-  out to have a gym. **There are likely a few more missing**; a fuller audit is
-  expected to add rows.
-- **`W` is systematically over-claimed** and has not been corrected. TA's
-  current data lists a walking trail at no location at all, while `DATA` claims
-  one at 95 stops. That needs its own verification pass and was not attempted.
-- Nine stops carry **only** `R` (`AR2`, `CA4`, `LA5`, `LA6`, `MS1`, `NV3`,
-  `SC6`, `TX2`, `TX16`). Several are large Petros, so their recreation data is
-  probably missing rather than genuinely absent. No codes were invented for them.
-
-### Fitness room corrections (v1.23.0)
-
-Recorded here so a later reconciliation against the fuel book does not read
-them as unexplained drift:
-
-| Row | Change | Source |
-|---|---|---|
-| `MO2` Petro Oak Grove | `F` **removed** (`F,W` → `W`) | TA's page lists no fitness room |
-| `VA4` Petro Raphine | `F` **added** | TA's page lists a StayFit fitness room |
-| `IN2` Petro Gary | `F` **added** | documented in trade press coverage |
-| `CT1` TA New Haven | **unchanged** | could be neither confirmed nor refuted — an amenity is not removed on absence of evidence |
-
-Note that `TN6`, the Covenant HQ terminal, also carries `F`. Fitness counts over
-*stops* therefore run one lower than counts over all 144 `DATA` rows.
-
-## Near Me (STOPS tab footer)
-
-With location on and a live fix, a footer sits flush along the bottom answering
-one question fast: **where is the nearest network fuel**. Collapsed it reads
-*Nearest Fuel Stop: 7 mi S · Petro North Baltimore* — the label frames what the
-line is, in a smaller muted weight so the stop itself carries the emphasis and
-the width. Expanded it lists the nearest four, nearest first.
-
-The label is dropped below 340px wide. Measured with an unclipped clone: the
-network's longest possible line needs 311px, against 348px available at 390 wide
-and 318px at 360, but only 278px at 320 — where the ellipsis would eat the end of
-the station name. On a screen that narrow the framing is the part worth losing.
-The over-cap sentence is deliberately not labelled, since it already says
-"nearest".
-
-**Straight-line distance, never drive time.** The Stops tab makes no network
-calls today beyond map tiles — filtering, searching and station data are all
-local — and routing for a drive time would add an API call per candidate and
-break the tab in a dead zone, which is exactly where a driver most needs to know
-where fuel is. So distances are `haversine` from `lib/fuelplan.js` and are
-labelled as distances. Sixty straight-line miles can be fifty minutes on an
-interstate or ninety on two-lane, and a minutes figure the app did not compute
-would be a lie.
-
-A **compass point** rides alongside every distance (eight points — N, NE, E …).
-Straight-line distance without direction is close to useless when the driver
-cannot tell whether fuel is ahead or behind.
-
-**The ranking ignores every filter, deliberately.** Not brand, type, state,
-corridor, the amenity toggles, or the search box. *Where am I* is a different
-question from *what am I looking for*, and a driver who filtered to sit-down
-restaurants an hour ago must not be told the nearest fuel is 200 miles away.
-This will look like a bug to a future reader — it is commented as such in both
-`lib/nearme.js` and at the call site, and `nearestStops()` takes no filter
-argument at all so there is nothing to wire in by accident.
-
-It does exclude closed stops and the Covenant terminal, because it is fed
-`FUEL_STOPS`, which already handles both — one exclusion rule shared with the
-planner rather than a second one to drift.
-
-**The hard cap is 200 miles.** Beyond it the footer stops offering a stop and
-reports a situation instead — *No network stop nearby — nearest is 224 mi S* —
-because it still has to name the distance to be actionable. 200 was chosen from
-the brief's 150–250 band: it is well inside the smallest range tier (Regular,
-500 mi between stops) and over three hours of driving, so past it the answer is
-no longer a fuelling decision. The band's edges both fail: 150 would fire during
-ordinary sparse-network driving, and 250 would stay silent through the ~490 mile
-I-40 gap in New Mexico, where the nearest stop measures **224 mi** and a driver
-most needs telling plainly.
-
-**It only appears with a live fix**, keyed off `liveFix` alone — no second flag
-for whether location is on. `setLocationOff()` already clears `liveFix`, so
-switching location off, denying permission, an unavailable sensor and a fix
-still being acquired all hide it for the same reason. It is STOPS-only and
-hidden in Route mode, which owns that region of the screen with its own results
-panel, and it hides with the list view alongside the legend and locate button.
-
-Recomputes on fix updates, but only once the driver has moved **a quarter mile**
-— `watchPosition` fires repeatedly while parked, and GPS jitter alone is tens of
-metres, so without the threshold every firing would rebuild four rows of DOM for
-an unchanged answer.
-
-**Layout: a flush footer, with everything else lifted above it.** v1.29.0
-shipped this as a floating card inset from the left and bottom so that it dodged
-HERE's attribution, the scalebar and the locate button. On a real phone that read
-as a card stranded mid-map. Since **v1.29.1** it is a proper footer — flush to
-the bottom, full width, rounded only on top, with `env(safe-area-inset-bottom)`
-padding for the home indicator.
-
-Nothing is covered, because everything in the map's bottom chrome is **lifted by
-the footer's own height**, published as a `--nm-h` custom property from a
-`ResizeObserver`. That tracks the collapse/expand animation frame by frame and
-survives a changed row count or font size, where a hardcoded per-state height
-would go stale.
-
-Three things had to be measured rather than assumed:
-
-- HERE's bottom chrome lives in **two sibling containers**, not one. `.H_ui`
-  carries the scalebar and layer switcher; `.H_imprint` carries the copyright.
-  Lifting only `.H_ui` leaves the copyright behind — covering HERE's attribution
-  is a terms issue, so this one matters.
-- `.H_imprint` gets `bottom: 0` as an **inline** style from the SDK, which
-  outranks any selector. Its rule needs `!important`, which is exactly the case
-  that keyword is for.
-- The observer must read `getBoundingClientRect()`, not `entry.contentRect`.
-  contentRect is the *content* box, so it omits the 1px top border and the
-  safe-area padding — that was a one-pixel copyright overlap on desktop, and the
-  whole home-indicator inset on an iPhone.
-
-Touch targets are 44px; it is used moving.
-
-Tapping any row opens the same station sheet a pin or list row opens — one
-detail view, not a parallel one, and navigation and calling are already there.
-
-## Corridor filter
-
-A driver plans by corridor: *show me the network on I-40* is the natural
-question. Text search covers the exit field, so typing `I-40` does something —
-but it is **substring** matching, so `I-5` also returns I-55, I-57 and I-59, and
-`I-4` returns I-40 and I-44. That fails in the direction that matters: it
-silently shows stops on roads the driver is not on. The corridor select answers
-the question exactly.
-
-**Corridors are derived, not stored.** `lib/corridors.js` parses them out of the
-exit field at startup. A corridor column in DATA would mean touching
-`FIELD_COUNT`, `tools/geocode.js` and every row-shape test, and would be a second
-copy of something the exit field already says.
-
-**Only interstates are parsed**, because `I-` followed by digits is the one
-unambiguous pattern in a human-entered field that uses at least four separator
-conventions:
-
-| Convention | Example |
+| Needle | What it plans on |
 |---|---|
-| slash | `I-20/I-59, Exit 77` |
-| comma | `I-95, SR 261, Exit 119` |
-| ampersand | `I-35 & US 77, Exit 471` |
-| full repeat | `I-40, Exit 280 / I-55, Exit 4` |
+| 3/8 and up | Normal — 150 miles at 3/8, up to 900 at F |
+| **1/4** | **150 miles of backup**, and it warns you |
+| 1/8 | Nothing. It shows you the floor message instead |
 
-A comma-splitting parser reads `Exit 119` as a corridor. And the route-type
-prefixes cannot be trusted: GA4 reads `Hwy 36`, which is Georgia **SR** 36, not
-US 36 — normalising it invents a road that does not exist.
+The bottom eighth is never touched at all. The stretch between 1/8 and 1/4 is
+backup — the app will dig into it if you're already down there and need to see
+what's nearby, but a normal plan never spends it.
 
-An `E`/`W` suffix folds into the parent route, so a driver filtering I-35 finds
-TX7 (`I-35E, Exit 374`) and one filtering I-40 finds OK2 (`I-40E/I-35, Exit 127
-/ I-40W, Exit 154`, which collapses to I-40 + I-35 rather than three corridors).
-The station sheet still shows the literal exit text, so the distinction that
-matters at the ramp is never lost.
+## Auto (on unless you turn it off)
 
-**Three stops are hand-mapped**, being the only ones whose sole corridor is not
-an interstate. The map lives next to the parser, in the same spirit as
-`CLOSED_STOP_IDS`, and tests assert every id in it still exists in DATA:
+Auto does three things.
 
-| Stop | Exit field | Mapped to |
-|---|---|---|
-| CA1 TA Livingston | `SR 99, Exit 203` | SR 99 |
-| TX6 TA Ganado | `Hwy 59, Exit 522E` | US 59 |
-| TX14 TA Edinburg | `Hwy. 281, Exit FM 2812` | US 281 |
+**1 · It spaces your stops so each fill is worth stopping for.** A stop that
+pumps 40 gallons costs you the same time as one that pumps 75. The target is
+**60+ combined gallons (diesel and DEF)** — a shower credit.
 
-**Secondary non-interstates are deliberately excluded.** Seven stops carry one —
-GA1/GA3 US441, GA4 Hwy 36, IN3 SR 50, OH2 US 42, SC4 SR 261, TX15 US 77 — and
-every one is already reachable through its interstate. Each would add a
-single-stop row to a control whose whole job is to be scannable. Text search
-still matches the exit field verbatim, so a driver looking for SR 261 finds SC4.
+It aims to have you pull in at about **half a tank**, which is roughly 600 miles
+of driving and about 72 gallons. That clears the credit with room to spare.
 
-The result is **36 interstates plus 3**, ordered **numerically** (I-4, I-5, I-10,
-I-12 …, never I-10 before I-4 — a driver scans for a route number) with the
-three non-interstates last. Each entry carries its stop count, `I-40 (13)`,
-because the distribution is long-tailed — I-40 and I-10 have 13 each, and
-twenty-plus corridors have three stops or fewer — and without the number a main
-lane looks the same as a one-stop spur. That count is the **network** total for
-the corridor, deliberately not recomputed against other active filters: a number
-that changed as you toggled states would be answering a different question than
-the one being asked when the list is opened.
+Every stop in your results tells you what it's worth: *~68 gal · shower credit*,
+or *~44 gal · 16 gal short of a credit*.
 
-Membership, not equality: **25 stops sit on two or more corridors**, so TA
-Tuscaloosa is found under both I-20 and I-59. Each row's list is derived once at
-startup into a `Map` keyed by row reference (the same way `STOP_MARKERS` is
-keyed) — `passes()` runs over all 144 rows on every keystroke, and a regex per
-row per keystroke would be waste.
+> **⚠ The gallon numbers read a little high.** The app plans on 8.5 mpg. If
+> you're really getting 8.9, you'll pump *less* than it says — a leg it calls 60
+> gallons is closer to 57. **If it says you're within about 3 gallons of a
+> credit, treat it as a coin toss.** 8.5 is kept because it's the safe number for
+> working out *range*; it just can't be the safe number for gallons at the same
+> time.
 
-### The LA7 exit correction (v1.28.0)
+**Being honest about the spacing:** on 39 real runs it improved the worst fill
+twice, changed nothing on 37, and never made anything worse. On 18 of those 39,
+*no* arrangement of stops could earn a credit at every stop — the network just
+isn't dense enough. So the real value here is that each stop now tells you what
+it's worth, not the shuffling.
 
-**LA7 TA Express Laplace had an empty exit field**, which made it the one fuel
-stop on no corridor at all. It is not corridorless — it sits at the I-10 / I-55
-junction in LaPlace — so its exit is now `I-10, Exit 209 / I-55, Exit 1`,
-matching the two-corridor format AR2 Petro W. Memphis already used, which means
-it parses automatically and needs no override.
+**2 · It leaves you fuel at the receiver** — at least half a tank, and more where
+the route allows. It's a minimum, not a target, so turning Auto on can never
+leave you with *less* fuel at the delivery than leaving it off.
 
-Sourced from TruckMaster Fuel Finder, which lists TA Express Laplace #0479 (the
-number matching this row's `CVENTA479` nav code) at I-10 Exit 209 (US 51) or
-I-55 Exit 1 — and independently confirmed against HERE's own road network, which
-places *Exit 209/US-51* 479–819 m from this row's stored coordinates and
-*Exit 1* (I-55) 1,226 m, with TA's own location page confirming the address
-`4301 Main St., Laplace, LA 70068` exactly as stored. The correction moves real
-counts: I-10 goes from 12 stops to 13, and I-55 from 3 to 4.
+**3 · It skips a stop that isn't worth taking.** Sometimes holding fuel back for
+the receiver forces a stop right near the end that only pumps 50-odd gallons —
+no credit, and a full pull-in for it. Auto will skip that stop when:
 
-## The filter card
+- you can reach the receiver without it, **and**
+- it wouldn't earn a credit, **and**
+- either it's inside the last 100 miles, or there's network fuel within 50 miles
+  of your delivery.
 
-Behind the funnel button on the STOPS tab. Since **v1.32.0** it holds two
-multi-selects, the amenity row, and a reset control.
+**You can't end up stranded doing this.** The miles the app plans with already
+exclude that bottom quarter tank, so the worst case is arriving at 1/4 — 300
+real miles still in the tank. Across 112 real runs the skip happened 18 times,
+and every one of them still arrived at half a tank or better.
 
-### Brand and tier filters were removed (v1.32.0)
+When it skips one, it tells you which stop and why.
 
-They are gone because they are **not questions a driver asks** — not because
-they failed the selectivity bar the amenity filters are judged on. That
-distinction is recorded here, and asserted in `filtermulti.test.js`, so nobody
-restores them on the theory that they were merely unselective:
+## What your results tell you
 
-| | Rows | Share of network |
-|---|---|---|
-| **Petro** | 31 | 21.5% |
-| **Exclusive** | 31 | 21.5% |
-| *carrying both* | **5** | — |
+For each stop: the mile marker, how far off route it is, roughly what you'll
+pump and whether that earns a credit, the exit, and the nav code in bold.
 
-Both sat comfortably inside the 15–60% band, and with only 5 rows overlapping
-they were not redundant with each other either. They were simply the two
-least-touched controls in the card.
+At the bottom: your final leg, and **what your gauge should read pulling in** —
+rounded *down* to the nearest mark, never up. If that's under half, it says to
+fuel before your next load rather than after, and names the closest network stop
+to your delivery.
 
-**Both facts stay visible where they matter.** Brand is on every pin and every
-list row; the Exclusive badge is on the station sheet and the route result
-cards. `row[1]` and `row[11]` are untouched everywhere else — the columns did
-not go with the filters, and `filtermulti.test.js` pins that they are still
-read.
+## When it can't make a plan
 
-### State and corridor are multi-select
+**"You arrive with less than you asked for"** — the route works and every leg is
+drivable, you just can't hold the cushion you wanted. Not a fuel gap.
 
-A driver running I-40 *and* I-44, or planning across TX *and* OK, previously had
-to filter twice or not at all.
+**A real gap** — no network fuel reachable. It looks for stops within 8 miles of
+the route, then widens to 15, 30 and 50 if it has to, then checks within 50 miles
+of your pickup in any direction. Covenant has **no stops in New Mexico**, which
+leaves about 490 miles of I-40 with nothing on it.
 
-**Within a dimension the selections are OR. Across dimensions everything is
-AND** — TX or OK, *and* on I-40 or I-44, *and* with showers, *and* matching the
-search text. The across-dimension AND is structural: each check in `passes()` is
-an early return, so it is not something to remember.
+**Out-of-network fuel needs approval first: 423-463-3680.**
 
-`state.st` and `state.corridor` are **`Set`s**. An empty set means no
-constraint, exactly as the old `'all'` string did, so the unfiltered path is
-unchanged and there is no sentinel to remember. Every test guards on `.size` —
-**an empty `Set` is truthy**, and comparing one to `'all'` is silently always
-false, which would have pinned the filter badge on forever.
+---
 
-Corridor was already a membership test, because **25 stops sit on two or more
-interstates** (TA Tuscaloosa is on I-20 and I-59 and must be findable under
-either). Multi-select makes the other side a set too, so it is now
-set-intersects-set: a row passes if **any** of its corridors is selected. Two
-corridors therefore return their union, and a stop on both appears **once** —
-it is one row either way, not one per matching corridor.
+# Finding stops
 
-### Not a `<select multiple>`, deliberately
+**Search** matches the name, city, state, exit and nav code. Just the digits work
+— `260`, `ta260` and `CVENTA260` all find TA Lincoln.
 
-The two mobile platforms render that element as different controls entirely.
-iOS Safari gives an inline scrolling listbox — hard to use one-handed, and it
-eats the card's vertical space. Android gives a checkbox dialog. The two
-behaviours would have nothing in common.
+**Look up a city** — with the menu closed, type a city and tap a match. It drops
+a pin and shows you the nearest fuel. With the menu open, that same box filters
+the list instead.
 
-Instead: a **disclosure button over a checkbox list**, the same pattern
-`arrivalToggle` and `pickupRangeToggle` already establish on the Route tab —
-`aria-expanded`, `aria-controls`, and a body wrapper it owns. The checkboxes are
-real `<input type="checkbox">` elements inside their `<label>`, so the checked
-state is native and a screen reader announces it without an `aria-*` mirror that
-could drift from what `passes()` reads.
+**The locate button** centres on you and zooms out far enough to show the three
+closest stops.
 
-Both lists are built from `DATA` at startup, never hardcoded — 40 states and 39
-corridors. Corridor order stays numeric (I-4 before I-10) with the hand-mapped
-non-interstates last, straight from `CORRIDOR_INDEX`. The stop count rides in
-the **label**, not the value, so `passes()` still tests the bare corridor.
+**The bottom bar** answers "where's the nearest fuel" — tap it to see the nearest
+four.
 
-The expanded list scrolls **inside the card** (`max-height`). Forty states at
-~30px each would otherwise push the card past the viewport and take the amenity
-row and the reset button off screen with it.
+- Distances are **straight line, not driving miles**, so they're honest about
+  what they are. Sixty straight-line miles might be fifty minutes or ninety.
+- Each one has a compass direction, so you know if fuel is ahead or behind.
+- **It ignores your filters on purpose.** If you filtered to sit-down restaurants
+  an hour ago, you shouldn't be told the nearest fuel is 200 miles away.
+- Past 200 miles it stops offering a stop and just tells you how far the nearest
+  one is.
 
-**The collapsed button summarises the selection** — *All states*, *TX*,
-*TX, OK*, then *TX, OK +2*. Two names then a count: enough to be useful, short
-enough not to wrap on a phone, with an ellipsis rule for anything that still
-overflows.
+**Corridor filter** — pick I-40 and get I-40. Plain search can't do that: typing
+`I-5` also brings back I-55, I-57 and I-59, which quietly shows you stops on
+roads you're not on. 25 stops sit on two or more interstates and show up under
+either.
 
-### Reset filters
+**Filters** — state, corridor and amenities, all applied together. Reset clears
+them but leaves your search text alone.
 
-There is a reset control **in the card**, below the amenity row. The only other
-one lives inside the no-match panel, which by definition appears *after* a
-driver has already filtered everything away — too late to be the way out of a
-filter they merely regret.
+**Amenities:** 10+ showers, fitness room, sit-down restaurant. Others were tried
+and dropped for being useless — every single stop has a CAT scale, so filtering
+on it removed nothing.
 
-**One function, two buttons.** `resetFilters()` is named and both buttons are
-wired to it; a second copy would drift, and the no-match panel's button — the
-one reached when the map is already empty — is the expensive one to get wrong.
+**Satellite view** shows the raw imagery with road labels drawn on top, rather
+than labels baked into the picture. That matters when you're sizing up a lot at
+3am — the baked version painted over the parking stripes.
 
-It is **hidden until there is something to clear**, the same rule `clearTripBtn`
-and the per-field clear buttons follow. Its visibility and the filter badge are
-both derived from a single `filtersActive()`, so the two can never disagree.
+---
 
-Reset clears the amenity toggles, both sets, every checkbox, and **collapses the
-disclosures** — leaving a 40-row list open over a card you just reset is not
-"cleared".
+# About the station list
 
-**Reset does NOT clear the search box.** Search is a separate control, visible
-in its own box with its own clear button, and a driver who typed a city name and
-then tapped *Reset filters* would not expect to lose it. That is also why
-`filtersActive()` ignores `state.q`: the button that does not clear search must
-not appear merely because search is set.
+**144 stops. 142 you can be routed to** — one is the Covenant yard, one is
+closed.
 
-> **One measured consequence.** With a list expanded the card is tall enough to
-> sit over the no-match panel, so that panel's button cannot be tapped while the
-> card is open. That is not a driver stranded — the card's own **Reset filters**
-> is on screen at that moment, which is exactly why it exists — and closing the
-> card reaches the other one. Both halves are asserted.
+**The header shows which fuel book the list came from** (`Rev 01-2026`). This
+matters: when the book is reissued, stops join and leave the network, and
+**fuelling at a stop that has left it is a compliance violation.** If the book on
+your side is newer than the one in the header, the list is stale.
 
-## The nav code
+**TA Gary is closed for fuel — parking only.** The lot is open and taking trucks,
+but there's no fuel, showers or service. It's still on the map and in the list so
+you can find it and see what happened, and it still has Call and Navigate,
+because you can still go park there. It's just never used in a plan. Its sheet
+points you at Petro Gary, which is a **different station** 2.5 miles away at a
+different exit — not the same place renamed.
 
-The Covenant nav code is what a driver types into the fuel desk. It appears in
-**three** places, deliberately — the station sheet, the list row and the route
-result cards — because those are three different moments: looking a stop up,
-scanning the network, and working a plan. It is also **searchable**, including
-by its trailing digits alone.
+**A closed stop is never quietly deleted.** If it's in the fuel book, it stays
+visible with an explanation. Rows only get removed when the book never had them
+in the first place.
 
-### On the list row
+**On the amenity data**, so you know what to trust: the sit-down restaurant flag
+is current and complete. The fitness room flag is mostly right but probably
+missing a few. **The walking trail flag is over-claimed** — the list says 95
+stops have one and TA's own data says none do. Nothing was ever invented to fill
+a gap.
 
-Appended to the **exit line** — the third line, `meta mono` — after a middot:
+---
+
+# For developers
+
+Everything below is implementation detail.
 
 ```
-TA Lincoln
-1201 Kelley Blvd, Lincoln, AL 35096
-I-20, Exit 168 · CVENTA260
+index.html                markup, styles, DATA, map + UI wiring
+lib/fuelplan.js           pure planning logic
+lib/fuelplan-adaptive.js  widens the detour search before declaring a gap
+lib/shorttrip.js          context for the zero-stops case
+lib/gauge.js              tank model: ticks, miles, gallons, credits
+lib/nearme.js             nearest-stop ranking
+lib/corridors.js          parses interstates out of the exit field
+lib/triptext.js           plan → text for share / save
+lib/location.js           GPS fix labelling and precision
+lib/autosuggest.js        query threshold + suggestion parsing
+lib/baselayer.js          which layer a theme change applies to
+lib/memocache.js          session memo for repeat HERE lookups
+lib/routerank.js          orders routes by fuel viability
+lib/vehicleprofile.js     dimensions/weight/hazmat → HERE params
+lib/escape.js             escapes external strings
+lib/navlinks.js           station → map-app URLs
+lib/extract-version.js    APP_VERSION out of fetched source
+lib/flexible-polyline.js  HERE's decoder, vendored (MIT)
+test/*.test.js            plain-node tests · test/run.js runs all
+tools/geocode.js          one-off station geocoder
 ```
 
-One line, not two. That is **deliberately unlike the route result cards**,
-whose `navLine` puts the code on its own line: those cards are narrower and sit
-inside a scrolling results panel, while the list is a full-width view with room
-for both. The inconsistency is considered, not an oversight, and both comments
-say so.
+CommonJS, so `node test/run.js` needs no install. Classic scripts behind a
+`module.exports` shim; `fuelplan-adaptive.js` and `shorttrip.js` are fetched into
+a function scope, because their `require` would collide with those globals. The
+run summary reports `· N CRASHED`, since a crashing file prints no `FAIL` line.
 
-Nothing is truncated and the code is **not** right-aligned into a column of its
-own. At the ramp the *exit* is the more important of the two and has to stay
-fully readable, so long lines wrap instead. Measured over the 144 rows: 7 exceed
-40 characters and exactly one reaches 50 — Petro Oklahoma City,
-`I-40E/I-35, Exit 127 / I-40W, Exit 154 · CVENPE316`, which wraps onto a second
-line with the exit intact.
+**Conventions.** Pure logic in `lib/`, no DOM or network — the planner takes
+miles, never ticks. One place per decision: `rangeForTick()`, `FUEL_STOPS`,
+`resetFilters()`, `filtersActive()`, `ARRIVAL_DEFAULT_ON`. Counts and lists are
+derived, not stored. Escape everything external. localStorage keys are versioned
+(`fuelpost.<setting>.v1`), store only explicit choices, treat anything unexpected
+as absent, and bump to `.v2` if what "unset" resolves to changes.
 
-The Covenant HQ terminal has no code, and its exit line already falls back to
-*Terminal*. The separator is conditional, so it reads `Terminal` and not
-`Terminal · ` — a dangling middot would look like missing data rather than data
-that does not exist.
+**Releasing:** bump `APP_VERSION` **and all 17 `?v=` stamps**, add a version
+entry (a test requires one matching `APP_VERSION`, another requires
+`FUEL_BOOK_REV`), get `node test/run.js` green, PR. Browser checks live in a
+scratchpad Playwright harness with the real vendored SDK and HERE intercepted;
+the live key is domain-locked to the Pages origin.
 
-### In the Near Me footer
+### Things not to undo
 
-Beside the exit on each row, the same fact the list row carries — this panel is
-the other place a driver picks a stop without opening it, so it should not be
-the one place the code is missing.
+- **Don't "correct" the tier numbers.** Only Max is a whole number of gauge
+  marks; Regular and Long are road-practice figures, pinned. The test reads
+  `RANGE_TIERS` from source — its old form asserted arithmetic about literals and
+  sailed through v1.35.0 silently, the exact drift it existed to catch.
+- **`ARRIVAL_TOGGLE_TICK` must exceed `RESERVE_TICKS`**, or the switch asks for
+  zero miles. Derived, not a literal, after v1.40.0 raised the floor underneath
+  it.
+- **An empty `Set` is truthy and never equals `'all'`** — guards test `.size`, or
+  the filter badge pins on permanently.
+- **Split amenity codes on comma; never `includes()`.** `includes('R')` would
+  match a future `BR`. No code is a substring of another *today* — that's luck.
+- **Test `F` or `O`** for the gym filter; the two outdoor rows carry no `F`.
+- **HERE's bottom chrome is two sibling containers.** Lifting one leaves the
+  copyright behind, and **covering HERE's attribution is a terms issue**.
+  `.H_imprint` needs `!important`; the resize observer must read
+  `getBoundingClientRect()`, not `contentRect`.
+- **The vector satellite layer is inserted at index 1**, never appended, or it
+  draws over the pins and route.
+- **Don't add `defer` to the lib scripts** — the inline shims aren't deferred, so
+  each would capture an empty `module.exports` and every module would silently
+  become `{}`. A test fails if `defer` or `async` appears.
+- **Don't repoint the header badge at `icons/icon-192.png`** — the badge is a
+  thickened variant that survives at 34px; the icon art isn't.
+- **Don't "simplify" the two route URLs in `truckRoute()`** — the 400 fallback
+  must keep the vehicle profile, or a retry returns an unrestricted route
+  rendered as a normal plan.
+- **Don't chase satellite resolution** — already `size=512`, capped at z20, no
+  native detail past z17; USGS 404s above z16 and measures softer.
 
-The split here is **not** the one the list row makes. There the line wraps and
-the exit stays whole, because the list is a full-width view that can grow. This
-panel sits over the map at a height the map layout is built around (`--nm-h`
-lifts the recenter button and the HERE controls above it), so the line has to
-fit rather than grow. The code therefore gets a slot that never shrinks
-(`flex:0 0 auto`) and the **exit** is what ellipsises — losing the code on
-exactly the stops whose exit text is longest would drop the thing the row is
-there to show, and the full exit is one tap away on the sheet while the code
-would not be.
+### How this project tests
 
-Measured over all 142 fuel stops in that layout: **nothing clips at 360px, 390px
-or 430px.** Only at 320px does one row give anything up — Petro Oklahoma City,
-the longest exit in the network — and even there the code survives, which is the
-split working as intended.
+Several entries below record a test that passed for the wrong reason.
 
-The exit is `flex:0 1 auto`, not `1 1 auto`: allowed to *shrink* but not to
-*grow*. Letting it grow swallowed the free space and shoved the code against the
-right edge, where it read as a separate right-aligned column instead of
-something sitting next to the exit.
+- **Measure against the real system.** More than once the measurement was itself
+  the bug.
+- **Mutation-test every release** — repeatedly this exposed tests weaker than
+  their names.
+- **Guarantee the geography a fixture needs.** A real-corridor test can be inert
+  for the very feature it's named after.
+- **Assertion evidence must be safe to build when the assertion is false**, or a
+  failure becomes a crash that swallows the rest of the file.
 
+---
 
-### In search
+# Version history
 
-`row[20]` joined the haystack alongside name, city, state and exit.
-
-Because the match is a lowercased substring, **digits-only search comes for
-free, and that is the point** — a driver reads the number off a card, not the
-`CVEN` prefix. `260`, `ta260` and `CVENTA260` all find TA Lincoln.
-
-What makes digits-only trustworthy: **every numeric suffix is unique across all
-143 codes**, so a complete digit string always identifies exactly one stop.
-`navcode.test.js` asserts that over `DATA` rather than taking it on trust, so it
-cannot quietly stop being true when the fuel book revs — and it checks every one
-of the 143 codes resolves to its own row, not just a sample.
-
-**Short numeric queries match more broadly, and that is accepted.** `20` already
-matched every I-20 stop through the exit field; it now also matches codes
-containing 20. That is inherent to substring search, is not new, and is
-deliberately not special-cased — no prefix anchoring, no field-scoped syntax.
-
-### On the station sheet
-
-A **Nav code** detail row between ULSD and Amenities, mono, alongside the phone
-number and the address.
-
-v1.33.0 removed it, on the reasoning that the list row and the result cards
-already carried the code. **v1.33.1 put it back**: the sheet is where a driver
-goes for everything *else* about a stop, and the code belongs with the other
-facts about it rather than only alongside the exit.
-
-It is **conditional**. The HQ terminal has no code and reaches this sheet like
-any other row; a *Nav code* label with an empty value beside it would read as a
-data error rather than as a yard that was never assigned one.
-
-The `navblock` further down is a different thing entirely — the hand-off to the
-driver's **map** app — and its *Copy address* button copies the address, not the
-code.
-
-## Amenity filters
-
-Three, under *What do you need tonight?*, AND-combined with state, corridor
-and search:
-
-| Filter | Matches | Keeps |
-|---|---|---|
-| **10+ showers** | `showers >= SHOWERS_MANY` | 75 of 144 rows (52%) |
-| **Fitness room** | amenity codes contain `F` **or** `O` | 38 (26%) |
-| **Sit-down restaurant** | amenity codes contain `R` | 70 (48%) |
-
-**A filter earns its place by landing roughly between 15% and 60% of stops.**
-Below that it returns almost nothing; above it, almost everything.
-
-### What was removed in v1.24.0, and why it must not come back
-
-The row used to filter on things nearly every stop has, while the genuinely
-selective amenities sat in the data unfiltered:
-
-| Removed | Kept | Verdict |
-|---|---|---|
-| **CAT scale** | 144 of 144 stops | **Inert.** Could not remove a single stop. |
-| **100+ parking** | 79% | Every stop has parking; the threshold was too low to narrow anything. |
-| **Service (4+ bays)** | 71% | Too broad. |
-
-**The DATA fields all remain, and the station sheet still shows every one of
-them** — a driver who opens a stop still sees its parking count, its bays and
-its CAT scale. Only the filters went.
-
-### Gotchas
-
-- **The gym filter must test `F` *or* `O`.** The outdoor variant is only two
-  rows, but neither also carries `F`, so testing `F` alone would silently hide
-  those two stops from a driver searching for a gym.
-- **Membership is exact, split on comma — never a substring test.** No code is
-  a substring of another today, but that is luck rather than design.
-  `row[16].includes('R')` would match a future multi-letter code containing
-  `R`, and fail silently.
-- **Counts depend on the population.** `passes()` runs over all **144** `DATA`
-  rows, terminals included, so that is what the on-screen count reflects. Over
-  the 143 non-terminal stops, showers is 74 and gym 37 — the difference is
-  `TN6`, the Covenant HQ terminal, which has a fitness room and 30 showers.
-- **Zero results are reachable** by design — gym + sit-down + 10 showers inside
-  one state returns nothing in, for example, Alabama. The empty state says so
-  and offers **Clear filters**. Nothing auto-widens or silently drops a filter
-  to dodge it, and `amenityfilter` pins that `render()` and `passes()` never
-  write filter state.
-
-Deliberately **not** filters: laundry (99% of stops — another inert control)
-and walking trail (66%, too broad, and the `W` code is known to be
-systematically over-claimed — see *Amenity codes*).
-
-## Persisted settings (localStorage)
-
-`fuelpost.theme.v1` (dark mode, v1.7.0) is the first thing this app persists,
-and the pattern it set is the one every future persisted setting should
-follow, not just this one:
-
-- Version the key itself — `fuelpost.<setting>.v1`, never a bare
-  `fuelpost.<setting>`.
-- Store only genuinely explicit choices. If "unset" already has a sensible
-  meaning (e.g. "follow system"), don't invent a stored value for it —
-  absence already encodes it.
-- Treat anything read back that isn't one of the expected values (corrupted,
-  from a future format) as absent, falling back to the same default an
-  actually-absent key would get. Never throw, never fall back to a fixed
-  value that ignores the real default.
-- If a later change alters what the *default* logic does — not just adds a
-  new valid stored value, but changes what "unset" resolves to — bump to
-  `.v2` and treat `.v1` values as absent. Don't reuse a versioned key for a
-  changed meaning; an old stored choice under new default semantics can
-  silently produce a result the driver never chose.
-
-## What the Satellite view shows, and why it is two layers
-
-Through v1.25.x *Satellite* was `defaultLayers.raster.satellite.map`. That
-reads as the obvious choice and is the wrong one: it is the `base` resource on
-style `explore.satellite.day`, which means HERE renders road casings, POI icons
-**and** place labels *into the JPEG* before sending it. A driver opens
-Satellite to judge lot room and layout — where the pumps sit, how the truck
-side is laid out, whether there is room to swing a 53-footer at 3am — and that
-is precisely the ground being painted on.
-
-Since v1.26.0 Satellite is HERE's `hybrid.day` / `hybrid.night` stack: the same
-imagery with nothing baked in (the `background` resource on style
-`satellite.day`, confirmed from the tile URLs the app requests) plus a
-**vector** road-and-label layer drawn on top. The ground stays visible, and
-because the overlay is geometry rather than a JPEG its labels render at device
-pixel ratio — the same size and sharpness as Map view, instead of the oversized,
-soft text baked satellite labels gave on a phone.
-
-**What that is worth, measured on this app's own stops.** Same z/x/y tile
-fetched twice, once from each endpoint, differenced per pixel:
-
-| | TA Ontario, CA | TA Amarillo, TX | TA Madison, GA |
-|---|---|---|---|
-| imagery dimmed by (luma, /255) | 12.0 | 14.2 | 12.2 (z17) · 14.7 (z19) |
-| contrast lost (stdev) | 11% | 11% | 11% (z17) · 11% (z19) |
-| painted opaquely (Δ > 24/255) | 8.5% | 7.8% | 6.1% (z17) · 5.4% (z19) |
-
-Two distinct costs, and it is worth keeping them apart. The first is a **scrim**:
-the baked tile is uniformly dimmer and flatter across every square foot of lot
-— saturation is unchanged, so this is deliberate darkening to keep white label
-text readable, not a codec artifact. The second is **opaque paint** over ~5–8%
-of the tile, and *where* it lands is the point rather than how much of it there
-is: at z19 over TA Madison the casing bands and a "Ta Travel Center" pin sit
-directly across the lot and wash out the individual parking-stall stripes that
-are legible in the raw imagery.
-
-A caution for anyone re-running this: differencing the two tiles at a naive
-threshold reports 57–64% of the tile "changed", which is real but is mostly the
-scrim being counted pixel by pixel. The threshold sweep is what separates the
-two effects — ~90% of the tile moves by more than 6/255, only ~1% by more than
-48/255.
-
-The origin of this change, and of the resolution measurements below, is
-WafflePost commit `ce5f661`, which made the same switch for the same reason
-against its own subject matter and measured 35% of the ground repainted at z17
-and 46% at z19 there. FuelPost's tiles separate differently — interstate
-interchanges carry more casing paint and HERE's scrim dominates a naive
-difference — so the numbers above are this app's, measured here, not that
-commit's carried over.
-
-**Do not go looking for more imagery resolution.** WafflePost closed that
-question: tiles are already requested at `size=512`, the raster provider caps at
-z20 (confirmed on this build — `hybrid.*.raster` reports `max: 20`), `pixelRatio`
-already tracks the device, and HERE's imagery has no native detail past z17 at
-rural exits (z18 in a metro); above that it is magnification at 43–46 dB PSNR.
-USGS `USGSImageryOnly` is not a way around it either — its tile cache 404s above
-z16 and it measured softer throughout. What *can* be fixed is spending a fixed
-resolution on ground instead of on paint, which is what this release does.
-
-**The theme contract changed with it.** `lib/baselayer.js`'s `nextBaseLayer()`
-used to promise that a theme change would never touch Satellite, because
-Satellite was a single unthemed raster. `hybrid` ships day *and* night variants,
-so a theme flip on Satellite now moves the imagery with it. The promise
-underneath is the one that actually mattered and is intact: **the driver stays
-on the view they chose**, correctly themed, rather than being yanked back to a
-road map. The mechanism is unchanged too — an allow-list **by identity**, never
-a deny-list naming satellite, because "is this the satellite layer?" needs
-updating every time HERE adds a layer and is wrong until someone notices.
-`nextBaseLayer()` now takes a list of themed pairs instead of one; a layer in no
-pair is still left strictly alone (Terrain, anything a later SDK adds), and a
-layer in *a* pair moves with the theme, whichever pair it is in.
-
-Being two layers costs one piece of bookkeeping. The vector half follows the
-raster half from the `baselayerchange` handler and **only** from there, because
-that is the one place that sees every route to the base layer — this app's theme
-toggle, the backstop's own correction, and the driver's tap on HERE's layer
-switcher alike. It is inserted at **index 1**, never appended: the 146 station
-pins are on the map before anyone first taps Satellite, along with the route
-polyline, the numbered route markers and the faded available-stop pins when a
-trip is planned, and an appended overlay would draw on top of all of them. Index
-1 puts it directly above the base imagery and below everything this app draws.
-Returning to Map view leaves nothing behind, because `hybridOverlayFor()`
-returns `null` for the road layers and the same three lines that mount the
-overlay unmount it.
-
-## Version history
+Newest first, one line each. The full reasoning for any release is in its commit
+and in the code comments. Nothing below is needed to use the app.
 
 ### v1.54.0
-
-**Trimmed the skipped-stop note.** It ended with "so that fuel is there once
-the trailer is off", explaining why a station near the delivery is useful — a
-thing the driver already knows better than the app does. The note now stops at
-the fact:
-
-> Auto skipped **TA Tonopah**, 255 mi before delivery — it would only have
-> taken about **51 gal**, short of a credit, and **TA Ontario** sits 24 mi from
-> your delivery. You still get there with 3/8 of a tank.
+Trimmed the skipped-stop note.
 
 ### v1.53.0
-
-**Auto now measures "is this stop worth taking?" from both ends of the run.**
-Reported from the road, with screenshots: Coppell TX → Redlands CA, 1,375 mi
-at the 900-mi tier, leaving at 7/8. Auto planned two stops — Petro El Paso at
-mile 614 (74 gal, a credit) and **TA Tonopah at mile 1,105 for a 490-mi leg:
-59 gal, one gallon under the line** — while TA Ontario sits 19 mi from the
-receiver. Auto off planned one stop and said so. Two stops to earn one credit,
-where one stop plus fuelling after the drop earns the same one.
-
-v1.52.0's `SKIP_NEAR_RECEIVER_MI` could never catch it: Tonopah is **270 mi**
-from the delivery, and widening a window measured from the *skipped stop* to
-270 mi would start skipping stops that are genuinely mid-route. The thing that
-made the skip acceptable here was never where the forced stop sat — it was that
-**fuel is waiting at the destination**. So that is measured at the destination
-instead, as `FUEL_NEAR_DELIVERY_MI` (50 mi), and the two tests are
-independent: either the forced stop is close enough to the receiver to take
-afterwards, *or* there is network fuel close enough to the receiver to use
-instead. 50 mi is a hop once the trailer is off; on that run the nearest stop
-to the delivery is 19 mi and the next nearest is 177, so the threshold sits
-nowhere near either edge of the decision.
-
-The flag is the **caller's** to set — the planner sees miles along one route
-and cannot know what sits near the destination — so `planLoad` measures it once
-per load and passes it in. It is read as a strict `true`, and it is not a
-licence: credit-less, reserve-forced and legal all still bind, which is pinned
-directly. The skip still costs zero credits by construction, and on the
-reported run it still arrives on the quarter-tank floor with a station 19 mi
-past the receiver.
-
-**The note now gives the reason that applied.** v1.52.0 ended every skip with
-"that close to the receiver", which is simply false for a stop 270 mi out. A
-skip justified by fuel at the destination now names the station and its
-distance, because asking the driver to take that on faith is worse than not
-saying it.
-
-#### The mpg assumption was documented backwards
-
-Found while checking the 59-gallon figure. **Gallons are miles *divided* by
-mpg**, so planning on 8.5 when the truck really gets 8.9 produces a *higher*
-gallon estimate, not a lower one. The comment in `lib/gauge.js` claimed the
-opposite — that under-stating mpg under-states the gallons a leg will pump —
-and used that to argue the estimates were conservative. They are not:
-
-| Leg | at 8.5 mpg | at a measured 8.9 |
-| --- | --- | --- |
-| 490 mi (the reported stop) | 59.1 gal | 56.4 gal |
-| 500 mi | 60.3 gal | 57.6 gal |
-| miles needed for a real 60 gal | 498 | **521** |
-
-So a leg sitting just above the credit line can still miss it at the pump, and
-the reported stop was 3.6 gal short rather than the 0.9 the label implied.
-
-8.5 remains the fleet's figure and the number is unchanged — it is genuinely
-conservative for **range**, where fewer miles per gallon means planning short.
-One constant cannot be safe in both directions, so the gap is now documented
-rather than argued away: `lib/gauge.js` states which way it errs for each
-question, and a test pins the direction so a future edit cannot quietly
-restore the wrong reasoning.
+Auto now also skips a credit-less stop when there's fuel within 50 mi of the
+delivery, not just when the stop itself is near the receiver — reported from a
+Coppell → Redlands run where it added a 59-gal stop 270 mi out while TA Ontario
+sat 19 mi from the door. Also recorded that the mpg assumption was documented
+backwards: 8.5 makes gallon estimates read *high*, not low.
 
 ### v1.52.0
-
-**Auto may now decline a stop that is not worth taking.** The direct
-consequence of what v1.51.0 measured: the arrival reserve is what *creates*
-short fills. Holding a cushion for the receiver can force a stop 20 miles from
-the door that pumps 55 gallons — no credit, a full pull-in, and a bay the
-driver could have used after dropping the trailer instead.
-
-Three conditions have to hold at once before Auto skips one, and each was
-tested on its own:
-
-- **reserve-forced** — the truck reaches the receiver without it. This test
-  doubles as the "was a reserve even asked for" test: the greedy loop only ever
-  adds a stop the truck genuinely cannot skip, so with no reserve in play the
-  rule is inert by construction rather than by a flag.
-- **credit-less** — its fill is under `CREDIT_MILES` (~498 mi, 60 combined gal).
-- **near the receiver** — inside `SKIP_NEAR_RECEIVER_MI`, which is 100.
-
-**Why this cannot strand anyone**, which is the only reason the trade is
-allowed at all: the range the planner spends is already net of
-`RESERVE_TICKS`. Spending every plannable mile lands the truck at a *quarter
-tank* — 300 real miles of diesel — not at empty. Measured over 112 real
-corridor/tier/reserve combinations the skip fired 18 times and **every one of
-them still arrived at half a tank or better**; the reported 1100-mile case
-goes from two stops arriving near-full to one stop arriving at 1/2.
-
-**It runs after the spacing pass, not before**, and the order is the whole
-difference between skipping a stop and fixing it. Spacing can push the last
-stop later, which lengthens its own fill; a stop that would have pumped 55
-gallons where the greedy put it often clears the credit once moved, and a stop
-that earns its credit is never skipped. One of the fixtures exists purely to
-hold that ordering in place.
-
-**Opt-in, because it is the one thing here that can leave less fuel at the
-receiver than the reserve implied.** `planFuel` takes `skipShortFinal` and
-does nothing without it, so the v1.42.0 invariant — *asking for fuel at
-delivery never arrives with less than not asking* — remains literally true for
-every caller that does not ask for the relaxation. Auto off passes `null`
-rather than an object of zeroes, so OFF cannot reach the branch at all.
-
-**Two things the mutation run found, one of them in the test harness itself.**
-Nine mutations; seven were caught immediately, and the two survivors were both
-real:
-
-- Passing the surrendered reserve to the re-spacing pass — instead of zero —
-  kept a constraint the skip had just given up, so `spaceFills` rejected every
-  arrangement and the stops stayed where the greedy put them. Finding a
-  corridor that showed it took a search over 40,000 random ones; on the one it
-  found, the kept stop moves from mile 457 to 232 and its fill halves, 55 gal
-  to 28. Now pinned.
-- The other survivor was not a survivor. `test/run.js` counted only the `FAIL`
-  lines a test file prints, and a file that *crashes* prints none — so the
-  summary read `0 failed` on a run whose per-file line said `FAIL` and whose
-  exit code was 1. The mutation looked like it had escaped. The cause was a
-  test of mine whose *evidence* string dereferenced the value under test, so a
-  false assertion threw instead of failing and swallowed the eight assertions
-  below it. Both are fixed: evidence must be safe to build when the assertion
-  is false, and the summary line now says `· N CRASHED` so it can never read
-  clean on a broken run.
-
-**What the driver sees.** A skipped stop is the one decision the stop list
-cannot show, because the stop simply is not in it — so it is stated: which
-station, how far before delivery, roughly what it would have pumped, and what
-the tank still reads on arrival. A skip also opens the
-nearest-fuel-to-delivery panel, since "where do I fuel after this" is exactly
-the question a skip raises. The two thresholds come off the gauge model rather
-than being retyped, so the plan and the labels cannot drift apart.
+Auto can decline a reserve-forced stop near the receiver that wouldn't earn a
+credit. Mutation testing found a real gap (the re-spacing pass kept a constraint
+it had just given up) and a test-harness bug (a crashing file printed no `FAIL`
+line, so the summary read clean).
 
 ### v1.51.0
-
-**"Auto" — the reserve switch becomes a fuel-stop planner that knows what a
-stop is worth at the pump.** Asked for from the road: *"when we fuel the goal
-is combined gallons of 60+ so we can earn shower credits"*, and a stop that
-pumps 40 gallons costs the same time as one that pumps 75 and earns nothing.
-
-**The app now knows about gallons.** It was pure miles until now. `lib/gauge.js`
-carries the assumptions, stated as assumptions: **8.5 mpg** (deliberately under
-the 8.9 currently measured — under-stating mpg under-states the gallons, so a
-stop this app calls a credit is one the pump agrees with), DEF at **2.5%** of
-diesel volume, a **60 combined gallon** credit, and **180 usable gallons** (dual
-100s at 90%). That last one does not contradict the 1200-mi tank model: 180 gal
-at 8.5 mpg would be 1530 mi, and 1200 is the *comfortable* full-to-empty the
-fleet plans on.
-
-| Fill at | Miles burned | Combined gal | Credit? |
-|---|---|---|---|
-| 5/8 tank | 450 | ~54 | no |
-| **~1/2 tank** | **600** | **~72** | yes, ~12 gal spare |
-| the credit line | 498 | 60 | exactly |
-
-**Every stop is labelled** with what it will pump — *"~75 gal · shower credit"*
-or *"~55 gal · 5 gal short of a credit"*. Naming how far short matters: "5 gal
-short" is actionable where "no credit" is not.
-
-**The arrival estimate.** The panel now says what the needle will read at the
-receiver — *"Pulling in at about 5/8 of a tank"* — as a **tank level, not a
-mileage**: miles of range is the planner's language, the needle is the
-driver's. It is measured against the **tank**, not the tier, because the tier
-is a policy about how far to run between stops while the needle shows physical
-fuel; a truck that filled 134 mi ago reads 7/8 whether its tier says 500 or
-900. And it is **floored** to the eighth below rather than rounded — 1140 mi is
-7.6 ticks, and rounding calls that "F", which over-states what is in the tank.
-The half-tank test uses the exact tick, so the advice is unaffected by the
-rounding.
-
-Under half it says so and offers the nearest fuel to the delivery, which is
-exactly when "where do I fuel after this" is the next question. The no-stop
-copy dropped its own arrival figure in the process: two statements of the same
-number on one screen is how they drift apart.
-
-**Stop placement (`spaceFills`).** The greedy loop answers "how few stops" by
-taking the furthest reachable stop every time, which front-loads the distance
-and leaves a short leg — a short leg being a short fill. A new pass keeps the
-**count** and reconsiders the **positions**, aiming each fill at half a tank's
-driving. It never adds a stop (more stops mean smaller fills), never turns a
-plan into a gap, and the penalty is **one-sided**: only legs *shorter* than the
-target score against an arrangement. A first cut penalised both directions and
-promptly pulled a good 700-mi leg (84 gal) back to 600 (72) for nothing.
-
-**What the spacing pass is actually worth, measured — and it is less than it
-looks.** Across 39 real corridor/tier/length combinations on five interstates:
-it improved the worst fill in **2**, tied in 37, and never made anything worse.
-More tellingly, in **18 of 39** cases *no* arrangement can give every stop a
-credit — the network is the binding constraint, not the algorithm. The pass is
-kept because it is free and monotone, but the honest headline is the labelling:
-the driver can now see which stops are worth the time.
-
-**A test gap this release found in itself.** The browser suite drives Auto over
-a real corridor — and on that corridor the spacing pass is *inert*. So a
-mutation disabling the pass entirely, and one flipping its penalty back to the
-two-sided version that measurably made plans worse, both sailed through every
-test that existed. Behaviour that only shows on some geographies needs fixtures
-that guarantee the geography: `test/fuelfill.test.js` now exercises the pass
-directly, and the same run added pins for the capacity ceiling and for reading
-the arrival off the tank rather than the tier — two more mutations that had
-escaped both suites.
-
-**The switch is a mode, not a question.** Labelled "Auto", dimmed when off, per
-the fleet's own framing. Off is unchanged: fewest stops, no cushion, and a zero
-fill target so the planner is byte-identical to pre-v1.51.0.
-
-**Nav codes are bold in the results** — that is the string a driver keys into
-the truck, so on the screen they act from it takes the weight and the ink
-colour while its label stays muted. The station sheet keeps its own code at the
-weight of every other row.
+**Auto.** The app learned gallons and shower credits, labels every stop with what
+it will pump, reports arrival as a tank reading, and spaces stops to fill at
+about half a tank. Measured: spacing helps rarely, and on 18 of 39 runs no
+arrangement earns every credit — the labelling is the real value.
 
 ### v1.50.0
-
-**A locate tap frames the three closest stops, not two.** A driver choosing
-where to stop is choosing *between* options, and two is the smallest number
-that is not a choice at all — the nearest, and the one you take if the nearest
-is wrong.
-
-Everything else is unchanged: mirrored around the fix so the driver stays
-centred, never tighter than the old zoom 11, ranked over `FUEL_STOPS`
-unfiltered.
-
-**What it costs, measured on a phone rather than guessed** — the whole trade is
-in how far the network thins out around you:
-
-| Where | Nearest three | Three in view | Two in view |
-|---|---|---|---|
-| Watt Rd, Knoxville | 0.1, 0.1, 35 mi | **41 mi across** | 18 (on the floor) |
-| Memphis | 5, 121, 188 mi | **407 mi** | 271 |
-| N. Nevada | 121, 183, 190 mi | **402 mi** | 402 |
-| E. Montana | 214, 411, 505 mi | **539 mi** | 448 |
-
-Where the network is dense the third stop costs almost nothing, and at Watt
-Road it actually *improves* the view — two stops 0.1 mi apart left the framing
-pinned to its minimum, showing a parking lot's worth of country. Where the
-network thins, the view is wide because the answer is wide.
+Locate frames the three closest stops instead of two.
 
 ### v1.49.0
-
-**A locate tap now frames the truck AND its two closest fuel stops.** It used
-to be a fixed zoom 11 — a fine picture of the truck and a poor one of its
-options: on a sparse stretch the nearest fuel could sit well outside it, so the
-button answered *where am I* and left *and what is near me* to a separate
-panel.
-
-The view widens as far as it must to hold the two closest stops, and no
-further:
-
-- **Mirrored around the fix, not fitted to the points.** A rect that merely
-  covers the driver and the stops would shove the dot to whichever edge the
-  stops are not on; reaching just as far the other way keeps them in the
-  middle, which is what a locate button is for. Measured: the dot lands 1px
-  off centre.
-- **Never tighter than the old zoom 11.** Two stops a mile apart would
-  otherwise fill the screen with a picture of a parking lot — on Watt Road in
-  Knoxville, where two stops sit 0.1 mi apart, the floor holds the view at
-  ~18 mi across.
-- **Ranked over `FUEL_STOPS`, unfiltered**, exactly as the Near Me footer is:
-  the two answers must not disagree about which stop is closest.
-- **Both recenter paths use it** — a tap with a fix in hand, and the first fix
-  after a tap that had to acquire one. They each carried their own
-  `setCenter` + `setZoom(11)` before.
-
-**The consequence, stated rather than buried:** where the *second* stop is far,
-the view is legitimately wide. From Memphis, with fuel 5 mi away but the next
-stop 121 mi away, a tap frames ~271 mi across. That is the rule doing what it
-says; a cap would need a different rule.
-
-**A correction worth recording.** The first version of this mirrored the rect
-in *Mercator* rather than degrees, on the theory that a degree-symmetric rect
-cannot be symmetric on screen. Measuring the dot's actual pixel position
-disproved it: the SDK's own bounds fit lands the driver **1px** off centre with
-plain degrees and **16px** off with the "correction". What sent that version
-wrong was measuring the geographic centre of the resulting camera bounds
-against the fix and reading the difference as a display fault — the fit expands
-the rect to the viewport's aspect ratio in projected space, so those two points
-genuinely differ while the dot is exactly where it should be. Measure pixels
-for a pixel question.
+Locate frames the truck and its two closest stops instead of a fixed zoom. A
+first attempt "corrected" for Mercator and made it 16× worse — measure pixels for
+a pixel question.
 
 ### v1.48.0
-
-**Only a tapped suggestion pins a place.** Enter used to geocode whatever was
-typed, which meant the app picked a place the driver had not chosen and dropped
-a pin on it — a guess wearing the same clothes as an answer. Enter now just
-puts the keyboard and the dropdown away; the pin comes from
-`selectSuggestion` and nowhere else, and the placeholder names that gesture:
-*"Look up a city — tap a match"*.
-
-The geocoder keeps exactly one caller: a chosen suggestion that carries **no
-position of its own** (a categoryQuery/chainQuery item). The driver did choose
-something there, so it still earns a pin, and its failure modes still speak.
-
-**A bug the browser suite caught while proving this.** `hideSuggest()` closed
-the dropdown but left the debounce timer and the in-flight request running, so
-a suggestion response landing a moment after enter re-opened a list the driver
-had just dismissed. Hiding now means "no suggestions wanted", including the
-ones not back yet: the timer is cleared and the per-field token bumped, so a
-late response is dropped rather than rendered.
-
-**And a second one in the test itself** — the same memoisation trap as
-v1.47.0, from the other end. `geocodeCandidates` caches by label, so the
-"dead geocoder" case was replaying the cached answer from the "no place found"
-case and asserting the wrong message. The fixture now gives each case its own
-label.
+Only a tapped suggestion pins a place; Enter used to geocode whatever was typed.
 
 ### v1.47.0
-
-**The Stops search box suggests cities as you type, and a found place is
-centred rather than framed.** Both from the road, after v1.46.0 shipped.
-
-**Suggestions.** The box is now a combobox with its own dropdown, riding the
-same debounce, 3-char minimum, per-field token and cache the Route tab's
-address fields already use — the machinery gained a third field rather than a
-second copy. Suggestions belong to the LOOKUP job only: with the list open the
-dropdown never appears and no autosuggest call is made, because offering
-cities to tap over the rows a driver is reading is a dropdown in the way.
-
-- **City-like results are re-ordered first, and nothing is dropped.** Filtering
-  by `resultType` would bet the whole dropdown on a guess about a response this
-  app cannot observe (the API key is domain-locked, correctly). A *stable sort*
-  costs nothing if the guess is wrong and puts "Memphis, TN" above "Memphis
-  Avenue" when it is right.
-- **Rows drop the trailing country**, the same noise `shortAddr` strips: it
-  pushes the part that identifies a place off the end of a phone-width row.
-- **A tapped suggestion pins its own position**, with no second geocode — that
-  call could only agree with, or contradict, the answer the driver just chose.
-- `.toolbar` is `overflow-x:auto` so the control row can scroll on a narrow
-  screen, which clips the Y axis too. It is unclipped only while the dropdown
-  is open, the same contract `#routebar` already had for its collapse
-  animation — one function, the right ancestor per field.
-
-**Centred, not framed.** v1.46.0 fitted the pin and the nearest stop together,
-which sounds better than it looks: the zoom then depended on how far the
-nearest stop happened to be, so the same gesture landed somewhere different
-every time and the pin was rarely in the middle. The map now centres the pin at
-a fixed **zoom 8** — measured, not guessed: on a 390px phone that frames
-~119 mi across and ~228 mi top to bottom, which holds a city and the network
-around it. The footer still names the distance and direction when the nearest
-stop falls outside that.
-
-`showPlace()` is the one path for "a place is now the anchor" — pin, answer,
-centre — because two entry points (a typed query and a tapped suggestion)
-doing those three things in their own order is how they drift apart.
+City suggestions on the Stops search box, and a found place centres at a fixed
+zoom instead of being framed with the nearest stop.
 
 ### v1.46.0
-
-**Look up a city on the Stops map and get the nearest fuel stop.** Type a
-place, press enter, and the map drops a pin and the footer answers from it.
-
-**The search box now has two jobs, decided by whether the list is open:**
-
-| Hamburger | The box does | Enter |
-|---|---|---|
-| **closed** (map) | looks a place up and pins it | runs the lookup |
-| **open** (list) | filters the stops, exactly as before | inert |
-
-`state.q` holds the typed text either way; only its *effect* changes, which is
-what lets the same string switch roles when the list opens without the driver
-retyping it. `activeSearchQuery()` is the one place that decides, and the
-placeholder says which job is live. Filtering the map from the same keystrokes
-that look a city up would mean typing a city both hid stops and searched for
-them.
-
-**The answer reuses Near Me rather than duplicating it.** "What is the nearest
-fuel stop to X" is the question that footer already answers; the only thing
-this adds is a second way to say where X is. So the panel now measures from an
-**anchor** — the GPS fix, or a looked-up place — and the ranking, the rows, the
-distance format and the over-cap sentence are all shared. A place wins over the
-live fix while it exists, because the driver asked for it in so many words;
-clearing the search hands the footer back to the GPS.
-
-The collapsed line names where it measured from — *"Nearest to Memphis, TN: 5
-mi W · Petro W. Memphis"* — because a place answer under the bare "Nearest Fuel
-Stop:" would read as *nearest to me*, which is the one thing it is not. It is
-also what makes a wrong geocode visible and correctable by retyping.
-
-The pin is a question, not a plan: it never enters `FUEL_STOPS`, never filters
-anything, is hidden in Route mode with the rest of the stops chrome, and
-disappears with the text that created it.
-
-**Two things fixed along the way:**
-
-- `shortAddr()` assumed a label with no country, so HERE's `"Memphis, TN,
-  United States"` rendered as **"TN, United States"** — and the Route tab's own
-  summary had been reading `"TX 75052, United States → NJ 07008-3510, United
-  States"` for the same reason. The country now comes off in `shortAddr`
-  itself, so both read as a city and state.
-- The pad → fit → restore-on-settle dance is now one function,
-  `fitBoundsWithMargin`, shared by the startup fit and the place fit. Getting
-  that order wrong silently does nothing at all, so the two fits must not each
-  carry their own copy of it.
+Look up a city on the Stops map and get the nearest fuel stop. Fixed the city
+being dropped from HERE's address labels.
 
 ### v1.45.0
-
-**The startup loading state now tracks whether the map is actually on screen.**
-Reported from the road: *"sometimes it has the loading map message and
-sometimes it doesn't, and when it doesn't you can tell the map hasn't loaded
-in yet."*
-
-The indicator was retired on the first `mapviewchangeend` — the camera
-settling. Measured against the real 3.2.9.0 library, that lands at **~854ms
-with nothing yet drawn**, because the tiles are a separate network fetch that
-has barely started. So the overlay came off over an empty rectangle; and on a
-fast or warm-cache load it was removed before the browser ever painted it,
-which is why the message sometimes never appeared at all.
-
-Removal now needs **two** things: the camera settled **and** a base-map tile
-actually delivered. The tile host is not a guess — `vector.hereapi.com` is the
-URL template inside the vendored SDK. Resource timing is read with
-`buffered: true`, so a tile that landed before the observer existed still
-counts.
-
-**A tile requested is not a tile arrived.** The first cut of this watched for
-resource entries by name, and a blocked fetch writes an entry too — the
-browser suite caught it by aborting the tile host and watching the overlay
-vanish at 960ms regardless. `responseStatus` is the discriminator: 200 for a
-served tile, 0 for an aborted one, measured. Every size field reads 0 either
-way, because the tile host sends no `Timing-Allow-Origin`, so sizes cannot be
-used for this.
-
-**A 6s cap** releases the tile half of the condition, so a blocked CDN or a
-dead cell link doesn't hold a driver behind a spinner for the full 20s
-watchdog. The camera settle is still required, exactly as before. The stop
-list sits at z-index 350, above this overlay at 300, so a longer wait never
-traps someone who wants the list — asserted in the browser rather than trusted
-to the CSS.
+The loading message now waits for a tile to actually arrive, not just for the
+camera to settle.
 
 ### v1.44.0
-
-**The legend closes itself whenever the chrome around it changes.** It is a
-transient popover over the map, not a panel with state, so switching tabs or
-opening/closing any collapsible panel now dismisses it — the same way a tap
-outside dismisses the filter card.
-
-Five toggles call one `closeLegend()`: the Stops hamburger, Near Me, the mode
-switch, Trip details, and the results panel. Each is wired in the function that
-owns that panel's state, so **collapse and expand both dismiss**, not just one
-direction.
-
-**The two bugs this fixes**, both of which looked like the legend "coming
-back":
-
-- `#listview.show ~ #legendCard{display:none}` only ever *hid* the card while
-  the list was up — it kept its `.show` class, so closing the list brought it
-  straight back, still open over the map.
-- `setMode` removed `.show` only inside its `if(route)` branch, so **Route →
-  Stops** left the legend sitting open behind the tab switch. Only the way in
-  was handled.
-
-The e2e reads both the `.show` class **and** computed visibility on every
-check, because a visibility-only assertion passes on the broken build — the
-card really was invisible while the list covered it. Run against the pre-fix
-code it fails 9 times, including that springback.
+The legend closes itself when you switch tabs or open any panel.
 
 ### v1.43.0
-
-**The arrival reserve switch is on by default.** Every release from v1.27.0 to
-v1.42.0 shipped it off, which meant the driver who never opened the panel got
-exactly the plans v1.27.0 existed to fix — arriving at the receiver on the
-bottom reserve. On by default, they arrive with at least half a tank.
-
-The default lives in **one** constant, `ARRIVAL_DEFAULT_ON`, read by all four
-places that care: the startup call, Clear trip, the static `aria-checked` in
-the markup, and the "is there anything to clear" check. Four copies of a
-boolean disagreeing is how a switch ends up looking on while planning as if it
-were off.
-
-**The trap that comes with defaulting on**, fixed here and pinned: "has
-anything changed?" was comparing the arrival tick against the *off* value, so
-with the switch defaulting on it reported a change on a form nobody had
-touched, and **Clear trip offered itself on an empty page**. It now compares
-the switch against its default rather than against off.
-
-**What this changes for a first-time user:** plans hold 300 mi of range at the
-delivery unless the switch is turned off. On Regular 500 that leaves a final
-leg of at most 200 mi, so a route whose late stops are sparse can now report a
-reserve shortfall where it previously planned silently — the shortfall panel
-says what the arrival actually works out to and points at the settings that
-move it, which is the honest reading of "I asked for half a tank and this route
-can't give it".
+The arrival reserve is on by default; every release since v1.27.0 had shipped it
+off.
 
 ### v1.42.0
-
-**The arrival switch becomes a minimum instead of a target, and stops being
-able to leave a driver worse off than switching it off.** Reported from the
-road: on **Max** with the switch on, the planner wouldn't look for a fuel stop
-closer to the delivery, while on **Long** it would.
-
-Both behaviours traced to the same thing — the *aim* added in v1.38.0, which
-re-picked the final stop to land the arrival **closest to** half a tank. A
-symmetric target counts arriving *fuller* than half as just as wrong as
-arriving emptier. Measured on the reported Dallas → Carteret run:
-
-| Range | Switch OFF | v1.41.0 switch ON | v1.42.0 switch ON |
-|---|---|---|---|
-| 700 (Long) | arrives 566 mi | **350 mi** — worse than off | 566 mi |
-| 900 (Max) | arrives 237 mi | 237 mi — **inert** | **855 mi** |
-
-- At 700 the aim pulled the last stop *earlier* because the greedy planner had
-  already overshot the target — so the switch cost the driver 216 mi of fuel.
-- At 900 one stop covers the run, and the re-pick could only choose among stops
-  reachable from the *second-to-last* stop. With no second-to-last stop it had
-  nothing to choose from and did nothing at all. That is the reported bug.
-
-**The fix is a deletion.** `arrivalTarget` is gone from `planFuel`,
-`planAdaptive` and `planBeyondGap`; `ARRIVAL_TARGET_TICK` is gone from the
-gauge; the switch is one number again — `ARRIVAL_TOGGLE_TICK = 4`, half a tank,
-300 mi — and it is a **minimum**. The loop plans until the destination is
-reachable while still holding it, and because it always takes the furthest
-reachable stop, the arrival is as full as the route allows.
-
-The copy follows the meaning: *"Plans a late enough stop that you arrive with
-at least about 1/2 of a tank (300 mi of range) — and as much more as the route
-allows."*
-
-**The invariant that replaces the aim**, swept across routes, ranges and
-reserves rather than asserted on one fixture, because the case that broke it
-was one nobody had thought to try: **asking for fuel at delivery never arrives
-with less than not asking.**
+The reserve became a minimum instead of a target. The old version could leave you
+with *less* fuel at the delivery than switching it off — measured at 216 mi worse
+on one real run, and inert on another.
 
 ### v1.41.0
-
-**The band between 1/8 and 1/4 becomes a backup reserve — 150 mi the app will
-dip into, but only when the driver is already down there.** v1.40.0 made the
-bottom quarter unplannable, which was right for planning and wrong for
-looking: a driver sitting on a quarter tank got no routing call at all and a
-blank panel, at the moment they most need to see what's near them.
-
-- **`BACKUP_RESERVE_TICKS = 1`** — the untouchable band is now the bottom
-  eighth alone. `RESERVE_TICKS` (1/4) stays exactly what it was: the floor a
-  *normal* plan may not touch.
-- **`rangeForTick(tick)`** is the one question the app asks a gauge reading —
-  how far can this plan, and does it dip into the backup? Above the floor it
-  returns ordinary plannable range untouched; at 1/4 it returns 150 mi flagged
-  as backup; at 1/8 it returns 0 and the floor panel fires as before.
-- **The readout stops contradicting the planner.** At 1/4 it said "about 0 mi";
-  it now reads "1/4 — about 150 mi on backup reserve".
-- **The plan says so.** A backup plan carries a caution above the stops naming
-  the reading, both floors and the range it is spending, so it can never read
-  as an ordinary plan.
-- **The floor panel** at 1/8 now names the untouchable eighth (150 mi) rather
-  than the planning floor, and says the backup is spent.
-
-The invariant that keeps v1.40.0 intact is asserted directly: **an ordinary
-plan never spends the backup** — 3/8 still plans 150 mi, not the 300 the backup
-scale would give, for every tick above the floor. Proved with the real planner
-too: at a quarter tank a stop 140 mi out is now reachable where nothing was
-before, one at 160 still is not, and 1/8 still returns the degenerate
-`{fromMile: 0, deadMile: 0}` gap the floor panel is written for.
+The 1/8–1/4 band became a backup reserve, so a driver already down there can see
+what's nearby instead of getting a blank panel.
 
 ### v1.40.0
-
-**The unplannable band grows from one eighth to a quarter, the gauge marks the
-new stretch in amber, and the tank is sized so a full one plans a round 900.**
-Three fleet-directed changes that are really one: what the app is allowed to
-plan on, where the driver can see that line, and how much range sits above it.
-
-**1. E through 1/4 is unplannable.** `RESERVE_TICKS` 1 → **2**. The bottom
-quarter is the driver's own fuel and the planner will not touch a mile of it.
-The limp figure named in the floor message doubles with it, from 150 to
-**300 physical mi**, and every gauge reading at or under 1/4 now reads 0
-plannable — so two needle positions, not one, land on the "no plannable range"
-panel, which now names the reading the driver actually set.
-
-**2. The gauge shows it.** The track's fixed danger marking gains a second
-band: red over the emergency eighth as always, **amber from 1/8 to 1/4** for
-the rest of the stretch the planner won't use. Both widths are computed from
-`RESERVE_TICKS` rather than written as `12.5%` literals, so the amber band
-tracks the floor wherever it goes — including to zero width if the floor ever
-returns to one tick.
-
-**3. A full tank plans exactly 900.** `FULL_TANK_MILES` 1000 → **1200** at 150
-a tick, chosen so the six eighths *above* the new floor come to a round 900 —
-which is also exactly the Max tier. The evenness v1.39.0 asked for moves to
-where it is actually read: the plannable span, 900 divided into six even 150s.
-The dial itself stays even end to end (1200, 1050, 900 … 150, E).
-
-**The consequence worth stating plainly** — and the trap this release created:
-
-> Every figure on this scale is measured *above* `RESERVE_TICKS`. Raising the
-> app's floor to a quarter therefore made the arrival switch's own "never under
-> **1/4**" floor cost **exactly zero miles** — a switch that still flipped,
-> still announced itself, and changed no plan at all.
-
-So `ARRIVAL_TOGGLE_TICK` is no longer a literal: it is **`RESERVE_TICKS + 1`**,
-the first reading with real plannable range above the floor, which reads **3/8
-(150 mi)** today. That is what the switch has always meant, and deriving it
-means turning the switch on always costs a tick and can always force a late
-stop. The aim stays where the fleet put it, 1/2 (now 300 mi), so floor and aim
-sit one tick apart instead of two. `gauge.test.js` pins the derivation and the
-collapse trap directly, and proves with the real planner that ON still forces a
-stop where OFF plans none.
-
-**What else moved, all by derivation:** the switch's help copy, the shortfall
-caution, and the no-plannable-range panel each named "the bottom 1/8" as a
-string; all three now ask `tickLabel(RESERVE_TICKS)`. The Max overhang flagged
-in v1.39.0 is **gone** — Max 900 equals plannable-full exactly, so no tier
-carries a `startBurned` debit on a full tank.
-
-The needle still reaches 1/8. Where it may land is a question about what a
-driver can honestly report — a truck really can be sitting on an eighth — and
-what the app will plan on is the separate question `RESERVE_TICKS` answers;
-re-coupling them would rewrite a true reading into a legal one.
+The unplannable band grew to a quarter tank, the gauge marks it amber, and a full
+tank plans a round 900. Raising the floor silently made the arrival switch worth
+zero miles, so it's now derived from the floor rather than written down.
 
 ### v1.39.0
-
-**The tank is evened out: F reads a round 1,000 mi and every eighth steps down
-by the same 125.** `FULL_TANK_MILES` 1200 → **1000**, so `MILES_PER_TICK` is
-125 and the whole gauge is arithmetic a driver can do at a glance — 1000, 875,
-750, 625, 500, 375, 250, 125, E. Two constants changed; every figure the app
-shows moved with them, because all of them are derived.
-
-The 1200 model (v1.36.0) came from the fleet's 2025 Cascadias — 8.5 mpg on dual
-100-gallon tanks, ~1200 mi comfortable full-to-empty. 1000 is the fleet reading
-that back down to an even number, and it rounds in the safe direction: a gauge
-that under-promises range plans more stops, not fewer.
-
-**What moved, all by derivation:**
-
-- **Plannable full** (above the held-back bottom eighth): 1050 → **875**.
-- **The limp figure** — the physical distance in the reserved eighth, named in
-  the E-is-not-selectable note: 150 → **125 mi**.
-- **The arrival switch**: floor 1/4 is **125 mi** (was 150), aim 1/2 is
-  **375 mi** (was 450). The switch's own copy re-derived without a string edit,
-  as it has at every model change since v1.35.0.
-- **What the floor costs**: the final leg may be at most `range − 125` —
-  375 mi on Regular, 575 on Long, 775 on Max. Still satisfiable on every tier.
-
-**Two consequences worth stating rather than burying:**
-
-- **The whole-tick tier flips from Max to Regular.** At 125 a tick, Regular 500
-  is exactly 4 ticks — half the tank, the roundest spot on the scale — while
-  Long 700 (5.6) and Max 900 (7.2) are road-practice numbers. That claim has
-  now changed five times, which is why `gauge.test.js` reads `RANGE_TIERS` out
-  of `index.html` instead of restating it, and now also asserts that *exactly
-  one* tier lands on the scale.
-- **Max 900 overhangs plannable-full (875) by 25 mi again** — the same
-  situation the app carried on the pre-v1.36.0 1000-mi tank. A driver who picks
-  Max *and* a full tank has 25 mi docked off the first leg by
-  `computeStartBurned`. Not a bug and no special case: the gauge tops out at
-  875 plannable, and the dock is the honest difference. The test pins that it
-  stays under one tick and proves with the real planner what it costs (a stop
-  880 mi out is unreachable on a full Max tank; one at 870 is fine).
-
-The tiers themselves (500/700/900) and `RANGE_MAX` 1200 are untouched — the
-Custom clamp has never been tied to the tank model, and has outlived two
-changes to it. Beyond the numbers, `gauge.test.js` now asserts *evenness* as a
-property rather than only as a table: every step down the gauge is the same
-size, the eight steps sum to exactly the full tank, and every reading is a
-whole number of miles. A tank with uneven eighths could satisfy a table of
-literals; it cannot satisfy those three.
+The tank evened out to 1,000 miles at 125 a mark.
 
 ### v1.38.0
-
-**The arrival switch splits into a floor and an aim** — never arrive under
-**1/4** of a tank, and place the last stop so arrival lands **closest to 1/2**
-— at the fleet's direction, backing off v1.37.0's 5/8: a single high threshold
-made Regular unsatisfiable and still let the greedy planner overshoot the
-arrival by hundreds of miles. Two numbers now do two different jobs:
-
-- **Floor** (`ARRIVAL_TOGGLE_TICK` 5 → **2**, 150 mi): a hard constraint — the
-  loop condition that decides *whether* a late stop is needed. Satisfiable on
-  every tier (final leg at most 350 mi on Regular, 550 on Long, 750 on Max).
-- **Aim** (`ARRIVAL_TARGET_TICK` = **4**, 450 mi, new): a preference —
-  `planFuel` re-picks the **final stop only**, among the stops it could
-  legally have used as the last one, for the arrival range closest to 450 mi
-  (near-ties within 15 mi go to the smaller detour). It never changes the
-  stop count, never touches earlier stops, never turns a zero-stop plan into
-  a one-stop plan, and costs nothing when no better candidate exists.
-
-Both values ride `FuelGauge.arrivalReserveMiles()`; the switch copy, the
-shortfall panel, and the planner all moved by derivation — no string edits.
-With the switch off both numbers are 0 and every pre-v1.27.0 fixture plans
-byte-identically (deep-compared in `fuelplan.test.js`). The
-oversized-reserve honest-degradation contract (terminate, plan every drivable
-stop, flag a *reserve shortfall*, never a fake dry gap) is still proved with
-the real planner, now via an explicit oversized value since the switch can no
-longer produce one.
+The arrival switch split into a floor and an aim. *(The aim was deleted in
+v1.42.0.)*
 
 ### v1.37.0
-
-**The arrival switch's ON value rises from 1/2 to 5/8 of a tank** — 600 mi of
-the 1200-mi tank — at the fleet's direction: a driver who wants fuel at
-delivery should land with 5/8 or better.
-
-One constant (`ARRIVAL_TOGGLE_TICK` 4 → 5); every piece of copy moved by
-derivation, including the switch relabelling itself "5/8 of a tank" and the
-shortfall panel quoting "5/8" — no string edits.
-
-**What 5/8 costs, stated rather than buried:**
-
-| Tier | Range | Final leg allowed with the switch on |
-|---|---|---|
-| Long 700 | 700 | at most **100 mi** |
-| Max 900 | 900 | at most 300 mi |
-| Regular 500 | 500 | **never satisfiable** — the reserve exceeds the tier's whole range |
-
-Regular + switch-on degrades **honestly**: the planner terminates, plans every
-drivable stop, and flags a *reserve shortfall* — the panel that says what you
-actually arrive with — never a fake dry gap. That contract is now proved with
-the real planner in `gauge.test.js` rather than assumed, because at this
-setting it stops being an edge case and becomes the everyday behaviour of one
-whole tier.
-
-One tick higher (3/4 = 750) would out-eat Long's 700 entirely; pinned so "or
-higher" stays a knowing change.
+The arrival value rose to 5/8, which made Regular unsatisfiable — it degrades
+honestly as a shortfall rather than a fake gap.
 
 ### v1.36.0
-
-**The tank model moves to the fleet's 2025 Cascadias: 1200 mi full-to-empty,
-150 mi per eighth.** `FULL_TANK_MILES` 1000 → **1200**; everything else is
-derived, which is the whole reason the change is one constant.
-
-The fleet's numbers: 8.5 mpg on dual 100-gallon tanks, ~1200 mi *comfortable*
-full-to-empty. (Nominally 8.5 × 200 = 1700; the 1200 figure is the fleet's own
-real-world full-to-empty, which already accounts for unusable fuel and actual
-draw — their number, not the brochure's.) The bottom eighth stays held back, so
-a full gauge now plans **1050 mi**, in steps of 150.
-
-What moved with it, all by derivation:
-
-- **The arrival switch's half-tank is now 450 mi** (was 375). The help copy
-  moved by itself — it was worded from the model, never a hardcoded figure.
-- **Every gauge tick**: plannable runs 0 / 0 / 150 / 300 … 1050; the "limp"
-  distance in the floor message is 150.
-- **Max 900 fits back inside the plannable tank** (1050), ending the one-release
-  `startBurned`-debit special case v1.35.0 documented. The tick-scale claim
-  changed for the **fourth** time — Max is now the tier on the scale, exactly
-  6 ticks — and this time the test caught it, because v1.35.0 rewrote it to
-  read `RANGE_TIERS` out of `index.html` instead of asserting literals. First
-  change since, first firing.
-
-The tiers themselves (500/700/900) and `RANGE_MAX` 1200 are untouched — though
-Custom's cap now equals full-to-empty exactly.
-
-Tests: `gauge.test.js` re-pinned across the new scale (71 assertions);
-`fuelplan.test.js`'s tick→miles table moved to 0/150/300/450, everything else
-in it unchanged because `planFuel` takes miles and never knew the tank had
-eighths. The reserve-switch e2e re-verified end to end at the new numbers: on
-still adds Petro Knoxville to the Amarillo→Knoxville plan, now against a 450-mi
-reserve.
+Tank model moved to the fleet's Cascadias: 1,200 miles at 150 a mark.
 
 ### v1.35.0
-
-**Two changes to the Route tab's fuel settings: the arrival reserve becomes a
-switch, and the range tiers move to 500 / 700 / 900.**
-
-#### Range tiers: Long 675 → 700, Max 875 → 900, Regular stays 500
-
-Fleet-set numbers. The default (Long) therefore moves 675 → 700, derived from
-the tier table as always. Two consequences worth knowing:
-
-- **Max 900 exceeds the plannable full tank** (875 above the held-back eighth).
-  Accepted knowingly — Custom has allowed up to 1200 since v1.27.0 and the
-  gauge interaction already copes: a full tank on Max reads as `startBurned`
-  25, so the first leg plans at 875 and post-fuel legs at 900. The comment,
-  the README and a test pin state it so it reads as a decision.
-- **Only Regular sits on the tick scale now.** And the test guarding that
-  claim was rewritten to read `RANGE_TIERS` out of `index.html`: its old form
-  asserted arithmetic about the literals (875 = 7 ticks), which stays true
-  forever no matter what the tiers say — it sailed through this change
-  silently, the exact drift it existed to catch.
-
-#### The arrival reserve is a switch
-
-Off is the standard reserve; on plans your stops so you arrive with about
-**half a tank** (375 mi of range).
-
-The control has narrowed release by release as the real choice got clearer —
-v1.27.0's 1/8–1/2 dial, v1.30.1 dropping 1/8, and now the fleet's read that a
-driver who wants fuel at delivery wants half a tank: 1/4 and 3/8 were gradations
-nobody picked. One question, one switch, one tap each way.
-
-`ARRIVAL_TICK_CHOICES` becomes **`ARRIVAL_TOGGLE_TICK = 4`** in `lib/gauge.js`.
-The model is untouched — `arrivalTick` still drives `readRanges`, the shortfall
-copy and the planner; the switch just writes one of its two values. The old
-disclosure's reset-on-close contract is gone *because its reason is gone*: a
-switch's state is visible on the control itself, so nothing can steer plans
-from behind a collapsed panel. `role="switch"` so screen readers announce
-on/off, with the help line worded from the gauge's numbers in both states.
-
-Raising the toggle past 1/2 is a one-constant change and `gauge.test.js` pins
-why it should be a knowing one: one tick higher already holds back 500 of a
-Long tier's 675 mi.
-
-**A pre-existing contrast failure fixed alongside**: the disclosure links used
-`--ta` (#0057B8 in both themes), which measures **2.5:1** on the dark surface —
-an AA failure at 12.5px. The switch label and the remaining
-*Not leaving with a full tank?* disclosure both use `--navy-text` now (7.2:1
-dark), fixed together so the two adjacent questions keep matching.
-
-#### Testing
-
-**1037 assertions.** The gauge suite rewrites its choices block around the
-toggle tick; renderstructure pins the switch semantics — ON maps to the gauge's
-constant and never a local number, Clear trip switches it off through the same
-function, the old seg/choices/disclosure are gone.
-
-A new browser suite runs the switch **end to end through the real route flow**:
-flipping it on pulls a second stop into the plan (Amarillo→Knoxville, off = one
-stop at W. Memphis, on = W. Memphis + Petro Knoxville), and off again returns
-the original plan. That end-to-end shape is not optional coverage: a typo in
-the tick constant happened during this change (`ARRIIVAL`), producing a
-working-looking switch feeding `NaN` into every plan — only a test that runs
-the planner catches it, and the mutation run confirms it does.
-
-Also from the mutation run: the aria-checked pin was passing with the write
-deleted, because the THEME radiogroup writes the byte-identical
-`setAttribute('aria-checked', String(on))` at its own site. The pin is scoped
-to `setArrivalOn`'s body now. The e2e fixture itself was wrong twice before it
-was right — 672 straight-line miles needed no stop at all, and 888 left a final
-leg the reserve already covered — both times exposed by the planner refusing to
-play along, and both recorded in the fixture comment.
-
-*(The scratchpad's browser harness — the HERE stub and vendored SDK — was lost
-with a container recycle this session; the suite now runs against a freshly
-vendored copy of the real 3.2.9.0 SDK, which was the better harness anyway.)*
+The reserve became a switch and tiers moved to 500/700/900. A typo in one
+constant produced a working-looking switch feeding nonsense into every plan —
+only a test that runs the planner caught it.
 
 ### v1.34.0
-
-**The nav code now rides beside the exit in the Near Me footer too.** That panel
-is the other place a driver picks a stop without opening it, and it was the one
-surface still missing the code.
-
-The split is deliberately **not** the list row's. The list wraps and keeps the
-exit whole because it is a full-width view that can grow; this panel sits over
-the map at a height the map layout is built around, so the line must fit. The
-code gets a slot that never shrinks and the **exit** ellipsises — losing the
-code on the stops with the longest exit text would drop the thing the row exists
-to show, and the full exit is one tap away on the sheet while the code would not
-be.
-
-#### Two things measurement corrected
-
-**The overflow estimate was wrong.** A first pass measured `exit · code` as one
-proportional span and concluded 3 of 142 rows would overflow at 390px — Petro
-Bordentown, the stop in the report, by 2px. The shipped layout is a flex exit
-plus a short *monospace* code, which is narrower. Measured over all 142 stops in
-the real layout: **nothing clips at 360px, 390px or 430px.** Only at 320px does
-one row give anything up (Petro Oklahoma City), and the code still survives. The
-comment and the tests now state that, and the 320px case is where the
-never-shrink rule is actually asserted — without it the rule would be pinned
-nowhere.
-
-**The first layout put the code in the wrong place.** With the exit at
-`flex:1 1 auto` it swallowed the free space and pushed the code hard against the
-right edge, reading as a separate right-aligned column rather than as something
-next to the exit. `flex:0 1 auto` — shrink but do not grow — packs them
-together. Caught on screen, not in review.
-
-#### Testing
-
-**1035 assertions.** `navcode.test.js` now asserts all **four** surfaces
-together, so dropping any one is a deliberate act. The Near Me browser suite
-gained a section at the reported location (Perth Amboy NJ) checking every row
-carries a whole, monospaced code, that rows did not grow, and that `--nm-h` is
-still published — plus a 320px case proving the exit gives way and the code does
-not.
-
-Three assertions in that new section were wrong before they were right: the
-natural-width helper cloned nodes into `document.body`, outside `.nm-row`, so
-none of the CSS applied and it reported every code clipped and every exit
-fitting — wrong in opposite directions, which is what gave it away. And
-`--nm-h` was read off `documentElement` when `setNearMeHeight` publishes it on
-`#mapwrap`.
+The nav code joined the Near Me footer. Measurement corrected both the overflow
+estimate and the first layout.
 
 ### v1.33.1
-
-**The nav code is back on the station sheet.**
-
-v1.33.0 removed that row on the reasoning that the list row and the result cards
-already carried the code, so a driver never needed to tap in for it. That
-reasoning held for *finding* a code; it did not hold for the sheet's job. The
-sheet is where a driver goes for everything else about a stop — phone, parking,
-showers, scale — and the code belongs with those, not only alongside the exit.
-
-The row is restored exactly where it was, between ULSD and Amenities, mono, and
-**conditional** on the column being non-empty: the HQ terminal reaches this
-sheet like any other row and has no code, and a *Nav code* label with nothing
-beside it reads as a data error rather than as a yard that never had one.
-`row[20]` is destructured in `openSheet` again.
-
-**Everything else from v1.33.0 stays.** The list row still carries the code on
-its exit line and search still matches it, digits included — those were the
-parts that fixed a driver having no way to look a code up at all.
-
-So the code is now in three places on purpose: the sheet, the list row, and the
-result cards. Those are three different moments — looking a stop up, scanning
-the network, working a plan — and it is what gets typed at the fuel desk in all
-three. `navcode.test.js` asserts all three **together**, so dropping any one is
-a deliberate act rather than a side effect of editing one surface.
+The nav code returned to the station sheet.
 
 ### v1.33.0
-
-**The nav code moves out of the station sheet and into the list row and the
-search box.**
-
-The list is where a driver browses the network, and it showed name, address and
-exit but not the code — so reading a code meant tapping into a stop and coming
-back out. Search covered name, city, state and exit but not the code, so a
-driver holding one from dispatch or a fuel receipt could not look it up at all.
-
-#### On the list row
-
-Appended to the exit line after a middot — `I-20, Exit 168 · CVENTA260`. One
-line, not two, **deliberately unlike the result cards**, whose `navLine` gives
-the code its own line because those cards are narrower and sit in a scrolling
-panel. Both comments now say why the two differ, so the inconsistency reads as
-considered.
-
-Nothing is truncated and there is no separate right-aligned column: the exit
-matters more at the ramp, so long lines wrap. 7 of 144 rows exceed 40 characters
-and exactly one reaches 50 — **Petro Oklahoma City**, verified wrapping cleanly
-in a browser with the row layout intact. *(The brief attributed that line to
-Petro Amarillo; the quoted string was right, the station name was not.)*
-
-The HQ terminal has no code, so the separator is conditional — `Terminal`, never
-`Terminal · `.
-
-#### In search
-
-`row[20]` joined the haystack. Substring matching gives **digits-only search for
-free**, which is the point — a driver reads the number off a card, not the
-`CVEN` prefix. `260`, `ta260` and `CVENTA260` all reach TA Lincoln, verified
-rather than assumed.
-
-`navcode.test.js` asserts **all 143 numeric suffixes are unique** over `DATA`,
-which is what makes digits-only trustworthy, and checks every code resolves to
-its own row — not just the worked example. Short numeric queries matching more
-broadly is accepted and not special-cased.
-
-#### Out of the station sheet
-
-The **Nav code** row is deleted. Checked before deleting, and recorded so the
-next reader need not check again: nothing else in the sheet referenced the code.
-The `navblock` is the map-app hand-off and its *Copy address* button copies the
-address. `row[20]` is no longer destructured in `openSheet`, so no unused
-binding is left behind.
-
-#### Testing
-
-**1024 assertions, up from 975**, with a new `test/navcode.test.js` (45) and a
-browser suite covering the painted list line, the longest line actually
-wrapping, search through the real input, and the sheet losing its row.
-
-Four mutations caught: an unconditional separator (dangling middot on the
-terminal), the code dropped from the haystack, the sheet row restored, and
-`navLine` emptied.
-
-**A mirror had silently drifted.** `filtermulti.test.js` mirrors `passes()`, and
-its copy of the haystack no longer matched the source — its own `q` cases search
-for `a` and `dallas`, which match through name and city either way, so it would
-have gone on passing while describing a different function. That file warns
-about exactly this; it now pins the haystack too, and both mirrors catch the
-mutation.
-
-**One fixture was wrong about the data, not the code.** A browser assertion
-expected an amenities block on TA Lincoln's sheet — but TA Lincoln has an empty
-amenity column and never rendered one, on `main` just as much as here. The check
-moved to a stop that actually has amenities, with the emptiness of AL3's column
-asserted alongside it.
+The nav code moved onto the list row and into search, digits included. A test
+mirror had silently drifted from the real function.
 
 ### v1.32.0
-
-**Filter row rework.** Four changes to the STOPS filter card.
-
-#### Brand and tier filters removed
-
-Not because they failed the selectivity bar — **31 Petro and 31 Exclusive, only
-5 rows carrying both, each 21.5% of the network**, comfortably inside the 15–60%
-band the amenity filters are judged on, and not redundant with one another
-either. They went because they are not questions a driver asks. That reasoning
-is recorded in `filtermulti.test.js` alongside the numbers, so nobody restores
-them on the theory that they were unselective.
-
-Both facts stay visible where they matter: brand on every pin and list row, the
-Exclusive badge on the station sheet and result cards. `row[1]` and `row[11]`
-are untouched, and tests pin that they are still read — the columns did not go
-with the filters.
-
-#### State and corridor are multi-select
-
-**Within a dimension OR, across dimensions AND.** `state.st` and
-`state.corridor` become `Set`s; an empty set is no constraint, exactly as the
-old `'all'` string was.
-
-Corridor was already a membership test (25 stops sit on two or more
-interstates); it is now **set-intersects-set**, so two corridors return their
-union and a stop on both appears **once**, not once per matching corridor.
-
-Every guard tests `.size`. **An empty `Set` is truthy, and a `Set` is never
-equal to `'all'`** — the old condition would have pinned the filter badge on
-permanently and left *Reset filters* visible with nothing to reset. There is a
-test asserting no comparison to the old sentinel survives anywhere.
-
-#### Not a `<select multiple>`
-
-iOS Safari renders it as an inline scrolling listbox (hard one-handed, eats the
-card's height); Android renders it as a checkbox dialog. Instead: a **disclosure
-over a checkbox list**, matching `arrivalToggle`/`pickupRangeToggle` —
-`aria-expanded`, `aria-controls`, a body wrapper. Real checkboxes inside their
-labels, so the checked state is native rather than an `aria-*` mirror that could
-drift from `passes()`.
-
-Lists stay built from `DATA` (40 states, 39 corridors), corridor order stays
-numeric with non-interstates last, and the stop count rides in the **label** so
-the value remains the bare corridor. The list scrolls inside the card. The
-collapsed button summarises: *All states* → *TX* → *TX, OK* → *TX, OK +2*.
-
-#### Reset filters, in the card
-
-`resetFilters()` is a named function and **both** buttons — the new one and the
-no-match panel's — are wired to it. Hidden until there is something to clear,
-with its visibility and the badge both derived from one `filtersActive()` so
-they cannot disagree.
-
-It clears the toggles, both sets, every checkbox, and collapses the disclosures.
-**It does not clear the search box** — a separate control with its own clear
-button, which is also why `filtersActive()` ignores `state.q`.
-
-#### One measured consequence, asserted rather than left to chance
-
-With a list expanded the card is tall enough to cover the no-match panel, so
-that panel's button cannot be tapped while the card is open. Not a driver
-stranded: the card's own Reset is on screen at that moment — the reason the
-brief put one there — and closing the card reaches the other. Both halves are
-asserted, so neither can quietly stop being true.
-
-#### Testing
-
-**975 assertions, up from 885**, with a new `test/filtermulti.test.js` (88) and
-the removed filters' tests deleted rather than skipped.
-
-That file mirrors `passes()` — it lives in `index.html` and cannot be required —
-and then **pins the mirror against the real source**, because a mirror that has
-drifted proves things about itself rather than about the app. The semantics are
-independently verified against the running app by a browser suite covering the
-disclosures, the union counts as the driver sees them (count, map and list all
-three), the four-way intersection, both resets, and the a11y wiring.
-
-Five mutations were checked against the unit tests and one against the browser:
-corridor OR→AND is caught **five ways in a real browser**, including TA
-Tuscaloosa vanishing from both of its own corridors.
-
-Two fixtures caught lying before they shipped: a browser helper that silently
-no-opped on a value not in the list, so a zero-results fixture "filtered" by
-`ME` — not a Covenant state — and actually measured I-10 alone (13, not 0); it
-throws now. And **for the fourth time this month, an assertion matched the
-sentence describing the code rather than the code** — here, `!/select multiple/`
-tripping on the comment explaining why there is no `<select multiple>`. The
-file now builds a comment-stripped view of both the script and the markup up
-front.
+Filter card rework: brand and tier removed, state and corridor became
+multi-select, reset moved into the card.
 
 ### v1.31.0
-
-**Two rows deleted from `DATA`: TA Corning (`CA5`) and the Covenant Greenville
-Terminal (`TN7`).** 146 rows → **144**.
-
-Neither was in Rev 01-2026. They entered `DATA` through an error in the original
-data collection, and the fleet confirmed it — so this count going *down* is the
-data agreeing with the fuel book more closely, not departing from it. The
-long-standing rule that rows are never deleted is intact; it was always a rule
-about **closed** stations, and these two were never in the book at all.
-
-That distinction is now written down where someone will hit it, because in a
-diff the two look identical:
-
-- **Deleted** is for a row the book never had. It goes, completely.
-- **Closed** is for a row the book has whose station is shut. It *stays* —
-  keeping its marker, its list entry and its sheet — and is simply never
-  planned. A driver who knows the stop and goes looking should learn what
-  happened to it rather than wonder whether the app lost it. Deleting such a row
-  throws that explanation away, so *"it's closed anyway"* is not a reason to.
-
-**`CLOSED_STOP_IDS` is back to one entry** (`IN1`, TA Gary), and
-`CLOSED_STOP_INFO` loses the `CA5` record. The table keeps its per-station shape
-on purpose: it was built for two, and the next closure should be a row added to
-it rather than a renderer rewritten — which is what the lookup assertions pin.
-
-**`FUEL_STOPS` is still 142.** One terminal and one closed row went, so
-144 − 1 − 1 lands exactly where 146 − 2 − 2 did. The header is derived from the
-filtered row count rather than written down anywhere, so it followed on its own
-and reads **144 stops**.
-
-#### Covenant Logistics HQ, verified unplannable on every path
-
-`TN6` was already excluded by the `tier === 'term'` filter, but "already fine"
-is worth proving rather than asserting. `datastops.test.js` now builds a
-synthetic route straight through the HQ's coordinates and confirms `TN6` is
-absent from **every** entry point that can select a stop: `planFuel`,
-`planAdaptive`, `stopsNearPickup` *standing in the yard*, `planBeyondGap`, the
-short-trip list *with the delivery set to the terminal itself*, and Near Me.
-
-Every negative is paired with a positive check, so a path that silently returns
-nothing cannot pass by being empty — and that guard earned its place
-immediately: at the app's usual 50-mile radius `stopsNearPickup` returned an
-**empty list** from the HQ, because the nearest fuel stop is TA Cartersville at
-60.7 mi. "TN6 is not in it" was passing over nothing. The radius is now 100 mi,
-with the measurement in the comment.
-
-A final assertion greps the call sites in `index.html` and requires every one to
-be handed `FUEL_STOPS`, since a future edit passing `DATA` would defeat all of
-the above at once.
-
-#### Counts that moved, and one that pointedly did not
-
-`DATA` 146 → 144, non-terminal stops 144 → 143, terminals 2 → 1, 10+ showers
-75 of 144 (74 over stops), 100+ parking 114/144, 4+ bays 101/144. `R` stays at
-**70** and `F` at **36** — neither deleted row carried either, so those two
-moved denominator only. That is stated in the test rather than left alone,
-because an unchanged number across a data deletion reads like a stale assertion.
-
-#### Comments that broke guards, for the third time
-
-Two assertions matched **prose** rather than code and had to be fixed the same
-way the version guard was in v1.30.1:
-
-- `header.test.js` counted `Rev 01-2026` in raw HTML; a new comment beside
-  `FUEL_BOOK_REV` explaining which edition `DATA` reproduces named the revision
-  in a sentence and tripped it. It now reads the comment-stripped source, as the
-  version guard beside it already did.
-- The new call-site check matched the sentence *"nearPickup is
-  `stopsNearPickup(pickup, NEAR_PICKUP_RADIUS_GAP)`"* in a comment and reported
-  a call site that does not exist. Also comment-stripped now.
-
-Three times in three releases, so it is worth naming as a pattern: **a matcher
-looking for code will find the sentence describing it.**
-
-#### Corning's absence from the code
-
-The Corning pair was the case that established the closed-pin z-index rule
-(0.43 mi apart on I-5 exit 630, the closed TA pin winning the overlap and hiding
-the Petro that was actually there). Deleting it removes the fixture but not the
-reason, so the measurement is kept in the comments, marked as historical, and
-the wiring is pinned harder in its place. Measured over the current 144 rows,
-the tightest pairs left are TA Knoxville West / Petro Knoxville at **0.12 mi**
-and Petro / TA Oak Grove at **0.22 mi** — both open — while TA Gary is 2.51 mi
-from Petro Gary. **Nothing in `DATA` today would fail if the rule were dropped;
-the next closure in a tight pair would.**
-
-The `nearme` fixture that stood at TA Corning moved to TA Gary rather than being
-deleted, so it still stands on a genuinely closed row and now confirms the
-footer offers Petro Gary — the same stop TA Gary's own sheet names, so the two
-surfaces cannot disagree about the alternative.
+Two rows deleted that were never in the fuel book (146 → 144), establishing that
+closed is not the same as deleted. The Covenant yard verified unreachable from
+every code path.
 
 ### v1.30.3
-
-**Closed stations now wear a red dot on their map pin.** Until now the only
-thing that marked a closed pin on the map was its z-index — it sat *behind* an
-open one it overlapped. That is invisible unless two pins overlap, which at
-Corning they do and at Gary they don't: a closed stop alone on screen looked
-exactly like an open one, and the driver found out only by tapping it.
-
-The dot reuses the exclusive badge's geometry deliberately. `.pin` carries
-`rotate(-45deg)`, so the **top-right** corner of its un-rotated box is what
-lands visually straight above the teardrop — which is why `.pin.closed:after`
-shares `.pin.excl:after`'s `top:-5px;right:-5px` rather than inventing
-top-centre offsets. Measured in a browser rather than reasoned about.
-
-`.pin.closed:after` is declared **after** `.pin.excl:after` on purpose. The two
-have equal specificity, so source order is the whole rule. Both closed stops
-happen to be `prim` today, but **31 rows are `excl`** and any of them could
-close tomorrow — a closed exclusive must read red, not gold, because a driver
-who sees gold and skips the red has been told the stop is a *preferred* one
-when it cannot sell them fuel.
-
-The colour is a new `--pin-closed: #E0242B`, joining navy/TA/Petro/gold as a
-**marker** colour — one value in both themes, because it sits on map tiles
-inside its own white border, not on chrome that changes. It is deliberately
-**not** `--danger-text`: that variable is for red *text* on a background that
-changes, and its light value `#8A1C1C` is a maroon that reads as near-black at
-12px over a road tile.
-
-`closed` had to go into buildIcon's **cache key**, not just the markup. Icons
-are shared per appearance; leave it out and the first pin built for a brand
-wins the cache entry for every other pin of that brand, so whether the dot
-appears at all comes down to build order. `renderstructure` now asserts the
-invariant behind that rather than the literal: the key *is* the class list
-written into the pin, and every appearance variable buildIcon computes is in it.
-
-**The legend gained a row** — *Closed for fuel — tap for details*, from the same
-`--pin-closed` variable, immediately after the gold one it has to be told apart
-from. A new symbol on the map that nothing explains is a symbol the driver has
-to guess at. It is worded for what the two closures *share*, since TA Gary is
-still open for parking and a bare "Closed" would overstate its own pin.
-
-**One measured trade-off, pinned in the direction it actually runs.** Where the
-two Corning pins overlap, Petro Corning covers the closed pin's dot. That
-follows from `CLOSED_PIN_Z` and is the right outcome — v1.22.2 put closed pins
-behind precisely so one can never hide an open station, and the dot rides on
-the pin. Where they overlap the driver sees the stop they can actually use;
-zoom in, the pins separate, and the red dot is there. Both directions are now
-asserted, so "make the dot show through at Corning" cannot be introduced by
-raising the closed pin's z-index and quietly bringing the v1.22.2 bug back.
-
-*(Two drafts of that browser check reported green while measuring nothing:
-`marker.getIcon().getElement()` does not exist on a public API in 3.2.9.0 — the
-DomIcon's own properties are minified `ik`/`Vn` — so every lookup returned null
-and every negative assertion passed vacuously; and a second attempt projecting
-each stop to screen never settled and resolved all six stops to the same
-distant pin. The check now identifies a row's pin by object identity against
-`iconCache`, and asserts up front that every lookup found something.)*
+Closed stops got a red dot on their pin — being behind another pin is invisible
+unless two overlap.
 
 ### v1.30.2
-
-**TA Gary (`IN1`) is marked temporarily closed, parking only.** The lot is open
-and taking trucks; fuel, showers and the service bays are not. Reported by the
-fleet, 08-2026.
-
-It joins `CLOSED_STOP_IDS` and drops out of `FUEL_STOPS` on exactly the same
-terms as a permanent closure — **`FUEL_STOPS` goes 143 → 142.** The half-measure
-of leaving it plannable because the gate is open would route a driver to an
-island that cannot sell them fuel, which is the whole failure that set exists to
-prevent. The planner has one question to ask, and "parking only" answers it the
-same way "closed" does.
-
-What is *not* the same is what a driver reads, and that is now data rather than
-one hardcoded banner. `CLOSED_STOP_ALT` (an id per station) becomes
-**`CLOSED_STOP_INFO`** (a small record per station): the list chip, the banner
-headline, the sentence under it, the alternative's id, and **how that
-alternative relates to this stop**. The last field is what forced the change:
-the old sentence ended *"— same exit"*, which is true of Petro Corning and false
-of Petro Gary, 2.5 mi east at exit 9 against TA Gary's exit 6. Shipping the new
-row without it would have sent drivers to the wrong ramp. `renderstructure`
-pins the renderer taking every one of those fields by lookup, and asserts no
-station id appears in `openSheet` at all.
-
-The chip style is deliberately shared: *Parking only* is not a milder fact at
-the pump than *Closed*, and the chip's job in a scanned list is exactly that one
-bit. The distinction a driver can act on needs a sentence, and gets one in the
-sheet. Contrast is measured on the new chip in dark mode rather than assumed to
-have come along — 5.13:1.
-
-TA Gary's banner also reaches forward and disowns the amenity rows beneath it.
-Those rows are the fuel book's record of the site and still read *14 showers, 6
-bays*; without that clause a driver who has just read "temporarily closed" plans
-a shower stop there anyway.
-
-**On the evidence.** CA5 is closed because its address and phone are absent from
-TA's location master. IN1 is closed because it was reported so. Those are
-different kinds of claim, and the comment above `CLOSED_STOP_IDS` says which is
-which instead of giving the second one the first one's citation — the same
-instinct as the v1.22.1 correction, applied before the mistake rather than
-after. It was not confirmable against TA's public site from the build
-environment. Being temporary, it expires on its own terms: when the stop
-reopens, delete the id and its `CLOSED_STOP_INFO` entry, and nothing else has
-to change.
-
-And the Corning trap again, in Indiana: **TA Gary and Petro Gary are two
-stations, not one renamed** — 2.5 mi apart, different addresses, phones and nav
-codes. `IN2` is open, stays plannable, and is the alternative TA Gary's sheet
-points at. `datastops.test.js` now asserts the separation for both pairs, so a
-future over-broad exclusion cannot quietly take the sibling.
+TA Gary marked closed, parking only. The alternative-stop wording became data,
+because the old sentence said "same exit" and Petro Gary isn't.
 
 ### v1.30.1
-
-**1/8 is no longer offered as an arrival reserve.** Nobody wants to arrive on an
-eighth of a tank, so presenting it as a button offered a target no driver would
-pick. `ARRIVAL_TICK_CHOICES` becomes 1/4, 3/8, 1/2.
-
-It is removed from the choices, **not from the model**: 1/8 remains
-`RESERVE_TICKS`, remains the reserve every release has applied, and remains what
-the planner uses when nothing is selected — `arrivalReserveMiles(RESERVE_TICKS)`
-is still 0, which is what keeps the standard reserve byte-identical to today's
-behaviour. `gauge.test.js` now asserts those two facts *as a pair*: that
-`RESERVE_TICKS` is absent from the choices, and that it still adds zero miles.
-Either alone would read as an accident.
-
-The surrounding wiring needed no changes and was verified rather than assumed:
-`setArrivalTick` already falls back to `RESERVE_TICKS` for any tick not in the
-choices, the button loop already matches on `data-tick` (so nothing is active at
-1/8), the help text already branches on a zero reserve, and the Clear-trip check
-already compares against `RESERVE_TICKS`.
-
-One wording change: the standard-reserve line is now the **first** thing a
-driver sees on opening, so it explains the empty state and the affordance —
-*"the bottom 1/8 (about 125 mi) is always held back. Pick one to arrive with
-more on top of that."* It previously trailed off with "as it always has been",
-which works as reassurance on the way back to standard but explains nothing to
-someone seeing the control for the first time.
+1/8 dropped from the reserve choices, but kept in the model.
 
 ### v1.30.0
-
-**Range tier values, and the Near Me line says what it is.**
-
-The tiers move to **Regular 500, Long 675, Max 875** (from 400/625/875), so the
-default range — which is the Long tier — goes 625 → 675. Plans on a familiar
-route may shed a stop relative to v1.27–v1.29.
-
-That swapped which tier sits on the fuel gauge's tick scale: Regular's 500 is now
-exactly 4 ticks (half a tank) while Long's 675 lands at 5.4 and is the
-road-practice number. The comment in `index.html` and the assertion in
-`gauge.test.js` both named the *old* odd-one-out and both were corrected — that
-pairing exists precisely so a value change cannot leave the prose describing
-numbers that are gone.
-
-**Custom** no longer reads "Your own". It shows the range it actually accepts,
-`300–1200`, so every tier button's middle line is a mile figure, with *Set a
-number* beneath it.
-
-**The collapsed Near Me line says what it is.** *Nearest Fuel Stop: 7 mi S · Petro North
-Baltimore*, where before it was a bare *7 mi S · Petro North Baltimore* and left
-the driver to infer the rest.
-
-The label is a smaller muted lead rather than the same weight as the answer,
-which is a width decision as much as a visual one: it costs 19 characters, and
-at full weight the network's longest station ellipsised away the end of its own
-name. Measured with an unclipped clone across three viewports — 311px needed
-against 348 available at 390 wide, 318 at 360, and 278 at 320 — so below 340px
-the label is dropped rather than the name. The over-cap sentence keeps its own
-wording, since labelling something that already says "nearest" would stutter.
+Tiers to 500/675/875, and the Near Me line says what it is.
 
 ### v1.29.1
-
-**Near Me is a real footer now.** Reported from the road against v1.29.0: the
-panel should sit flush to the bottom, with the map buttons above it whether it
-is collapsed or expanded. It shipped as a floating card inset 58px from the left
-and 40px up, which dodged HERE's attribution and the locate button but read as a
-card stranded in the middle of the map.
-
-It is now flush to the bottom edge, full width, rounded on top only, with
-`env(safe-area-inset-bottom)` padding for the home indicator. Everything in the
-map's bottom chrome — the locate button, the locate hint and error chips, HERE's
-scalebar, layer switcher and copyright — rides **up** by the footer's live
-height instead of being dodged or covered. The height is published as `--nm-h`
-from a `ResizeObserver`, so the buttons track the expand animation frame by frame
-and no hardcoded panel height can go stale.
-
-Three measurements made it work, each after an assumption failed: HERE's bottom
-chrome is split across two *sibling* containers (`.H_ui` and `.H_imprint`), so
-lifting one leaves the copyright behind; `.H_imprint` carries an inline
-`bottom: 0` from the SDK that only `!important` can beat; and the observer has to
-measure the border box, since `contentRect` omits the border and the safe-area
-padding — a one-pixel overlap on desktop, the entire home-indicator inset on a
-phone.
+Near Me became a flush footer with the map controls lifted above it.
 
 ### v1.29.0
-
-**Near Me: the nearest network fuel, on the STOPS tab.** A collapsible footer
-that appears whenever there is a live GPS fix, naming the nearest stop with its
-distance and compass direction; expanded, the nearest four. Tapping a row opens
-the station sheet.
-
-Distances are **straight-line and never drive time**, computed with the existing
-`haversine` — the Stops tab makes no network calls beyond map tiles, and routing
-for a time would break it in exactly the dead zone where a driver most needs to
-know where fuel is. Every figure is labelled as a distance, with a compass point
-alongside, because distance without direction cannot tell you whether fuel is
-ahead or behind.
-
-**The ranking ignores every filter**, which is the point rather than an
-oversight: a driver who filtered to sit-down restaurants an hour ago must not be
-told the nearest fuel is 200 miles away. `nearestStops()` takes no filter
-argument, and both the module and the call site say why. It is fed `FUEL_STOPS`,
-so closed stops and terminals are excluded by the same rule the planner uses.
-
-Beyond a **200 mile** cap it reports the situation instead of offering a stop,
-still naming the distance. Measured: from mid-New-Mexico the nearest is 224 mi,
-so the cap fires there — a 250 mile cap would have stayed silent through the
-network's largest real gap.
-
-`lib/nearme.js` is pure and takes the distance function as a parameter rather
-than requiring `fuelplan.js`, so it loads as a plain script with no fetch and no
-offline dependency — the modules that do require it pay for it with a
-`fetch` + `new Function` loader, which this tab cannot afford.
-
-Layout was measured, not guessed: HERE's copyright is bottom-flush from x=194
-and the scalebar sits 24–36px up, so the panel clears both (40px up, 58px in
-from the left, z-index 400). Covering HERE's attribution is a terms issue.
-Recomputes only after a quarter mile of movement, so `watchPosition` jitter
-never rebuilds the DOM.
+**Near Me** — the nearest network fuel, on the Stops tab.
 
 ### v1.28.0
-
-**Filter the network by corridor.** A select beside the state one, *All
-corridors* by default, listing 36 interstates plus three hand-mapped
-non-interstates with a stop count on each — `I-40 (13)`. It replaces the only
-tool a driver had for this, text search, which matches the exit field as a
-substring: `I-5` returned I-55, I-57 and I-59, silently showing stops on roads
-the driver was not on.
-
-Corridors are **derived** from the exit field by `lib/corridors.js`, not stored
-in DATA, and only `I-` plus digits is parsed — the field uses four separator
-conventions and its route-type prefixes are not trustworthy (GA4's `Hwy 36` is
-Georgia SR 36, not US 36). E/W suffixes fold into the parent route. Three stops
-whose only corridor is not an interstate are hand-mapped in a small explicit
-table beside the parser, with tests asserting every id in it still exists in
-DATA. Seven secondary non-interstates are deliberately left out of the dropdown;
-each would be a single-stop row and all are reachable via their interstate.
-
-Membership rather than equality — 25 stops sit on two or more corridors —
-AND-combined with every other filter, derived once at startup into a `Map` keyed
-by row reference so `passes()` never re-parses per keystroke. The select is
-included in both `clearFilters` and the filter badge.
-
-**One data correction.** LA7 TA Express Laplace had an empty exit field, leaving
-it on no corridor at all; it is now `I-10, Exit 209 / I-55, Exit 1`. Sourced from
-TruckMaster Fuel Finder (#0479, matching the row's `CVENTA479` nav code) and
-independently confirmed against HERE's road network, which puts *Exit 209/US-51*
-479–819 m from the stored coordinates and I-55 *Exit 1* 1,226 m away. It moves
-real counts: I-10 12 → 13, I-55 3 → 4. See *The LA7 exit correction* above.
+Corridor filter. One stop's exit field was empty and had it on no corridor at
+all; corrected.
 
 ### v1.27.0
-
-**Range tiers, and a planner that can arrive with fuel left.** Two related
-problems, one release.
-
-The range field asked a driver to type a mile number, and its own help text
-admitted most of them never did. It is now four choices — Regular 400, **Long
-625, the new default**, Max 875, and Custom, which reveals the original number
-input with its clamping intact. Each button carries its mile figure and the
-stop-frequency tradeoff, so the driver picks on the consequence instead of doing
-arithmetic. **The default moved from 875 to 625**: every driver who never
-touched the old field was silently on the fewest-stops setting, and the same
-familiar route will now plan more stops than it did yesterday. See *Range tiers*
-above for the full table and the tank-scale reasoning.
-
-Separately, the planner had no notion of arriving with fuel left — it stopped
-planning the moment the destination came within reach, so an 870 mi route on the
-old default planned zero stops and put the driver at the receiver on the bottom
-reserve. The only fix available was typing a smaller range, i.e. lying to the app
-about the truck. The **arrival reserve** (1/8, 1/4, 3/8, 1/2 — behind its own
-disclosure, defaulting to 1/8) is the honest way to say it, built as a dial on
-the `RESERVE_TICKS` floor that always existed rather than a new concept beside
-it. At 1/8 the reserve is 0 miles and plans are byte-identical to before; the
-regression guard runs every pre-existing fixture through both call shapes and
-deep-compares.
-
-`planFuel` stays pure, taking the reserve in miles rather than ticks.
-`FuelGauge.arrivalReserveMiles()` converts, and delegates to
-`plannableMilesForTick` rather than repeating its arithmetic — the two are one
-question asked from opposite ends of the trip.
-
-A reserve the route cannot meet is reported as a **shortfall, not a gap**: every
-leg is drivable and the delivery is reached, so the panel shows the plan, states
-the arrival the driver actually gets, and names the settings that move it —
-without the "won't make it" warning or the Fuel Dept number, neither of which
-would be true. The distinction is made in `planFuel` (the dead mile landing at or
-past the destination means nothing is stranded) and carried out to the shared
-trip text, which would otherwise describe a well-fuelled stretch of road as
-empty.
-
-Also: the collapsed route-bar summary now shows the effective range rather than
-the raw input, which on a tier is empty and used to render as a bare "· mi".
+**Range tiers, and a planner that can leave you fuel at the receiver.** The old
+range box defaulted to the fewest-stops setting, and the planner would happily
+put you at the door on the bottom reserve.
 
 ### v1.26.0
-
-**Satellite stops painting over the lot.** *Satellite* moves from
-`raster.satellite.map` — imagery with HERE's casings, POI icons and labels baked
-into the JPEG — to the `hybrid` stack: raw `satellite.day` imagery with a vector
-road-and-label layer on top. Measured on this app's own stops, the baked layer
-dimmed every tile by 12–15/255 of luma at ~11% contrast loss and painted
-opaquely over 5–8% of it, washing out parking-stall stripes at the zooms a
-driver uses to judge a lot. The overlay is inserted at index 1 so it sits above
-the imagery and below the 146 pins and any planned route, and it follows the
-base layer from the single `baselayerchange` handler — the one place that sees
-the theme toggle, the backstop and HERE's own layer switcher alike.
-
-`hybrid` has day and night variants, so **the satellite view is themed now**,
-and the v1.11.9 contract that a theme change must never touch Satellite is
-deliberately retired. `nextBaseLayer()` takes a list of themed pairs instead of
-one pair, which keeps the property that actually fixed that bug: an allow-list
-by identity, so a layer in no pair is still left alone. `baselayer.test.js` is
-rewritten around the new contract and records why the old headline assertions
-are gone. `setNormalBaseLayer()` is renamed `setThemedBaseLayer()` — it carries
-hybrid rasters now and the old name would misdescribe it; its 60ms deferral and
-the race it closes are unchanged.
-
-Verified against the real 3.2.9.0 SDK before any code was written: `hybrid.day`
-/ `hybrid.night` each expose `.raster` and `.vector`, all four are distinct
-layer objects, and the raster requests `v3/background/…&style=satellite.day`
-rather than the baked `v3/base/…&style=explore.satellite.day`. See *What the
-Satellite view shows* above for the measurements and the resolution ceiling.
-Ported from WafflePost `ce5f661`.
+Satellite stopped painting road labels over the lot.
 
 ### v1.25.1
-
-**A loading state over the map area, from first paint until the engine's
-first render.**
-
-Since the stylesheet stopped blocking (v1.24.1), the header and toolbar paint
-in ~100ms and then framed an empty rectangle for the second or two the HERE
-SDK takes to download and construct — which reads as *broken*, not *loading*.
-The wait was always there; it used to hide behind a blank white page.
-
-`#mapLoading` lives in the **initial HTML** (the point is to be on screen
-before any script runs), as a sibling of `#map` inside `#mapwrap` — never
-inside `#map`, whose children belong to the engine. Quiet spinner + "Loading
-map…", theme variables only, `role="status"` so screen readers announce it,
-z-index 300 under the list (350) and the legend/locate buttons (400).
-
-**Removed on the first `mapviewchangeend`, exactly once.** Measured against
-the real 3.2.9.0 library: the canvas element exists at construction (~48ms,
-before anything is drawn), the `render`/`update` events never fire on this
-engine, and the first `mapviewchangeend` (~417ms) is the earliest signal that
-genuinely means pixels. Hiding when the constructor returns would expose an
-empty container for a further beat.
-
-**The failure case is a watchdog, not a spinner forever.** If the SDK never
-loads — no signal, blocked CDN — the main script dies at its first `H`
-reference and can show nothing, so a tiny inline script that parses *before*
-the HERE tags swaps the indicator to "The map could not be loaded. Check your
-connection and reload." after 20s (median load is ~757ms throttled; a
-~40KB/s cell link clears the 649KB payload in ~16s, so 20s never fires on a
-slow-but-alive connection). The message deliberately does **not** claim the
-list and search still work: measured, they die with the script. And it is not
-sticky — a map that limps up after the timeout still clears the whole element.
+A loading state over the map instead of an empty rectangle, with a watchdog if
+the map never loads.
 
 ### v1.25.0
-
-**HERE Maps API upgraded 3.1 → 3.2, pinned to 3.2.9.0.** 3.1 is deprecated by
-HERE; 3.2 is where support and fixes land. HARP is now the **only** rendering
-engine — WEBGL is gone, and with it the whole class of 3.1 hazards around
-setting `engineType` in two places (recorded in the comment at the
-`createDefaultLayers` call so nobody re-derives them).
-
-**Pinned to a full version, not the evergreen `3.2` path.** HERE recommends
-pinning for production continuity, and it fits this app: the `?v=` cache-bust
-stamps exist precisely so nothing changes underneath a running build, and the
-planned service worker makes an evergreen URL that silently swaps content
-worse. The cost — fixes arrive only by manual bump — is accepted, and a test
-pins that every HERE URL carries one and the same full version.
-
-**The trap:** `mapsjs-harp.js` does not exist on 3.2. The engine was folded
-into `mapsjs-core.js` (core grew ~0.9MB → ~2.2MB) and the old module's 3.2
-path returns an error page. The tag was **deleted**, not version-bumped, and a
-test pins that no reference to it survives outside comments.
-
-**One real behavioural incompatibility, found and fixed.** HERE's migration
-guide says HARP apps need "no additional steps". Not true here: on 3.2,
-`ViewPort.resize()` applies the element's new size **one frame later**, where
-3.1 applied it synchronously. Every route fit issued in the same task as a
-resize therefore computed against the stale viewport — which re-introduced the
-v1.20.2 zoom-out-after-plan bug exactly (measured: engine 390×303 while the
-DOM was 390×694, zoom 2.17 instead of ~3.8). `fitLastBounds` now issues its
-`setLookAtData` one `requestAnimationFrame` later, by which point the engine
-agrees with the DOM. Verified against the real 3.2.9.0 library: first-plan
-zoom 3.75, identical to an alternate's.
-
-Verified on the real 3.2.9.0 SDK end to end: startup network fit (zoom 3.12 ≈
-expected 3.14), all 146 pins with closed-pin stacking at Corning intact, the
-custom layer switcher shows Map view + Satellite both enabled and selectable,
-a theme change does not yank the driver off Satellite, and zero page errors
-throughout.
-
-`engineType: HARP` is **kept** in both call sites: 3.2 accepts it (the enum
-still exists, with HARP its only member), it is harmless, and removing it
-buys nothing.
+HERE Maps upgraded 3.1 → 3.2. One real incompatibility despite the migration
+guide saying there'd be none.
 
 ### v1.24.1
-
-**The HERE stylesheet no longer blocks first paint.**
-
-As a plain `<link rel="stylesheet">` in the head, nothing at all appeared —
-not the header, not the toolbar — until a third-party CSS round trip
-completed. It is now requested as `rel="preload" as="style"` and promoted to a
-stylesheet by an `onload` handler, with a `<noscript>` fallback that loads it
-the normal way. Same URL; this is not a vendoring change.
-
-Measured in Chromium with the stylesheet delayed 1500ms to stand in for a slow
-cell round trip, five runs each: **first contentful paint 1588ms → 84ms**. The
-old build is blocked for essentially the whole delay; the new one paints in
-under a tenth of it.
-
-**Be clear-eyed about what that buys.** The app shell paints earlier but is not
-yet interactive — every handler is wired in the inline script at the bottom,
-after roughly a megabyte of HERE JS. The driver gets visible chrome that does
-not respond yet, instead of a white screen. Something on screen reads as
-loading; a blank screen reads as broken. It is a perceived-performance win, not
-a speed one.
-
-One thing worth recording, because it contradicts the assumption this change
-was scoped under: **HERE serves both the stylesheet and the JS bundles with
-`cache-control: no-cache`** (measured, not assumed). There are no long cache
-lifetimes here, so a repeat visitor still pays a revalidation round trip on
-every load — this is not purely a cold-cache improvement.
-
-Two gotchas are documented in the head, because both fail silently:
-
-- **Do not add `crossorigin` to the preload without adding it to the noscript
-  link too.** HERE sends `vary: Origin`, so a CORS preload and a non-CORS
-  stylesheet are separate cache entries and the file downloads twice.
-- **The preload does not delay the `load` event**, unlike the blocking
-  stylesheet it replaced. Anything sampling the swap at `load` will see
-  `rel="preload"` and conclude the promotion is broken when it is fine.
-
-Also corrected a fuel-gauge CSS comment that described the usable range as
-ticks 2-8 (1/4 tank through F). `GAUGE_MIN_TICK` is 1, and its own comment
-calls 1/8 the floor. Comment only — no gauge behaviour changed.
+The map stylesheet stopped blocking first paint — 1588ms to 84ms. Honest caveat:
+the page paints sooner but isn't interactive sooner.
 
 ### v1.24.0
-
-**The filter row was inverted relative to the data. Three filters in, three
-out.**
-
-It filtered on things nearly every stop has while the genuinely selective
-amenities sat unfiltered. **CAT scale matched 144 of 144 — literally inert**,
-a control that could not remove a single stop. 100+ parking matched 79% and
-4+ bays 71%. All three are removed: buttons, state keys, `passes()` branches,
-active-filter count, and the `PARKING_LARGE` / `BAYS_MANY` constants.
-
-In their place, the two most selective things in the dataset: **Fitness room**
-(`F` or `O`, 26%) and **Sit-down restaurant** (`R`, 48% — the closest thing to
-an even split there is). **10+ showers** is unchanged in every respect.
-
-The DATA fields all stay, and the station sheet still shows parking, bays and
-CAT scale on every stop. Only the filters went.
-
-The two new filters test for a letter in a comma-separated column, which is a
-different shape from the numeric comparisons: they **split on comma and test
-exact membership**, never `includes()`. No code is a substring of another
-today, but that is luck, and the test asserts a hypothetical `BR` code is not
-matched by the `R` filter — the whole reason for splitting.
-
-The new set is narrow enough that three taps in one state genuinely returns
-nothing. The existing no-match chip had no way out, so it gained a **Clear
-filters** button that resets the amenity toggles plus brand, type and state,
-driving the controls from state so `aria-pressed` cannot drift. Search is left
-alone — it is visible in its own box with its own clear button.
-
-See *Amenity filters* above for the selectivity reasoning and the gotchas,
-including why the gym filter must test `O` as well as `F`.
+The filter row was inverted relative to the data — CAT scale matched every single
+stop. Replaced with the two most selective amenities.
 
 ### v1.23.0
-
-**A sit-down restaurant code, and four fitness room corrections. Data only —
-no filter, no UI, no planner change.**
-
-New amenity code **`R` — Sit-down restaurant**, added to 70 stops from TA's
-location master (08-2026). It is the single most useful thing to filter on in
-the dataset: present at **70 of 143** stops, a near-perfect half split, where
-laundry sits at 99% and any-food at 94% and neither can narrow anything.
-
-`R` is appended last in every string, so each edit is a pure append and every
-pre-existing `F,O,W,H,B,T` prefix and ordering is untouched. `CA5` (TA Corning)
-gets none — no match in TA's current data, consistent with it being closed.
-
-Four **fitness room** corrections, independent of the `R` work: `MO2` Petro Oak
-Grove loses `F`, `VA4` Petro Raphine and `IN2` Petro Gary gain it, and `CT1` TA
-New Haven is deliberately left alone as neither confirmable nor refutable.
-Fitness rooms across the stops go 34 → **35**.
-
-See *Amenity codes* above for the full table, provenance, and what in this
-column is trustworthy — notably that `F` is good but probably still missing a
-few, and that `W` is known to be over-claimed and was **not** corrected here.
-
-No filter is added, removed or changed by this release. The filter rework that
-consumes this data is separate work.
+Sit-down restaurant flag added to 70 stops; four fitness rooms corrected.
 
 ### v1.22.2
-
-**A closed station was drawing on top of the open one beside it.**
-
-Petro Corning and TA Corning sit **0.43 miles apart** on I-5 exit 630, so at
-any normal zoom their pins overlap and only the top one is visible. The
-**closed** TA pin was the one on top, so the driver saw a blue TA pin for a
-station that no longer exists while the Petro that is actually there was
-hidden underneath it.
-
-Closed stations now get an explicit low z-index (`CLOSED_PIN_Z`) in the marker
-build, so they sit behind everything.
-
-**It is not fixed by marker add order, which is the obvious approach and does
-not work.** The map engine writes its own inline `z-index` onto every marker,
-assigned by screen Y so that lower-on-screen pins paint in front, and it
-recomputes them on every view change. TA Corning is 0.006° *south* of Petro
-Corning, so it lands lower on screen and the engine put it in front — measured,
-`z-index: 1` against Petro's `0` — regardless of which marker was added first.
-Sorting the build array changes nothing. An explicit `setZIndex` overrides the
-engine's value and survives pan and zoom; that was verified against the real
-HERE SDK, since the test stub paints nothing and cannot answer the question at
-all.
-
-**This does not fix pin overlap.** At the zoom where both are on screen there
-is still one visible pin, not two — this only decides which one. Showing both
-would need clustering or spiderfying, which is a much larger piece of work and
-is not started here. Ties between two *open* stations in one city stay
-incidental, deliberately.
-
-`CLOSED_STOP_IDS` and `CLOSED_STOP_ALT` moved from beside `FUEL_STOPS` to above
-the marker build. That is not tidying — it is required. The marker block runs
-at **parse time**, so reading the set from a `const` declared 500 lines below
-it is a temporal-dead-zone crash on load: measured, the map builds **zero**
-markers and the app is blank. A pointer comment sits at the old site and
-`datastops` pins the ordering.
+A closed station was drawing on top of the open one 0.43 mi away.
 
 ### v1.22.1
-
-**Correction: TA Saginaw is not closed. v1.22.0 got it wrong and made an open
-station unplannable.**
-
-v1.22.0 marked TA Saginaw (`MI3`) permanently closed on the strength of it
-being absent from TA's location master. The master was right; the lookup was
-wrong. The station was searched for under *Saginaw*, and TA lists it as **TA
-Bridgeport**, site 0528, 6364 Dixie Hwy, 989-777-7650, at 43.3517 / -83.869 —
-the same address, phone and coordinates as `MI3`. It is the same station under
-a new name, it is open, and for the whole of v1.22.0 the planner refused to
-route anyone to it.
-
-`MI3` is removed from `CLOSED_STOP_IDS`, which now holds only `CA5`. It
-returns to `FUEL_STOPS`, and its sheet and list row lose the closed treatment
-automatically. **`FUEL_STOPS` goes 142 → 143.** `DATA` still has 146 rows and
-the header still reads 146.
-
-Nothing else about the row changes. It keeps the name **TA Saginaw**, matching
-the fuel book, which is the name a Covenant driver recognises, and it keeps nav
-code `CVENTA198`. The fuel book is the authority on both; TA's site number for
-the station is not FuelPost's business.
-
-**TA Corning (`CA5`) is unaffected and stays closed.** Its address and phone
-appear nowhere in the master, and its page on TA's site is a hollow stub with
-no address and no phone at all, while Petro Corning (`CA4`) is fully listed.
-
-The comment above `CLOSED_STOP_IDS` now carries the lesson in the place someone
-will actually meet it: **absence under an old name is not evidence of closure,
-because TA renames stations and the fuel book keeps the old name.** Match on
-address, phone and coordinates. `datastops` gained a matching regression pin.
+**Correction: TA Saginaw is not closed.** v1.22.0 made an open station
+unroutable — it's listed under a different name. Absence under an old name is not
+evidence of closure.
 
 ### v1.22.0
-
-**Two closed stations are excluded from planning but kept in view, and a
-misspelled station name is fixed.**
-
-TA Corning (`CA5`) and TA Saginaw (`MI3`) are absent from TA's own location
-master dated 08-2026 and appear to have closed. Both are now in
-`CLOSED_STOP_IDS` and filtered out of `FUEL_STOPS` alongside the two
-terminals, so **`FUEL_STOPS` drops from 144 to 142**. `DATA` keeps all 146
-rows and the header still reads 146 — it counts stations in the book, and the
-book has not revved. See *One station is marked closed* above for why the
-rows stay.
-
-The exclusion is a filter at the source, not a ranking penalty. A closed stop
-is never selected, not even as a last resort when nothing else is in range —
-that case is a driver on a quarter tank being routed somewhere they cannot
-fuel, and "no stop in range" is the more useful answer.
-
-The rows keep their markers, list entries and station sheets. The sheet leads
-with a closed banner directly under the badges, before any data row, saying
-the stop appears permanently closed and is not used for planning. TA Corning's
-banner names **Petro Corning** as the alternative at the same exit (I-5, Exit
-630) — a genuinely different station, not a rename; TA Saginaw has no sibling
-and none is invented. The list row carries a matching **Closed** tag.
-
-The banner does not rest on colour: it leads with a ✕ and the words
-"Permanently closed", and takes `--danger-text` (already tuned for both
-themes) with a transparent fill, since a fixed light-red background would be
-unreadable in dark mode.
-
-**The map pin is unchanged, deliberately.** The obvious treatment is a fade,
-but `.pin-faded` already means "available but not selected" in route mode, and
-two similar fades meaning different things is worse than one missing cue. The
-list tag and the sheet banner carry the state instead.
-
-`TA Bloomsburry` is corrected to **`TA Bloomsbury`** (`NJ1`) — display name
-only; nav code, address and city untouched. `TA Bloomsburg` (`PA1`) is a
-different station in Pennsylvania and is untouched.
-
-Two test files were mirroring the old `FUEL_STOPS` filter by hand and kept
-passing against a stale copy of the rule; both now read `CLOSED_STOP_IDS` out
-of `index.html` so they cannot drift again. `amenityfilter`'s CAT-scale
-assertion of 144 is unchanged and correct — it measures filtering over all 146
-`DATA` rows, not over `FUEL_STOPS`.
+Two stations excluded from planning but kept visible with an explanation.
 
 ### v1.21.0
-
-**The Covenant nav code now rides along with the plan — on every result
-card, and in the shared text.**
-
-The code was already in the data and already in the station sheet, but a
-driver reading a finished plan had to tap into each stop to get it. It
-now sits on the result card, under the exit line, mono and at the meta
-weight: `Nav code CVENTA260`. Its own line rather than appended to the
-exit, because the longest exit string in the data is `I-40E/I-35, Exit
-127 / I-40W, Exit 154` and a code on the end of that wraps badly on a
-phone.
-
-All three kinds of stop card carry it — required plan stops, the
-short-trip "available if you want to top off" stops (including the ones
-behind the more-stops toggle), and the post-gap resume stops. They share
-one `navLine` helper rather than three copies, because the obvious
-failure here is doing one and missing the others.
-
-The code is **display only**: no copy button, no tap target of its own.
-Each result card is already a `<button>`, and a button nested inside a
-button is invalid HTML — it breaks screen-reader navigation and swallows
-the tap-through to the station sheet. The station sheet is not a button
-and already has the copyable row.
-
-Share text gains the code on each stop line, in both the `FUEL STOPS`
-section and the post-gap section:
-
-```
-1. TA Cheyenne — mile 423  (423 mi leg)  Nav code CVENTA260
-```
-
-`lib/triptext.js` stays a pure formatter with a documented input shape —
-it reads an explicit `s.nav` field that `index.html` maps on from the row
-alongside the existing `legMiles` rounding, rather than reaching into
-DATA column order itself. A missing `nav` omits the tag entirely rather
-than printing a dangling separator; that cannot happen with real data
-(all 144 fuel stops have a code; only the two terminals don't, and
-terminals are filtered out of planning) but the formatter is tested
-independently of DATA and doesn't assume the field is set.
-
-Short-trip available stops still aren't in the share text — only plan and
-post-gap stops carry codes there.
+The nav code rides on every result card and in the shared text.
 
 ### v1.20.2
-
-**Two map-zoom fixes, both in the fit machinery, both found by
-measuring the actual camera instead of the calls made.**
-
-*The reported bug:* after tapping "Plan fuel for this load" the map was
-zoomed all the way out to the world, and tapping any alternate route
-snapped it back to the route. The re-fit added in v1.19.3 keyed on the
-**padding** changing — but right after a plan renders, `renderPlan`
-collapses the trip drawer, which grows `#mapwrap` over 250ms. The panel's
-height never changes, so the padding never changes, so no re-fit fired
-and the route stayed fitted to the smaller pre-collapse viewport.
-Tapping an alternate re-ran `drawRoute` against the settled geometry,
-which is why that appeared to fix it. The re-fit now keys on the **free
-fit area** — the map element minus its padding — which moves when either
-one does.
-
-*Found while fixing it:* **the startup network fit added in v1.19.6 had
-never worked at all.** The map sat at exactly the constructor's fallback
-(zoom 5) where a real fit of the network's 52° span is ~3.1. The cause
-was ordering: `setLookAtData` schedules a view change, and the
-`syncMapPadding()` call immediately after it — restoring padding in the
-same task — cancelled that view change before it applied. Padding is now
-restored from the map's own `mapviewchangeend` event instead, and the fit
-is deferred past the first frame. Measured: zoom 3.12 against an expected
-3.14.
-
-Both had shipped past their tests because those tests ran against the
-HERE stub, which cannot compute a zoom — so they could only assert that
-the right calls were made, which both broken versions did. There is now
-a zoom regression suite that runs against the real vendored SDK and
-asserts the camera actually moved, plus structural pins for the
-padding-after-fit ordering and the free-area re-fit key.
+Two map-zoom fixes, both found by measuring the actual camera instead of the
+calls made — including a startup fit that had never worked at all.
 
 ### v1.20.1
-
-**Long station sheets use the screen they need.** The sheet's height cap
-was 72%, which on a 844px phone is 608px — but a big TA with amenities,
-clinics, Call and Navigate measures ~706px, so **121 of the 146
-stations** were scrolling inside a box that had room to spare beneath
-it. The cap is now 88%: every station in the network fits without
-scrolling on a standard phone, with the header still visible so the app
-doesn't read as having vanished.
-
-Short sheets are untouched — it is a `max-height`, not a height, so the
-Greenville terminal still hugs its content at ~330px and leaves most of
-the map showing. Shorter screens simply get more of their sheet than
-before rather than different behaviour.
+Long station sheets stopped scrolling inside a box with room to spare.
 
 ### v1.20.0
-
-**Navigate to a stop from the station sheet.** The sheet ended at Call;
-a driver who had chosen a stop had to leave the app and retype the
-address into a nav app — at a truck stop, where the street address
-routinely geocodes to the wrong side of the interchange. The sheet now
-offers **Apple Maps** and **Google Maps** side by side, plus a quieter
-**Copy address** below them.
-
-The destination handed over is always the row's **coordinates**, the
-same point the map pin uses, so the nav app lands exactly where FuelPost
-said the stop is; the station name rides along as the display label.
-Both buttons are always offered rather than auto-detecting one — a guess
-that opens the app the driver doesn't use is worse than a choice. Apple
-Maps is absent, not broken, where it doesn't exist, and Google then
-takes the full row. Navigation shows for terminals too; only Call is
-conditional, and it follows the phone number rather than the row type
-(Covenant HQ has one, the Greenville terminal doesn't).
-
-Copy address is the one control that works with no signal — the escape
-hatch into a Garmin, a Rand McNally, or a text to dispatch. It reuses
-Share trip's clipboard chain exactly: `navigator.clipboard`, a "Copied"
-note, and the same on-screen textarea fallback. That fallback
-(`showShareFallback` → `showCopyFallback`) now takes an anchor instead
-of reaching for the Share button, and always rebuilds rather than
-re-selecting, so a leftover textarea can never show trip text beside a
-station's Copy button.
-
-URL builders, the address formatter, and the platform test live in
-`lib/navlinks.js` (27 tests) — pure, no DOM.
-
-Two things checked against the vendors' own documentation rather than
-assumed. Apple's URL Scheme Reference documents `daddr` only as "an
-address string that geolocation can understand" and gives **no**
-coordinate example — coordinates are documented for `ll`, which places a
-pin but does not set a directions destination. `daddr=lat,lng` is
-long-standing de-facto behaviour and is used here anyway, because the
-documented alternative reintroduces exactly the geocoding error this
-feature exists to prevent; the gap is recorded in a code comment.
-Google's docs could not be reached from the build environment (egress
-blocked), so the Universal URL API shape is unverified there and rests
-on the well-established `?api=1&destination=` form.
+Navigate to a stop from its sheet, handing the nav app coordinates rather than a
+street address that often geocodes to the wrong side of the interchange.
 
 ### v1.19.6
-
-**The first view fits the full network.** The map used to open at a
-hardcoded centre and zoom that showed a few states on a phone; the app
-exists to show a 146-station national network, and the first glance now
-says so. Immediately after the one-time marker build, the view is
-fitted once to `markerGroup.getBoundingBox()` — framed correctly on
-every screen shape where a fixed zoom cannot be, and self-correcting if
-edge stations ever come or go in a data revision. The fit runs in the
-same script task as map construction, before the browser paints, so the
-constructor's centre/zoom (kept, commented as the pre-fit fallback) is
-never visible.
-
-The fit borrows the route machinery's `MAP_FIT_MARGIN` symmetrically on
-all four edges so the extreme pins (Seattle, Maine, South Florida,
-SoCal) aren't clipped, then restores DOM-derived padding via
-`syncMapPadding()` — all zeros in Stops mode. Verified on the real
-build: the symmetric-to-symmetric restore moves nothing (centre, zoom,
-and every extreme point's screen position identical), so no fallback
-was needed. It deliberately never touches `lastFitBounds` — that
-belongs to the route lifecycle — and it happens exactly once: no
-re-fit on resize, rotation, filtering, or returning from Route mode.
-The driver owns the camera from first paint.
-
-One relocation this forced: the viewport-padding cluster
-(`lastFitBounds`, `MAP_FIT_MARGIN`, `syncMapPadding`) moved from the
-panel code up into map setup, because the startup fit calls it before
-the old declaration point had executed — the temporal-dead-zone crash
-class this codebase has hit twice before. `syncMapPadding` also reads
-`document.getElementById` directly rather than the `$` helper, whose
-own `const` initializes later, for the same reason. A structural test
-pins the ordering.
+The first view fits the whole network instead of a hardcoded zoom.
 
 ### v1.19.5
-
-**Station markers are built once; filtering flips visibility.** Every
-filter interaction — including every keystroke in the station search
-box — used to tear down and rebuild the entire marker layer: typing
-"memphis" was seven full DomMarker+DomIcon+innerHTML rebuild cycles of
-up to 146 markers on a phone. The stops are a fixed set that never
-changes within a session, so all markers are now constructed exactly
-once at startup (in the same state-then-city order the old render used,
-keeping pin stacking identical), held in a row-keyed map, and the
-render path is one pass of per-marker `setVisibility()` flips. No
-construction, no `removeAll`, nothing allocated per keystroke.
-
-**Pin icons are shared per appearance.** `buildIcon()` now memoizes its
-`DomIcon` on the class string it assembles (brand × exclusive × faded —
-the letter follows the brand), so 146 markers share a handful of icon
-instances, and Route mode's faded available-stop pins reuse the same
-cache. Both load-bearing claims were verified against the real vendored
-SDK rather than assumed: `DomIcon` clones its template element per
-marker (two markers sharing one icon render two independent elements,
-and the cached template is never mutated or reparented), and per-marker
-visibility composes with the group's own flag (Route mode's wholesale
-hide preserves each marker's filter state, so returning to Stops with a
-filter active shows only the filtered pins).
-
-Route mode's `.rpin` icons (endpoints, numbered plan stops) carry
-per-plan labels and stay uncached. Pin stacking order is now fixed at
-build order rather than re-forming per render — identical in the
-common case since the build uses the same sort.
+Map pins are built once and shown or hidden, instead of rebuilt on every
+keystroke.
 
 ### v1.19.4
-
-**Route fits back off a step.** Driver feedback on v1.19.3: zoom out a
-smidge. A uniform 32px `MAP_FIT_MARGIN` now rides on every viewport
-edge while the results panel is up (the panel height still adds to the
-bottom), so a fitted route gets breathing room instead of running hard
-against the edges — about a quarter zoom level on a phone — and the
-endpoint pin graphics can no longer clip at the viewport boundary (the
-fit knows the polyline's geometry, not the ~30px pins drawn over its
-ends). Stops mode keeps zero padding on all edges, exactly as before.
+Route fits zoom out slightly, on driver feedback.
 
 ### v1.19.3
-
-**Routes now centre in the visible map area, not the full element.**
-The results panel covers up to 62% of the map's bottom, and nothing told
-HERE that — so every bounds fit centred the route in area the driver
-couldn't see, pushing it low with the delivery end often behind the
-panel. `ViewPort.setPadding()` is HERE's mechanism for exactly this
-(verified on the real build: a fit with bottom padding lands the bounds
-centre at the visible strip's exact centre, zoom included).
-
-`syncMapPadding()` measures the panel and sets bottom padding, wired
-through `syncRrTabShowing()` — whose callers are precisely the panel's
-show/hide/collapse transitions — plus the resize paths and a
-`transitionend` re-measure so the 250ms collapse animation settles into
-an exact value rather than a mid-animation one.
-
-Two things testing surfaced beyond the plain wiring. First, the plan
-flow renders the panel *before* drawing the map now (the two were
-independent), because the fit must measure this plan's panel, not the
-previous one's. Second, the fitted bounds are kept and the fit re-runs
-when the padding materially changes — padding alone shifts the centre
-but keeps the zoom, and a real re-fit is what makes collapsing the
-panel actually use the freed space. It also corrects for the panel's
-own height settling ~250ms after a plan renders (its 62% cap tracks
-`#mapwrap`, which grows when the trip drawer collapses). The re-fit is
-gated to Route mode with a route on screen: switching to Stops never
-yanks the map, and Stops mode still runs with zero padding, unchanged.
+Routes centre in the part of the map you can actually see, not behind the results
+panel.
 
 ### v1.19.2
-
-**The available-stop marker is now a faded station pin, not a dashed
-circle.** v1.19.1's abstract circle read as "tiny cloud" — an abstract
-shape carries no meaning on a map. Available stops now render as the
-Stops-mode pin the driver already knows — same teardrop, same TA blue /
-Petro green, same T / P letter, the Exclusive gold star included — at
-0.65 opacity, via an optional `faded` flag on the shared `buildIcon()`
-(every existing caller passes one argument and renders exactly as
-before).
-
-0.65 was measured, not guessed: the white letter clears legibility on
-both tile styles (T on TA fill: 3.7:1 day, 9.8:1 night) while staying
-visibly subordinate next to a full-opacity pin. The pin keeps its full
-28px — it doubles as the tap target — and separation from planned stops
-never depended on weight anyway: planned stops are round, gold and
-numbered; station pins are teardrops with letters. Opacity is what
-marks one as not-in-your-plan.
-
-Nothing else about v1.19.1 moves: the available counts in the summary
-lines, the panel list, draw order (planned things still sit on top),
-the bounds fit, and the planning logic are all unchanged. Stops-mode
-pins render at full opacity exactly as before.
+Available stops became faded station pins — the abstract circle read as "tiny
+cloud".
 
 ### v1.19.1
-
-**Available network stops now appear on the map, and every "no stop
-needed" line counts them.** Two additions to v1.19.0's no-required-stop
-case, from driver feedback; the scope boundary does not move — plans
-with required stops draw exactly as before.
-
-On the map, each available stop gets a small dashed marker: 20px vs the
-plan pins' 30px, no number inside (numbers mean driving order within a
-plan; these aren't a sequence), drawn beneath anything planned so
-endpoints sit on top where they overlap. The white fill is fixed,
-deliberately not themed: the marker sits on HERE map tiles, not app
-chrome, and white-fill-plus-grey-dashed-border is the only measured
-pairing where something always carries the shape (border 4.4:1 on
-near-white day tiles, fill 16.5:1 on near-black night tiles —
-`--surface` in dark mode measures 1.0:1 there and would vanish).
-Tapping a marker opens the same station sheet. The bounds fit is
-unchanged — every available stop is within detour tolerance of the
-polyline, so it's already on screen.
-
-The three "no stop needed" strings now carry the count ("No fuel stop
-needed — 2 available"): the expanded headline, the collapsed tab
-summary (which reuses the headline string, so no duplication), and —
-most usefully — each route option card, so two short routes can be
-compared on the fuel dimension instead of reading identically. Zero
-available stays plain; "0 available" is noise.
-
-To serve all three consumers (map, panel, cards) without repeated work,
-`shortTripOptions()` is now computed once per route option when the
-load is planned and cached on the option object — only for options
-whose own plan is empty, honouring v1.19.0's rule that long plans never
-pay the projection cost, and route switching stays pure re-render.
+Available stops appear on the map, and every "no stop needed" line counts them.
 
 ### v1.19.0
-
-**A plan with zero required stops now shows the fuel options instead of
-a dead end.** "No fuel stop needed" answers a question about the tractor
-— but some loads require arriving full (a reefer running through
-detention, a receiver's own rule), and the app can't know that. And the
-Covenant network is sparse enough — 9 states with zero network stops,
-8 more with exactly one — that topping off near a stop is often right
-even when this load doesn't demand it. So on this one case the app stops
-gatekeeping and shows what's available, letting the driver apply the
-constraint it can't see:
-
-- the range you arrive with,
-- every network stop on the route (mile marker, miles before delivery,
-  miles off route), presented as *available*, not recommended — rows tap
-  through to the existing station sheet, and a dense lane collapses to
-  the last-chance stop with the rest behind an "N more" line,
-- and the nearest network stop to the delivery itself, searched across
-  ALL stops, not just on-route ones — shown even (especially) when the
-  route has none. The same "no fuel required" plan means something very
-  different delivering near Atlanta (42 mi to fuel) than into North
-  Dakota (364 mi), and only the app knows which one you're in.
-
-Share trip carries the arrival range and the nearest-to-delivery figure
-on these plans. These stops are deliberately NOT drawn on the map as
-plan markers — that would read as a plan the driver didn't ask for; the
-station pins already exist in Stops mode.
-
-The logic is `lib/shorttrip.js` (`shortTripOptions()`, pure, 17 tests),
-loaded through the same function-scope fetch shim as
-`fuelplan-adaptive.js` and for the same reason (its `require` of
-fuelplan.js would collide with the classic-script globals).
-**Long-trip planning is deliberately unchanged** — the
-`plannedStopCount` guard returns `applies:false` for any plan with
-required stops, and the required-stops path renders exactly as before
-(browser-tested). Don't go looking for an algorithm change; there
-isn't one.
+A plan needing no stops now shows what fuel is available anyway, including the
+nearest stop to the delivery — some loads require arriving full and the app can't
+know that.
 
 ### v1.18.2
-
-**The pickup field's locate button now takes its own one-shot fix,
-instead of refusing when map tracking is switched off.** Tapping it with
-tracking off answered *"Location is off — turn it on from Stops, or type
-the address"*, which sent the driver to a different screen to enable a
-continuous background feature they had deliberately turned off, purely
-to fill in one box.
-
-Those are two different things, and they are no longer wired together.
-The locate button on the map governs *continuous tracking* — the watch,
-the dot, the battery drain — and that is what the press-and-hold toggle
-switches off. Filling the pickup address is a single explicit tap asking
-for one position, once. It now calls `getCurrentPosition()` directly.
-
-It never starts the watch, never draws the map dot, and deliberately
-never writes `liveFix` — `setLocationOff()` clears `liveFix` precisely so
-"off" means off for everything keyed on it (the station sheet's "From
-you" row), and writing a fix back from here would quietly resurrect
-that. The toggle itself is left untouched by using the button.
-
-Real geolocation failures are still reported, inline beside the field
-and in the caller's own words (permission denied, timed out), with the
-button re-enabled so a second tap retries. A tracking failure on the map
-no longer posts an error into the route form, which was possible before
-when the two shared a failure path.
+The pickup locate button takes its own one-shot fix instead of demanding you turn
+tracking back on.
 
 ### v1.18.1
-
-**Fixed the layers button moving to the bottom centre of the map.**
-v1.18.0's custom map settings control landed in the right *anchor* but
-the wrong *slot* within it. `alignment` only picks which anchor a
-control joins; position inside that anchor is DOM child order — and
-HERE's bottom-right anchor is a horizontal row shared by the scale bar
-and the layers button. `createDefault` leaves it as
-`[scale bar, button]`, which puts the button hard against the right
-edge. Removing and re-adding only the button made it
-`[button, scale bar]`, sliding it left to roughly the centre of a phone
-screen. Re-adding the scale bar after the button restores the original
-order, and with it the original position.
-
-The zoom control lives in a separate, vertical anchor and was never
-affected. Verified by measuring real geometry against the vendored HERE
-build — every control returns to `createDefault`'s pixel positions, and
-stays there across repeated theme rebuilds. Also confirmed the scale
-bar still reads in miles after being re-added, since
-`ui.setUnitSystem(IMPERIAL)` runs before the swap.
-
-The v1.18.0 check that missed this trusted the control's own
-`getAlignment()` report instead of measuring where it actually rendered.
+The layers button had moved to the middle of the map.
 
 ### v1.18.0
-
-**Traffic removed, and the map settings control is now built by this app
-from public API.** Traffic was never part of what FuelPost does, and it
-had caused two bugs in a row. Both traffic entries are gone from the
-layers control; only Map view and Satellite remain.
-
-The removal is the durable fix rather than a fifth patch.
-`H.ui.MapSettingsControl` accepts a config object naming its own
-`baseLayers`, and *omitting* its optional `layers` array is what drops
-the traffic checkboxes. Because the app now names the entries, the "Map
-view" entry carries the themed road layer — `mapnight` in dark mode —
-*before* it is ever tapped. That is the actual root cause retired: every
-fix from v1.11.6 through v1.17.5 reacted *after* HERE's default control
-had already changed the base layer, and each left the control's internal
-selection bookkeeping further out of sync (on-device, taps on "Map view"
-eventually started landing on Satellite). A theme change now rebuilds
-the control instead of writing to `.Ke[0].layer`, an internal minified
-property — the standing liability two earlier fixes worked around.
-
-`lib/trafficlayer.js` and its 14 tests are deleted along with the
-overlay wiring. The `baselayerchange` listener stays, restored to its
-pre-v1.17.5 shape as a cheap backstop via `nextBaseLayer()`; with the
-control pointing at the right layer up front it is expected never to
-fire a correction.
-
-Verified against the vendored HERE build rather than assumed: the config
-form constructs, omitting `layers` renders no traffic entries, the
-default control is already bottom-right so nothing moves, a real tap on
-a dark-configured "Map view" lands on `mapnight`, and rebuilding the
-control while the map is on Satellite neither moves the base layer nor
-mis-highlights the entry.
-
-Note for a future HERE usage review: **traffic API usage now drops to
-zero.** Real-Time Traffic and Traffic Vector Tile will stop appearing in
-the usage report. That is this change working, not a regression.
+Traffic removed, and the map settings control rebuilt from public API — the
+durable fix after four patches to the same area.
 
 ### v1.17.5
-
-**Traffic is now an overlay, not a base layer — fixing the traffic
-toggle forcing the map light in dark mode.** HERE 3.1's
-`vector.normal` collection ships `traffic` and `trafficincidents` base
-layers in the light style only (3.0's `trafficnight` was dropped), so
-when HERE's settings control toggled traffic it set the map onto a
-light base with nothing dark to correct to. The structural change:
-the app never lets traffic BE the base. When either traffic toggle
-fires, the base is forced back to the themed road layer and traffic is
-drawn as the transparent `vector.traffic.map` flow overlay on top —
-HERE's own documented recommendation — which composes with either
-theme (and with Satellite). Toggling traffic off removes the overlay.
-
-The policy lives in `lib/trafficlayer.js` (`trafficCorrection()`, pure,
-14 tests), applied by the `baselayerchange` listener — which also
-subsumes the old satellite-era "light map in dark mode" correction.
-One repair to the wiring as originally specified: the listener now
-ignores base-layer changes the app itself scheduled (marked in
-`setNormalBaseLayer()`, consumed on the same synchronous dispatch).
-Without that, the listener's own deferred correction re-entered it,
-read "on a road layer" as "traffic is off," and stripped the overlay
-~60ms after adding it — in both themes — and a theme switch with
-traffic on did the same. Verified the SDK dispatches `baselayerchange`
-synchronously against the real vendored build.
+Traffic became an overlay rather than the base layer, so it stopped forcing the
+map light in dark mode.
 
 ### v1.17.4
-
-**Fixed the dead black band under the map after reopening with Custom
-vehicle selected.** HERE's canvas only re-measures on a real window
-resize or an explicit `resize()` call — it can't see its own container
-change height. Reopening the app with Custom restored meant the map
-initialized while the drawer was tall; tapping Standard then shrank the
-drawer and grew `#mapwrap`, but nothing told the canvas, leaving an
-unselectable black strip where the map should have extended.
-
-Rather than hand-wiring a fourth `resize()` call at the vehicle toggle
-(and a fifth at the error block, a sixth at the hazmat placard list —
-every drawer section that changes height moves the map's edge), a
-`ResizeObserver` on `#mapwrap` now covers the whole class: any change
-to the map area's size settles the canvas, debounced 120ms so the
-drawer's 250ms collapse animation resizes once at its final size
-instead of re-rendering the vector map every frame. The old hand-wired
-260ms `setTimeout` in `setRoutebarOpen()` is superseded and removed.
+Fixed a dead black band under the map after the drawer changed height.
 
 ### v1.17.3
-
-Two follow-up fixes to the greyed range placeholder from v1.17.2, both
-reported from real use.
-
-**Clear trip no longer refills the range with 875, and an empty range
-no longer summons the Clear-trip button.** Clearing the trip now empties
-the range box so the greyed 875 placeholder returns, instead of writing
-a literal black-text 875. And `routeHasSomethingToClear()` was treating
-a blank box as "changed" — `Number('')` is `0`, which is not
-`ROUTE_DEFAULT_RANGE`, so the bare inequality lit the Clear-trip button
-the instant the field was empty. It now counts the range as changed only
-when a value is typed *and* differs from the default.
-
-**The range clear x now appears only for a non-default value, and sits
-right beside "mi".** Previously the x's slot was always reserved,
-leaving dead space next to "mi" whenever the x was hidden. The x is now
-offered only when the box holds something other than 875 (a blank box or
-one holding exactly 875 is already at default, with nothing to clear).
-When the x is absent, "mi" sits at the edge; a `.has-clear` class
-widens the padding and shifts "mi" left so the x takes the edge right
-next to it only when it's actually shown.
+Clear trip stopped refilling the range box, and an empty box stopped summoning
+the Clear button.
 
 ### v1.17.2
-
-Two fields brought in line with how the custom vehicle inputs already
-behave.
-
-**The range field ("how far do you run between fuel stops?") now shows
-875 as a greyed placeholder** instead of holding it as a real value. A
-blank box with the default showing greyed reads honestly — it hasn't
-been set, and the default is visible without pretending the driver
-chose it. `readRanges()` treats blank as `ROUTE_DEFAULT_RANGE`, and —
-the load-bearing part — no longer writes the default back into the box,
-which would have refilled it with black-text 875 on the first plan and
-lost the placeholder for the session. A genuinely out-of-range *typed*
-value (say 50) still clamps to 300 and writes that back, because seeing
-the correction is useful. Clearing the field now empties it so the
-placeholder returns, rather than resetting it to a literal 875.
-
-**Each of the four custom vehicle inputs got its own clear button**,
-matching pickup, delivery, range, and search. Tapping one empties that
-field back to its greyed standard value (a blank vehicle field already
-means "use the standard"), updates the profile summary, and leaves the
-other three untouched. The buttons wire into the same
-`updateFieldClearVisibility()` refresh path as every other field.
+The range field shows its default greyed out rather than pretending you chose it.
 
 ### v1.17.1
-
-First-load work reduction. Reported as 5–8s to a visible map; four
-causes were identified, and this addresses the two that are contained.
-
-**Connection hints.** The first contact with `js.api.here.com` was a
-render-blocking stylesheet in `<head>`, so DNS + TCP + TLS to a
-third-party origin all resolved before any map code began downloading.
-A `preconnect` (with `crossorigin` — without it the socket is not
-reused and the hint does nothing) plus a `dns-prefetch` fallback now
-start that handshake immediately.
-
-**Less work at startup.** `render()` is split: `renderMarkers()` always
-runs, `renderList()` only when the list panel is actually on screen.
-The 146 markers go in via one `addObjects()` call instead of 146
-`addObject()` calls, and list rows are built into a `DocumentFragment`
-attached once rather than appended individually. `#listview` starts
-`display:none` and may never be opened, so its rows are now built on
-first open and marked stale on filter changes instead of being rebuilt
-behind a hidden panel on every keystroke.
-
-The count is deliberately set in `render()` itself, never in
-`renderList()` — a count that only updated when the list happened to be
-open was the specific regression risk in this split, and
-`test/renderstructure.test.js` pins it.
-
-Measured app-side (HERE stubbed, so this isolates our code from network
-and the map engine): `render()` **2.7 ms → 1.0 ms**, DOM nodes built at
-first paint **1,209 → 304**, list DOM at startup **907 → 0**. That is
-the (d) component only; total cold load is dominated by the serial
-script chain and the vector engine, neither of which this touches — so
-treat these as the work removed, not as the end-to-end result.
-
-**Not done, on purpose.** Adding `defer` to the `lib/` scripts would
-silently break the app: the inline shims between them are *not*
-deferred, so each shim would capture `module.exports` while still
-empty and every lib module would become `{}` with no error thrown
-anywhere. Any future script-loading work must replace the shim pattern
-first. `test/renderstructure.test.js` now fails if `defer` or `async`
-appears on a lib script. The vector engine also stays — raster paints
-sooner, but vector is required for the satellite and theme switching
-fixed in v1.11.x.
+First-load work cut roughly in half.
 
 ### v1.17.0
-
-**Amenity filters.** The morning question is "where do I fuel"; the
-evening question is "where do I fuel AND park AND shower". Every field
-needed was already on each row and shown in the station sheet — only
-the filter was missing. Four toggles now sit in the Filters popover
-under "What do you need tonight?", AND-combined with each other and
-with the existing brand/type/state filters through the same single
-`passes()` path. The Filters badge counts them, so a driver who left
-one on can see why stops are missing, and a zero-result combination now
-says "No network stops match these filters" on **both** the map and the
-list instead of showing a blank screen.
-
-**Two thresholds were retuned against the real data before shipping.**
-The filters were specified as simple has/doesn't-have checks, but
-measured against `DATA` that would have produced two dead controls:
-*every* stop has showers (all 146, minimum 4) and effectively every
-fuel stop has a CAT scale (144 — only the two Covenant terminals lack
-one). A toggle that changes nothing reads as broken and costs trust in
-the whole filter row. So showers and service became thresholds, each a
-named constant, chosen from the actual spread:
-
-- `PARKING_LARGE = 100` — spaces run 45–725, median 156; keeps 116/146
-- `SHOWERS_MANY = 10` — the median; keeps 76/146, roughly a half split
-- `BAYS_MANY = 4` — the line between one bay and a real shop; keeps 102/146
-- CAT scale stays binary and near-universal: honest, if rarely selective
-
-`test/amenityfilter.test.js` asserts these counts against the live
-`DATA` array and **parses the thresholds out of the source** rather than
-repeating them, so retuning a constant updates the test automatically
-while a data refresh that turns a filter into a no-op fails loudly.
-
-**Accessibility.** The theme selector is now a proper `radiogroup` with
-`aria-checked` tracking the selection; the version button carries
-`aria-live="polite"` and an action-describing label so its "Checking…"
-/ "Update available" states are announced; and the address suggestion
-dropdown uses the standard combobox shape — `role="combobox"` +
-`aria-autocomplete` + `aria-controls` + `aria-expanded` on the input,
-`role="listbox"`/`option` with `aria-selected` on the list. Arrow-key
-navigation was deliberately left out, as specified.
-
-One audited item needed no work: the fuel gauge already had
-`role="slider"`, `aria-valuemin`/`max`/`now` **and** `aria-valuetext`
-("5/8 — about 500 mi"), all updated inside `renderGauge()`. That part of
-the audit was out of date; verified rather than re-added.
+**Amenity filters.** Two thresholds were retuned against the real data first —
+as specified they'd have been dead controls, since every stop has showers and
+almost every one has a CAT scale.
 
 ### v1.16.4
-
-Post-release sweep finding: the two floating map chips — `#locateError`
-and `#locateHint` — were never included in the rules that hide the map
-chrome. They are appended to `#mapwrap` at runtime, so they are
-following siblings of `#listview` exactly like `#locateBtn`, but only
-the buttons were listed. The result: a location hint or error would
-float over the list-view overlay, and would hang over the route panel
-in ROUTE mode pointing at a locate button that isn't even displayed
-there.
-
-Both now hide with the rest of the chrome in both contexts. The error
-chip case is pre-existing — it predates the hint entirely — and was
-only found by walking a real mode-switch journey rather than testing
-each feature in isolation.
+Two floating map chips could hang over the list and the route panel.
 
 ### v1.16.3
-
-**Security: external strings are now escaped before they reach
-`innerHTML`.** Address labels from HERE's geocoding and autosuggest
-responses — which include POI and business names this app neither
-controls nor can vouch for — were being interpolated into markup
-unescaped. A label containing HTML would have been parsed as HTML
-rather than shown as text, running in a page that holds the API key,
-the driver's live position and the trip addresses.
-
-`lib/escape.js` adds one `escapeHtml()` (ampersand first, so nothing
-double-encodes; `null`/`undefined` become `''`). It is applied at every
-site that renders an externally-sourced or driver-typed string: the
-autosuggest dropdown, both geocode candidate pickers, the matched-address
-and "you entered" lines, the plan panel's pickup/delivery addresses, and
-the alternative-route option labels.
-
-Two of those were **not** on the original list and were found by
-re-auditing every interpolation rather than trusting it: the route-option
-labels (added in v1.13.0 — they carry HERE's `routeLabels` text) and the
-match-kind line, whose fallback echoes HERE's raw `resultType`. Sites
-that interpolate only app-controlled values or committed `DATA` were
-left alone; wrapping those adds noise without adding safety.
-
-Real addresses are unaffected — "O'Fallon, MO" and "Sears & Roebuck
-Dist Ctr" round-trip and display normally, with no visible entity
-artifacts.
+**Security:** address text from HERE is now escaped before being put on the page.
 
 ### v1.16.2
-
-Two refinements to the location toggle:
-
-**Turning it back on is just a tap.** v1.16.0 required a press-and-hold
-in both directions, on the reasoning that a stray tap shouldn't undo a
-deliberate choice. That was the wrong trade: getting location *back* is
-the common case and shouldn't need a gesture, while switching it *off*
-is the direction where an accident actually costs something. So: hold
-to turn off, tap to turn on. The off-state hint and button label name
-tap accordingly.
-
-**The hint box hugs its text** instead of spanning the map edge to
-edge — one short line reading as a banner looked heavier than it is.
-`width:max-content` with a `max-width` guard, so a longer message still
-wraps on screen rather than running off it.
+Hold to turn location off, single tap to turn it back on.
 
 ### v1.16.1
-
-Press-and-hold was invisible: nothing on screen said the gesture
-existed, and a button's `title` never surfaces on touch. Every tap of
-the locate button now names it — "Hold to turn location off" when
-tracking is on, "Hold to turn location on" when it's off — and both
-toggle confirmations name the reverse gesture too ("Location off — hold
-to turn on", "Location on — hold to turn off"). Short lines, no
-instructions to read in a moving truck.
-
-Hints moved into their own `#locateHint` element rather than sharing
-`#locateError`: the GPS success handler calls `hideLocateError()` on
-every fix, so a hint in that slot was wiped the instant a position
-arrived — exactly when the driver is looking at it. A real error still
-outranks and clears a hint, so the two never stack. Hints auto-dismiss
-after 4s. The route pickup message got the same trim: "Location is off
-— turn it on from Stops, or type the address."
+The press-and-hold gesture is now named on screen — nothing had said it existed.
 
 ### v1.16.0
-
-**Press and hold the locate button to switch location off.** No watch
-running, no dot on the map, no stored fix — the button shows a slashed
-crosshair and a neutral note says how to undo it. Another press-and-hold
-turns it back on and re-acquires.
-
-Decisions worth stating, because they're what make it trustworthy:
-
-- **It persists** (`fuelpost.locate.v1`). Silently re-enabling something
-  a driver deliberately switched off is the one behaviour that would
-  make this feature untrustworthy, so an explicit choice survives
-  reloads.
-- **A stray tap can't undo it.** While off, tapping the button shows
-  "press and hold to turn it back on" rather than re-enabling — a
-  deliberate choice shouldn't fall to a mis-tap on a 40px target in a
-  moving truck.
-- **`startWatch()` is the single choke point.** The visibility-change
-  resume, the pickup GPS button and first-fix retries all route through
-  it, so nothing can restart tracking behind the driver's back.
-- **`liveFix` is cleared, not just hidden.** The station sheet's "From
-  you" distance and the route pickup button both read it, so clearing
-  it is what makes "off" actually mean off.
-- **No dead ends.** Route mode's "use my location" doesn't silently
-  override the choice from another screen — it says location is off,
-  names the gesture that restores it, and points at typing the address.
-
-600 ms hold, with the trailing click swallowed so releasing can't also
-fire the recenter underneath it, and the OS text-callout menu
-suppressed on the button.
+Location can be switched off, and the choice sticks across reloads.
 
 ### v1.15.2
-
-The Stops-tab search box clears like the route fields do: an × appears
-inside the box whenever there's text, and tapping it empties the box,
-restores the full stop list, and refocuses the input for the next
-search. Same `rb-clear-field-btn` pattern the pickup/delivery/range
-fields established — one clearing gesture everywhere. (The magnifier
-rule needed scoping to the wrap's direct child so it stopped grabbing
-the ×'s own icon.)
+The Stops search box got a clear button.
 
 ### v1.15.1
-
-Tapping a station — map pin or list row, Stops tab or a plan's stop
-list — now shows how far the truck currently is from it: a "From you"
-row at the top of the station sheet, in plain miles (one decimal under
-10 mi). Straight-line, the same measure as every other "X mi from"
-figure in the app, computed from the live GPS fix. The row only exists
-once a PRECISE fix does — the same `GeoLib.isPreciseFix` bar (300 m)
-the pickup GPS flow uses, so a coarse fix (Precise Location off,
-IP-derived) never renders a confidently wrong "2.3 mi from you". The
-locate button remains the one thing that asks for location; without a
-precise fix the sheet is exactly what it was before.
+The station sheet shows how far you currently are from that stop.
 
 ### v1.15.0
-
-Two driver reports off the same ID → FL load, both addressed:
-
-**The trip drawer was clipping its own buttons.** The v1.14.0 vehicle
-section pushed the drawer content past `.rb-body`'s old 560px cap, and
-`overflow:hidden` quietly cut off the bottom — Clear trip half-visible,
-Plan cramped against the vehicle help text. The cap is now 75vh with
-`overflow-y:auto`, so on short screens the drawer scrolls instead of
-eating its buttons, and the plan/clear buttons got real margins.
-
-**A gapped route now shows what lies past the dry line.** The report:
-"I feel like you can get more fuel stops on that route" — looking at a
-route whose plan said "1 fuel stop, then a gap" while the map showed it
-running straight through Amarillo, Lubbock and Dallas. The driver was
-right that the fuel exists; it's all past the mile where the truck runs
-dry, and the plan ending at "gap" read as if the whole remainder were
-empty — a different and wrong claim.
-
-`planBeyondGap()` (in `lib/fuelplan-adaptive.js`) now continues the
-plan past a gap: assume the driver clears the dry stretch on approved
-out-of-network fuel, anchor at the first network stop past the dead
-line, and run the normal fewest-stops planner from there. The plan
-panel renders it under "After the gap — if approved out-of-network fuel
-gets you through that stretch, the rest of the run fuels on network:",
-with numbering continuing from the reachable stops, faded dashed map
-pins so a gapped route never looks routine at a glance, and a second
-gap further on reported honestly when there is one. Share/save carries
-the same section ("AFTER THE GAP (needs the approved out-of-network
-fuel above first)").
-
-This is information for the Fuel Dept approval call, not permission:
-the red/amber gap warning and its phone number are unchanged, the
-option row still says "no network fuel", and completable plans are
-untouched — the continuation only ever exists alongside a gap.
+The trip drawer stopped clipping its own buttons, and a gapped route now shows
+what fuel lies past the dry stretch.
 
 ### v1.14.1
-
-**Detour tiers widened to [8, 15, 30, 50]** after a driver report that a
-partial tank made every alternative show "no network fuel." Investigated
-before changing anything: the v1.14.0 wiring was NOT broken —
-`readRanges`, the planner and the option ranking all behave exactly per
-the gauge's numbers. What the driver hit is real arithmetic: with little
-range leaving the shipper the FIRST stop must come early, and when no
-network stop within 30 mi of the route is that close, every alternative
-gaps — honestly, but unhelpfully. The plan panel does show why ("375 mi
-of range leaving the shipper · 500 mi already burned"), yet the effect
-reads as "alternatives broke."
-
-The new 50-mile tier is the escape hatch for exactly that case.
-Guardrails, unchanged: `planAdaptive` still tries 8/15/30 first and only
-escalates when the plan otherwise gaps; the caution banner names the
-widened figure ("uses stops up to 50 miles off route"); and routerank
-still prefers routes that complete at tighter tiers. 50 deliberately
-equals `NEAR_PICKUP_RADIUS_GAP` — the app's own definition of "reachable
-near the shipper at all."
-
-Verified with a 948-mile corridor built to sit 40 mi from exactly one
-real station (TA Holbrook) and ≥30 mi from every other: it gaps on the
-old tiers and completes through Holbrook on the new ones, with the
-caution naming 50. The genuinely-unfuelable fixture (the Pacific-arc
-route in the alternatives suite) still gaps at 50 — the wider net
-rescues loads a real stop can save, and cannot conjure range: a tank too
-low to reach ANY along-route stop still gaps, where the near-pickup
-top-off guidance already applies.
+Detour search widened to 50 miles for a low tank. Investigated first — the old
+behaviour wasn't broken, just unhelpful.
 
 ### v1.14.0
-
-**Until this version the app applied no vehicle dimensions and no hazmat
-restrictions at all.** Earlier entries here said `transportMode=truck`
-"respects height, weight and hazmat restrictions." That was wrong. The
-shipped code sent `transportMode=truck` and no vehicle parameters, and
-HERE's documentation is explicit about what that means: absent vehicle
-parameters default to "0 or none," so general truck access restrictions
-applied — no car-only roads, no residential shortcuts — and nothing
-dimensional. Low bridges, posted weight limits and every hazmat
-restriction were invisible to it. A 13'6" truck could be routed under a
-12' bridge. This is not a refinement of something that worked; it is the
-first version where those restrictions exist.
-
-Three profiles, in the trip drawer under **Vehicle**:
-
-- **Standard** (default) — 13'6" × 8'6" × 70 ft, 80,000 lb, the federal
-  maximums for a 5-axle rig. A driver who never opens this control now
-  gets full dimensional routing.
-- **Hazmat** — same dimensions plus declared hazard classes.
-- **Custom** — your own height/width/length/gross weight; blanks fall
-  back to the standard value, so changing one number doesn't mean typing
-  four.
-
-Notes on decisions that look like details but aren't:
-
-**Conversions round UP, never to nearest.** HERE wants centimeters and
-kilograms; drivers think in inches and pounds. Under-declaring makes
-HERE believe the truck fits where it doesn't; over-declaring at worst
-costs a slightly longer legal route. Those errors are not symmetric.
-102 in ceils to 260 cm — which is exactly the 2.6 m that 23 CFR 658.15
-itself names as the metric equivalent of the 102-inch limit, so
-rounding to nearest would under-declare against the regulation's own
-wording.
-
-**Hazmat is a class multi-select, not a toggle, and defaults to all
-classes on.** HERE does not infer between classes — its docs state that
-declaring combustible or gas does not exclude roads prohibited for
-flammable materials. A blanket "hazmat: yes" therefore cannot route
-correctly. All classes start selected because over-declaring yields a
-longer legal route while under-declaring yields one the truck is barred
-from; deselecting the last remaining class re-selects them all rather
-than silently sending none.
-
-**The 400 fallback never drops the vehicle profile.** `truckRoute()`
-retries without `alternatives`/`routeLabels` on a 400. The vehicle
-params are appended to *both* request variants deliberately: a retry
-that dropped them would return a route with no dimensional or hazmat
-restriction applied, rendered as an ordinary successful plan, with
-nothing on screen saying it was illegal for that truck. There is no
-third fallback that strips the profile — failing loudly beats routing
-an unrestricted truck. The two URLs look redundantly similar for this
-reason; do not "simplify" them.
-
-Validation (sanity rails, not legal limits — the app does not pretend to
-know every state's permit rules) blocks planning outright rather than
-warning, since a typo'd height is exactly the input that produces a
-confident illegal route. Profile and values persist under
-`fuelpost.vehicle.v1`; anything malformed falls back to Standard without
-throwing. Non-Standard profiles are named in the plan panel and in
-Share/save, so two pasted plans for one lane explain why their roads
-differ.
-
-The `shippedHazardousGoods` enum was checked against HERE's live
-OpenAPI spec at implementation time (all 11 values, exact match), as
-were the `vehicle[height|width|length]` centimeter and
-`vehicle[grossWeight]` kilogram units.
-
-Standard's numbers are federal maximums for typical equipment — correct
-for most Covenant freight, but assumptions, not a measurement of any
-specific tractor-trailer. The UI says so, and points heavy-haul,
-oversize or permitted equipment at Custom.
+**Vehicle dimensions and hazmat routing.** Until this release the app applied
+neither — a 13'6" truck could be routed under a 12' bridge. Earlier notes claiming
+otherwise were wrong.
 
 ### v1.13.3
-
-The header badge is the gauge now, not "FP" on a blue-green gradient —
-so the app introduces itself the same way on the home screen and once
-you're inside. The SVG is inlined in `index.html` (~600 bytes) rather
-than referenced as a file: no render-blocking request for something in
-the first viewport, and no empty flash on a cold load.
-
-It is a **badge-optimized variant** of the icon, not the same artwork,
-and that difference is load-bearing. At 34px the icon's own needle is
-about 1.7px wide and antialiases into the navy; the needle pointing at F
-is the whole idea of the mark, so the badge thickens the strokes (arc
-96→150, hub 62→95, dial radius 340→380) and brightens the red
-(`#D93025`→`#FF3B30`) to survive at size. **Do not repoint this at
-`icons/icon-192.png`** — that's the un-thickened art.
-
-Measured rather than eyeballed, and worth recording how: an inline SVG
-rasterizes at *device* resolution, so a phone at DPR 3 paints this 34px
-box with 102 device pixels. Counting needle pixels with the hub disc
-masked out (the hub survives at any size and otherwise flatters the
-result): **78 needle pixels at DPR 3**, and still non-zero at a 1x
-34-pixel floor. Red zone and green F-cap both read at 1x too. Needle
-angle computes to 30.0° against an F-cap at 33.9° — pointing at F,
-inside the arc band.
-
-The navy field is fixed in both themes deliberately: the header is
-`var(--navy)` in light and dark alike, so a navy-field badge sits
-correctly on it either way and matches the light-mode app icon. CSS owns
-the corner rounding via `overflow:hidden` — the artwork has no `rx` of
-its own, so the badge follows if the radius ever changes.
+The header badge became the fuel gauge.
 
 ### v1.13.2
-
-Dark-mode readability fix found in a post-release sweep: danger-red text
-sitting directly on the theme backgrounds was nearly invisible in dark
-mode — `#8A1C1C` manages ~1.9:1 contrast on `#0D1117`/`#161B22`, far
-below the 4.5:1 floor the dark palette elsewhere holds to. Two spots
-were affected: the gauge's reserve note (pre-existing) and the new
-route switcher's "no network fuel" marking on a gapped option — the one
-place a driver must absolutely be able to read in the cab at night,
-since it's what tells them an option strands the truck.
-
-New `--danger-text` variable, same pattern as `--navy-text`: `#8A1C1C`
-in light mode (unchanged appearance), `#F2555A` in dark (5.6:1 on
-`--bg`, 5.1:1 on `--surface`). The `#8A1C1C` inside the fixed
-light-pink chips (`.rr-warn`, `.geo-error`, `#locateError`) stays
-hardcoded — those chips keep their light background in both themes, so
-their red always reads. Verified by computed style in a real browser in
-both themes.
+Red warning text was nearly invisible in dark mode — including the one line that
+tells you a route strands the truck.
 
 ### v1.13.1
-
-**Re-lands the label fix that v1.13.0 shipped without.** The deployed
-v1.13.0 showed every route option as `via [object Object], [object
-Object]` — the exact bug the pre-merge double-check had caught and
-fixed. The fix commit was pushed to the PR branch minutes before the
-merge, but the merge went through at the pre-fix head, so main (and the
-Pages deploy) got the feature without it. This entry exists so the
-changelog matches what actually deployed: broken labels went out as
-v1.13.0; this version is the extractor fix (unwrap HERE's nested
-`{name:{language,value}}` label shape), the switcher selection-visibility
-fix, and the 400-fallback in `truckRoute()` — the full contents of that
-orphaned commit, cherry-picked onto the merged main.
-
-One real finding from the broken deploy, worth keeping: the driver's
-screenshot showed three distinct truck-route alternatives, deduped,
-ranked with the completable one selected — and **two labels per route**,
-proving HERE does return `routeLabels` for `transportMode=truck`. The
-feature works; only the label text was mangled. With this fix those same
-rows read "via ‹road›, ‹road›".
+Re-lands a fix v1.13.0 shipped without: route labels had gone out reading
+"[object Object]".
 
 ### v1.13.0
-
-**Alternative routes, ranked by whether they can actually be fueled.**
-HERE is now asked for two alternatives alongside the optimal route
-(`alternatives=2&return=…,routeLabels`); every route that comes back is
-fuel-planned on identical settings, and `lib/routerank.js` orders them
-by what this app knows and a mapping app doesn't: a route the truck can
-complete on network fuel beats a shorter one that strands it. Miles only
-break ties among routes that all work. That reordering is the feature —
-a route 150 mi longer that fuels cleanly beats a short one that dies in
-New Mexico.
-
-**This costs no additional API calls.** `alternatives=N` is one request
-returning N routes, not N requests, and the fuel planning that ranks
-them is pure client-side math against the `DATA` array. Switching
-between options is a re-render from data already in hand — no refetch,
-which also means it still works after the signal drops. Anyone reading
-this later and assuming alternatives multiplied our call volume against
-the shared key: they didn't.
-
-One exception to "one request": if HERE answers the richer request with
-a **400**, `truckRoute()` retries once with the exact parameters this
-app has always sent (`transportMode=truck&return=polyline,summary`). A
-400 means HERE rejected the *request*, not the road — an unsupported
-return-attribute would otherwise take routing down for every load and
-leave drivers unable to plan anything at all. The retry turns that into
-plain single-route behaviour. It also fires on a genuine "no truck route
-exists" 400, where the retry fails identically and the driver sees the
-same message as before; one wasted call on an already-failing plan is a
-fair price for not being able to break routing outright.
-
-With two or more distinct options a compact switcher sits above the
-plan: label (`via I-40`, from HERE's own `routeLabels`), miles, and the
-fuel outcome. A gapped option is marked **in the list** — a driver must
-never have to tap one to find out it strands the truck — and is ranked
-last rather than hidden. When the top pick isn't the shortest *and* the
-shortest gaps, one plain line says so. Near-identical alternatives
-(within 2% length and the same fuel stops) collapse to one row.
-Share/save names the selected route when there was a choice.
-
-Honest limits: correct ordering and honest labeling is what this
-guarantees — **not** that an alternative always exists to rescue a bad
-load. Where the network hole is wide enough, every route gaps and the
-app says so. Labels come from `routeLabels` when HERE sends them and
-fall back to `Route 2` / `Route 3` when it doesn't; a plain ordinal is
-better than a guessed highway. With a single route returned, nothing
-changes at all — no switcher, and the shared text is byte-identical to
-before.
-
-On the label shape specifically: HERE nests the text for localisation —
-`{"label_type":"Name","name":{"language":"en","value":"I-40"}}` — so the
-readable string is one level down. Reading `.name` directly hands back an
-object and renders **"via [object Object]"** on the driver's screen; the
-extractor unwraps `.value` and yields `''` for anything it doesn't
-recognise, which then falls through to the ordinal. The browser test
-fixture uses HERE's documented nested shape rather than a convenient flat
-string, precisely so this stays caught.
+**Alternative routes, ranked by whether they can actually be fuelled** — a route
+150 miles longer that fuels cleanly beats a short one that dies in New Mexico. No
+extra API calls.
 
 ### v1.12.6
-
-The "how far do you run between fuel stops" help text now suggests the
-default: "Set this once. Most drivers leave it alone. (Recommend: 875)"
-— 875 matches `ROUTE_DEFAULT_RANGE`, the value the field already opens
-with. Copy only; no behavior change.
+Copy: the range help text names its default.
 
 ### v1.12.5
-
-**Cache-bust the lib scripts — a driver's phone ran a build that existed
-in no commit.** After v1.12.4 deployed, a screenshot showed the shared
-trip text with a `Generated by FuelPost v1.12.4` footer AND the Range
-line v1.12.4 had just removed. Both can't come from the same commit: the
-version string lives in `index.html`, the Range text lived in
-`lib/triptext.js`. The phone had fetched fresh HTML but reused a cached
-copy of the old lib file — GitHub Pages serves everything with
-`cache-control: max-age=600`, so a browser may revalidate the HTML while
-still holding any `lib/*.js` for up to 10 minutes (longer in practice on
-iOS). Every deploy risked this skew, and the in-app update check made it
-worse: its reload fetches fresh HTML but happily reuses cached libs.
-
-Every `lib/*.js` reference (nine `<script src>` tags plus the
-`fuelplan-adaptive.js` fetch) now carries `?v=<APP_VERSION>`. A new HTML
-always names lib URLs the browser has never seen, so it can never pair
-with stale scripts; an old cached HTML keeps naming the old URLs and
-stays internally consistent. No server config, no build step.
-
-The stamps are hardcoded copies of the version by design, so
-`test/cachebust.test.js` enforces them: all ten references present, all
-stamped, all equal to `APP_VERSION` — bumping the version without the
-stamps (or vice versa) fails the suite. `header.test.js`'s "version
-literal appears only once" guard now strips the stamps before counting,
-keeping its original job of catching any *other* stray hardcoded copy.
+A phone ran a build that existed in no commit — fresh page, cached scripts. Every
+script now carries a version stamp.
 
 ### v1.12.4
-
-Dropped the Range line from the shared/saved trip text
-(`lib/triptext.js`) — a driver saving or texting a plan doesn't need
-`Range: fuel before 800 mi | 500 mi leaving the shipper` repeated back
-to them; the fuel stop list is the actionable part. The on-screen route
-panel is untouched — it still shows range figures where they're useful
-for building the plan, this only trims the copy/share output.
+Dropped the range line from shared trip text.
 
 ### v1.12.3
-
-**Completes the v1.12.1 autosuggest fix, which was incomplete.** v1.12.1
-diagnosed the right disease — HERE's autosuggest requires a location
-context, and `at` only existed after a GPS fix — but shipped half the
-cure. It added `in=countryCode:USA` to every call, reasoning that country
-filters and position biases combine. They do combine, but countryCode is
-not itself an accepted context: HERE's own 400 for a context-free call
-enumerates exactly what is — "One of mutual exclusive parameters 'at',
-'in=bbox', 'in=circle', 'in=ring' should be present". countryCode is a
-filter that rides alongside one of those; alone it doesn't satisfy the
-requirement. So pre-GPS autosuggest still went out context-free in HERE's
-eyes and still looked dead until the locate button happened to supply an
-`at` — the changelog below shouldn't be read as v1.12.1 having resolved
-what it didn't.
-
-Now `at` is unconditional: the GPS fix when one exists (4-decimal), else
-`SUGGEST_FALLBACK_AT` (39.5000,-98.3500) — the network's geographic
-center, deliberately the same point the map itself opens on.
-`in=countryCode:USA` stays for the real filtering work it does (the
-Tijuana-suggestions complaint). Accepted tradeoff: pre-permission
-suggestions are biased from the center of the US rather than the truck —
-irrelevant for full street addresses, imperfect ranking for short
-queries, strictly better than no suggestions at all, and it snaps to the
-truck the moment a fix lands. The permission ask stays tied to the
-driver's own explicit locate actions.
-
-The memo cache key dropped its `'noat'` branch — with a constant
-fallback, "no at" can no longer occur.
-
-Why v1.12.1's test didn't catch this: its stub returned 200 for any
-parameters, so it verified the request shape changed, not that HERE
-accepts it. The regression stub now enforces HERE's contract — no `at`
-means a 400 with HERE's verbatim error — and asserts `at` is present on
-every call (not "at or in"), that it's the fallback with no fix and the
-fix's coordinates with one, and that a re-typed query hits the memo
-cache. Run against v1.12.1 unmodified, that test now fails 5 checks and
-reproduces the reported symptom exactly; against this fix it passes.
+Completes v1.12.1, which fixed the right problem the wrong way. The test stub had
+accepted anything, so it verified the request changed rather than that HERE
+accepts it.
 
 ### v1.12.2
-
-Wired in an app icon: `icons/icon-192.png`, `icons/icon-512.png`, and
-`icons/icon-180.png` (apple-touch-icon), linked from `index.html`'s
-`<head>` with relative paths (the app is served from a `/FuelPost/`
-subpath on GitHub Pages, so absolute `/icons/...` paths would 404).
-
-The brief called for two variants — a theme-switching SVG favicon (navy
-`#0B2340` for light mode, `#0D1117` for dark, via a `prefers-color-scheme`
-media query inside the SVG) plus matching light/dark PNG sets. Only one
-PNG set (1024/512/192/180, dark field) made it through as attachments;
-the SVG source and the light/navy PNG set couldn't be transferred. Rather
-than freehand a replacement for a vector file with brief-specified pixel
-geometry (an exact needle angle verified against a 30° target) that was
-never actually seen, this ships the dark set alone for every icon role —
-`#0D1117` is the app's own dark-mode `--bg`, close enough to navy that
-brand identity doesn't shift, and reads as effectively neutral chrome on
-both light and dark browser/OS surfaces. No `<link rel="icon"
-type="image/svg+xml">` tag yet; add it once the SVG arrives.
-
-No web app manifest, no `theme-color` meta tag — out of scope for this
-change, deferred with the rest of the PWA work.
+App icons wired in.
 
 ### v1.12.1
-
-Reported: address autosuggest did nothing on **either** the pickup or the
-delivery field until the driver tapped the pickup "use my location" button,
-after which both started working.
-
-That "both fields, fixed by one unrelated tap" shape points at shared
-state, and the only thing that tap changes for autosuggest is `liveFix` —
-which is the sole source of the `at` parameter. The autosuggest request was
-going out with **no location context at all** before a GPS fix landed:
-no `at`, and unlike `geocodeCandidates()` — which has always sent
-`in=countryCode:USA` — no `in` either. It was the one search call in the
-app missing a location context, which is exactly why it only started
-working once `at` appeared.
-
-`in=countryCode:USA` is now sent on every autosuggest call, with `at` still
-riding along when a fix exists (country filters, position biases — they
-combine). Side benefit: it also stops the US-only fuel network suggesting
-addresses in Mexico, which was visible in an earlier report's screenshot.
-
-Worth noting how this was found, since it shaped the fix: the existing test
-stub returned `200` regardless of query parameters, so it could never
-reproduce this — the app looked correct locally while failing on-device.
-The regression test now asserts every autosuggest call carries `at` or
-`in`, rather than only asserting that a call was made.
+Address suggestions did nothing until an unrelated button was tapped.
 
 ### v1.12.0
-
-Three maintenance items from a review of v1.11.10.
-
-**Fuel Dept rename finished.** Two gap warnings in the plan results still
-said "Driver Support" — the highest-stress moments in the app and the worst
-place for a stale department name. Both now say "call the Fuel Dept",
-matching the legend card, gauge floor note and floor-gap message. The
-`DRIVER_SUPPORT` constant and every `tel:` link are unchanged — the
-constant's name is internal, renaming it buys nothing visible and risks a
-missed reference.
-
-**README drift fixed.** The Layout block listed six `lib/` files against
-nine on disk; `autosuggest.js`, `baselayer.js` and `extract-version.js` were
-missing, and `memocache.js` below makes ten. The loader sentence also still
-said "the two `lib/` files" — now count-free so it can't drift again.
-
-**Repeat HERE lookups are cached for the session.** Re-planning the same
-load, retyping the same address, or the autosuggest debounce landing on the
-same text twice all re-fired byte-identical requests against a shared,
-fleet-wide API key for answers the page already had. `lib/memocache.js` adds
-a small FIFO-capped memo in front of four lookups: geocode, reverse-geocode,
-autosuggest, and lookup-by-id.
-
-The scope limits are considered decisions, not an unfinished job:
-
-- **In-memory only, no `localStorage`.** A reload is the natural freshness
-  boundary. Persisting responses would raise staleness and versioning
-  questions this deliberately avoids — don't "finish" it into persistent
-  storage without reopening that call.
-- **Routing is deliberately not cached.** Truck routes can legitimately
-  differ over time (traffic-aware routing), the response is large, and a
-  driver re-planning has usually changed an input. The update-check fetch
-  isn't cached either — bypassing caches is its entire purpose.
-- **Only successful responses are stored.** A failed lookup stays uncached
-  so the next attempt is a real retry. An *empty* result from a successful
-  response is a legitimate answer and does cache, which is why every call
-  site gates on `has()` rather than the truthiness of `get()`.
-
-One deviation from the brief worth recording: it asked that a cache hit
-return before touching the autosuggest request token. The token *comparison*
-is indeed skipped on that path — there's no `await` to race across — but the
-counter still advances. The debounce is 300 ms and a slow fetch can outlive
-it, so an older in-flight request would otherwise still match the current
-token when it lands and overwrite the fresher cache-rendered result.
+Repeat address lookups cached for the session; a stale department name fixed.
 
 ### v1.11.10
-
-In Satellite view, changing the theme (Light/Dark/System, or a live system
-preference change) kicked the map off Satellite and back onto the road map.
-It now stays on Satellite — only the app's chrome changes.
-
-Worth stating plainly for whoever reads this history next: **v1.11.6 through
-v1.11.9 all treated this area as a `setBaseLayer()` timing/race problem** and
-kept adding deferral, idempotency guards, and internal bookkeeping to manage
-it. That was the wrong diagnosis. The actual defect was one missing
-conditional — `switchTheme()` called `setNormalBaseLayer()` unconditionally,
-never asking what the map was currently showing, on the assumption it was
-always one of the two themed road layers. It isn't: HERE's own layer
-switcher also offers Satellite and Terrain. No amount of additional
-deferral could fix that, which is why four rounds of it didn't.
-
-The decision now goes through `lib/baselayer.js`'s pure `nextBaseLayer()`,
-which returns "no change at all" both when the map is on a layer that isn't
-ours to touch (Satellite/Terrain/anything HERE adds later) and when it's
-already correct for the theme. The deferral machinery from the earlier
-patches stays exactly as it was — it was never the bug, and it still earns
-its keep on the road-layer transitions that do happen. The
-`baselayerchange` listener already checked the specific layer before
-correcting, so it never had this bug either.
+Satellite survives a theme change. **v1.11.6 through v1.11.9 all misdiagnosed
+this as a timing problem** and kept adding deferral — the actual bug was one
+missing check.
 
 ### v1.11.9
-
-A screen recording of v1.11.8 confirmed the Satellite/dark-mode symptom was
-still there, and revealed why: HERE's own built-in layer switcher (behind
-the layers icon) keeps its own internal record of "what's currently
-selected," and every correction this app has made so far (v1.11.6–v1.11.8)
-changed the *map's* layer directly without that control ever finding out —
-each one left it a little more out of sync with reality, to the point where
-the recording shows tapping its own "Map view" entry landing on Satellite
-instead of either map style, not just the wrong one.
-
-Rather than reacting after HERE's control does something, this keeps its
-own "Normal Map" entry pointed at whichever of the light or dark layer
-matches the current theme *before* it's ever tapped — on load and on every
-theme switch — so there's nothing left to react to and it's correct the
-first time. This reaches past HERE's public API into an internal,
-version-dependent property (verified against this app's actual loaded
-`mapsjs-ui.js`, wrapped defensively so a future HERE build with a different
-internal shape just no-ops instead of breaking); the existing v1.11.6–8
-correction logic stays in place unchanged underneath it as a fallback.
-Given the depth of undocumented internals involved, this is a best-effort
-fix rather than a guaranteed one — flag it again if the recording's
-specific symptom (tapping Map view lands on the wrong layer, or on
-Satellite) is still reproducible after this ships.
+Kept HERE's own layer switcher in sync; best-effort, since it needs an internal
+property.
 
 ### v1.11.8
-
-Reported: from Satellite view, switching directly to this app's own Dark or
-Light toggle (not going through HERE's own "Map" entry first) landed on the
-dark map layer either way, regardless of which was tapped. v1.11.6/v1.11.7
-already found and fixed one race in this same family — a driver's own
-theme switch landing right after this app's Satellite-exit correction could
-stack a second `setBaseLayer()` call before HERE's engine settled from the
-first — but that fix only deferred the *correction's* own call, not
-`switchTheme()`'s. This report is the same category of race on the other
-call site: `switchTheme()` was still applying its layer change immediately,
-so a theme switch straight off Satellite could hit the identical timing
-problem. Both now go through one shared, deferred, idempotent
-`setNormalBaseLayer()` — `switchTheme()`'s own layer change and the
-Satellite-exit correction alike — so a `setBaseLayer()` call can no longer
-land back-to-back with another one regardless of which path triggered it.
-Note: this exact interaction couldn't be reproduced in the test harness
-(which mocks HERE's engine synchronously, so the underlying race never
-occurs there in the first place) — the fix generalizes the same defensive
-pattern already confirmed to fix the analogous, verified case, and the new
-tests cover switching directly from Satellite to Dark, to Light, and a
-rapid Dark→Light double-tap with no gap, all landing correctly. Worth a
-recheck on a real device to confirm the actual reported symptom is gone.
+The same race on the other code path.
 
 ### v1.11.7
-
-Fixes a follow-on from v1.11.6's Satellite→Map dark-mode correction: doing
-that switch and then immediately tapping the app's own light-mode toggle
-left the map visually stuck, needing an extra dark→light round trip to
-recover. v1.11.6's correction ran its own `setBaseLayer()` call synchronously
-and re-entrantly, from inside HERE's own handling of the very base-layer
-change that triggered it — landing a second `setBaseLayer()` in the same
-tick as a driver's own follow-up switch was one too many stacked calls for
-the map engine to settle between. The correction now runs after a short
-deferred beat instead (`setTimeout`, cleared and rescheduled on every new
-`baselayerchange` so only the latest one applies), and re-checks the theme
-fresh at that point — a light-mode switch landing in that window reads
-correctly and the correction backs off rather than fighting it. Also now
-preserves center/zoom around its own `setBaseLayer()` call, same as
-`switchTheme()` already does elsewhere, per HERE's own documented guidance
-that neither carries over on a base-layer change automatically.
+The correction was running re-entrantly inside the event that triggered it.
 
 ### v1.11.6
-
-Fixes the map dropping back to light mode, even with dark mode on, after
-using HERE's own built-in layer switcher (bottom-right) to pick Satellite
-and then Map again. Confirmed straight from HERE's own UI module source:
-its "Map" entry is hardcoded to the light `vector.normal.map` layer, with
-no awareness this app also has a `.mapnight` variant or is currently in
-dark mode — nothing in HERE's control lets it be handed a dark alternative.
-Fixed by listening for the map's own `baselayerchange` event (fired for
-every base-layer change, this app's own theme toggle included) and
-correcting back to `.mapnight` whenever it fires while resolved theme is
-dark and HERE just set the light layer — self-terminating, since the
-correction's own `setBaseLayer()` call re-fires the same listener but by
-then the layer already matches, so it's a no-op the second time.
+The map dropped to light mode after using HERE's own layer switcher.
 
 ### v1.11.5
-
-Three small route-bar/map-chrome fixes:
-
-- The pickup field's locate button used to sit permanently in its
-  "shifted-in" position (with the input's padding reserving room to match),
-  whether or not the clear ("x") button next to it was actually showing —
-  leaving a dead gap when the field was empty. The locate button's position
-  and the input's padding are now conditional on a `.has-clear` class that
-  toggles alongside the clear button's own visibility, so the locate button
-  sits close to the field's edge until there's actually something to clear.
-- The cruising-range field's clear button used "differs from the 875
-  default" as its show/hide rule, unlike pickup and delivery's own "field
-  is non-empty" rule — inconsistent, and looked broken (875 visibly in the
-  box, no x showing). Range now uses the same "is there something here to
-  clear" rule as the other two fields. Its click behavior is unchanged —
-  still resets to 875.
-- HERE's built-in scale bar defaulted to metric (km); `H.ui.UI` is now
-  explicitly set to `H.ui.UnitSystem.IMPERIAL`, so it reads in miles like
-  the rest of the app (routing, gauge, plan text). **Scale bar sharpness**
-  (reported blurry next to the crisp zoom/layers controls) was investigated
-  but not changed: inspecting HERE's own UI module source directly shows
-  the scale bar renders via an inline SVG string (`innerHTML = '<svg
-  height="12">...'`), not a `<canvas>` element — the only `<canvas>` usage
-  anywhere in that module is in an unrelated map-capture/export function.
-  SVG is resolution-independent, so the "canvas backing store needs
-  devicePixelRatio scaling" bug this was suspected to be doesn't apply to
-  this control. Whatever's actually causing the blur (if it's still visible
-  after this release — the units change doesn't touch it either way) has a
-  different root cause that needs on-device inspection to identify; treat
-  this as open, not resolved.
+Three route-bar fixes; the scale bar reads in miles. Its blurriness was
+investigated and is *not* what it looked like — still open.
 
 ### v1.11.4
-
-The "tap to check for update" flow only ever ran when a driver happened to
-open the legend card and tap it — closing the app and reopening it later
-landed straight back on whatever stale `index.html` the OS/browser's own
-HTTP cache served for that fresh launch, with nothing surfacing that a
-newer version existed even though the live site had already moved on (no
-service worker here, so nothing runs before that first stale paint either).
-The same cache-busted self-check now also runs automatically on load and
-every time the app returns to the foreground (`visibilitychange`), so a
-real update is detected and ready to show the next time the legend is
-opened, instead of only after remembering to tap "check for update"
-manually. Silent by design — no "Checking…" flash or note for a check
-nobody asked for, and still never reloads on its own; only the explicit
-second tap on "Update available" does that, same as before.
+The update check runs on load and on returning to the app, silently.
 
 ### v1.11.3
-
-Fixes the Legend button and the Recenter (locate) button floating on top of
-the STOPS list view when it's open, overlapping list entries — both sit at
-a higher z-index than the list itself (needed to stay above the map they
-normally float over), and the list being a separate sibling rather than
-something that visually contains them meant nothing was hiding them once
-it covered the map underneath. They (and the legend popover card, if it
-happened to be open) now hide via CSS while the list is showing and
-reappear as soon as it closes — Recenter and Legend both act on the map,
-which isn't what's on screen while the list is up.
+The Legend and Recenter buttons floated over the stop list.
 
 ### v1.11.2
-
-Fixes the STOPS search box ("Search city, state, exit…") rendering typed
-text in the browser's default input color instead of the app's own
-theme-aware `--ink`, which every other input field already used. In light
-mode that default happens to be close enough to readable; in dark mode it's
-a dark color on the search bar's own dark background, so typed text was
-nearly invisible. Search now sets `color:var(--ink)` like the rest of the
-app's inputs.
+Search text was nearly invisible in dark mode.
 
 ### v1.11.1
-
-Fixes the legend card's "tap to check for update" button piling up a
-duplicate "You're on the latest" note under itself every time it was
-tapped, instead of showing just the latest one — each tap's `showNote()`
-call inserted its own note with its own independent 2-second removal
-timer and never cleared whatever note a previous tap had left behind, so
-tapping it a few times in a row (well within that 2-second window each)
-stacked several identical notes and made the card grow taller with every
-tap. `showNote()` (shared with the "Copied" note on Share trip) now
-replaces its anchor's existing note instead of adding another one next to
-it, so at most one is ever showing.
+Tapping "check for update" repeatedly stacked duplicate notes.
 
 ### v1.11.0
-
-Pickup, delivery, and the cruising-range input ("How far do you run between
-fuel stops?") each get their own small "x" button at the far right of the
-field to clear just that one field, separate from the existing whole-form
-"Clear trip" button below them. Each is hidden until there's actually
-something on that field to clear — typed or selected text for the address
-fields, a value other than the 875mi default for the range field — and
-clearing pickup or delivery also drops any GPS/autosuggest pre-confirmed
-state on it and closes its suggestion dropdown if one's open, the same as
-editing the field by hand would. On pickup, the existing "use my location"
-button shifts one slot left to make room; on the range field, the "mi" unit
-label does the same.
+Per-field clear buttons.
 
 ### v1.10.3
-
-v1.10.1 and v1.10.2 both tried to patch the autosuggest dropdown's
-`position:fixed` + JS-computed-coordinates approach to stop it drifting out
-of sync with its field on iOS, and neither actually landed — real-device
-testing after v1.10.2 still showed the dropdown covering the field, worse
-than before. Replaces that whole approach: the dropdown is now
-`position:absolute`, positioned by plain CSS (`top:100%` under its field,
-`.rb-field` as the containing block) instead of any JS-computed screen
-coordinates. It shares the input's own coordinate space, so it now pans
-correctly with the field for free — no `visualViewport` math to get right.
-`#routebar`/`.rb-body`'s `overflow:hidden` (needed for the collapse-to-tab
-animation) would otherwise clip it, so that's now lifted only while a
-dropdown is actually open and restored the moment it closes. Also shrunk
-the dropdown's max height (220px → 160px) so it can't cover as much of the
-map/other fields even when it is open, on top of the scrolling it already
-had for lists longer than that.
+Replaced the suggestion dropdown's positioning outright — **v1.10.1 and v1.10.2
+both tried to patch it and neither worked.**
 
 ### v1.10.2
-
-v1.10.1's fix for the autosuggest dropdown overlapping its field on iOS
-addressed the wrong half of the problem — re-syncing on `visualViewport`
-events did nothing because the position it kept recomputing was itself
-wrong. The actual mismatch: `getBoundingClientRect()` reports coordinates
-relative to the *layout* viewport, but iOS anchors `position:fixed` to the
-*visual* viewport, and the on-screen keyboard opening pans one relative to
-the other by `visualViewport.offsetTop`/`offsetLeft`. The dropdown now
-subtracts that offset when computing its position, so it actually lands
-under the field instead of over it. The resync-on-event listener from
-v1.10.1 stays — the offset itself changes live as the keyboard animates
-open, and it still needs to be re-applied as that happens.
+v1.10.1 had fixed the wrong half of the problem.
 
 ### v1.10.1
-
-Fixes the autosuggest dropdown (v1.10.0) overlapping the field it belongs to
-on iOS. `html,body` are `overflow:hidden` in this app, so the page itself
-never scrolls — when the on-screen keyboard opens, iOS instead pans the
-*visual* viewport to keep the focused field visible above it, which fires
-`visualViewport` resize/scroll events, not `window` ones. The dropdown's
-`position:fixed` coordinates were only computed once, when it opened, so
-that pan left them stale and the dropdown ended up drawn over the input
-instead of under it. It now re-syncs its position on `visualViewport`
-resize/scroll while open.
+First attempt at the dropdown covering its own field on iOS.
 
 ### v1.10.0
-
-Pickup and delivery fields now show a live address-suggestion dropdown as the
-driver types, backed by HERE's Autosuggest API. Tapping a suggestion fills
-the field and pre-confirms that end — same treatment "use my location"
-already gave a GPS-filled pickup — so plan submission skips forward
-geocoding (and any disambiguation) for that field entirely. Queries are
-debounced 300ms and require a 3-character minimum before firing, and
-stale/out-of-order responses are discarded via a per-field request token, to
-keep call volume sane on a shared key. Suggestions lacking a position
-(category/chain-type results) resolve through a follow-up Lookup call before
-being used; if that also fails, the field just falls back to normal typed-
-address handling. Two new HERE endpoints are now in call rotation alongside
-the existing geocode/route ones — Autosuggest on every qualifying keystroke,
-Lookup only for the occasional suggestion that needs it — worth knowing if
-API dashboard volume looks different going forward.
+Address suggestions as you type.
 
 ### v1.9.1
-
-Copy fix, no logic changed. The gauge-floor gap message ("No network stop
-is reachable at this fill level," shown when the tank reads 1/8 with no
-plannable range) now says "call the Fuel Dept:" in place of "Driver
-Support," matching the wording already used for the legend card and the
-gauge's own 1/8-tank note. Also drops its trailing "Raising the gauge
-above 1/8, or topping off before you roll, will let this load plan"
-sentence — redundant with the driver already being the one who set the
-gauge there.
+Copy fix on the gauge floor message.
 
 ### v1.9.0
-
-The build number in the legend card ("FuelPost v1.9.0") is now tappable —
-a manual "check for and force an update" for when ordinary browser/CDN
-HTTP caching serves a stale `index.html` longer than expected. No service
-worker involved; this app has none, and adding one (real offline support,
-install-to-home-screen, its own cache-bump-per-deploy discipline) is a
-deliberately separate, bigger decision for another day — this solves the
-actual immediate problem ("let me force a real check right now") with a
-plain cache-busted `fetch(location.pathname + '?_cb=' + Date.now(),
-{cache:'no-store'})`, nothing heavier.
-
-Tap while idle: "Checking…" immediately, then the fetched source is
-compared against the running `APP_VERSION` via `lib/extract-version.js`'s
-`extractVersion()` — a pure function, no DOM, no network, regex-anchored to
-a line start so a `//` comment that happens to mention `const APP_VERSION
-= ...` (this codebase writes exactly that kind of explanatory comment
-above several constants) can't shadow the real declaration below it and
-report a fake version. A fetch failure or unparseable response shows
-"Couldn't check for updates" via a transient note and returns to the
-normal version text; a match shows "You're on the latest (v...)" the same
-way; a real mismatch switches the text itself (persists, not transient) to
-"Update available (v...) — tap to reload". That second tap is required —
-detecting a new version never auto-reloads, since a driver could be
-mid-plan with typed pickup/delivery text an unprompted reload would wipe
-with no warning. The reload itself is cache-busted too, so it can't land
-back on the same stale copy that triggered the check. A boolean in-flight
-guard (backed by disabling the button itself, belt and suspenders) ignores
-a second tap while a check is already running.
-
-The small "show a message, then remove it after a couple seconds" pattern
-Share trip's own "Copied" confirmation already used was pulled out of
-`shareTrip()` into a shared `showNote(anchorEl, msg, ms=2000)`, now used by
-both, instead of a second copy of the same four lines.
+The version number in the legend is tappable to force an update check. It never
+reloads on its own — that would wipe a half-typed plan.
 
 ### v1.8.5
-
-Reworked how the fuel-stop results panel avoids covering HERE's own zoom +
-map-settings controls when collapsed (v1.8.3's fix) — the driver preferred
-the controls sitting above a full-width collapsed bar over a narrower bar
-squeezed beside them. `#routeResults.rr-collapsed` no longer pulls its own
-right edge in; instead, `body.rr-tab-showing` (toggled from JS exactly when
-the panel is both `.show` and `.rr-collapsed`) shifts HERE's own
-`.H_l_bottom.H_l_right` control column up via its own `bottom` CSS
-property, clear of the tab beneath it, using the `transition:all` HERE's
-own CSS already ships on that element so it animates smoothly. Confirmed
-`map.getViewPort().setPadding()` does *not* reposition these controls
-before choosing this approach — it only affects the map's own
-panning/centering reference, not the CSS-anchored UI. Expanded is
-untouched, same as before. The body class is recomputed (not just set once
-per toggle) from every place `#routeResults`' own `.show` state changes
-outside `setRrCollapsed` — `setMode()` switching back to Stops, and
-`clearTrip()` — so it can't get stuck shifting the controls up in Stops
-mode after a session that ended collapsed.
+The collapsed results panel lifts HERE's controls instead of squeezing beside
+them.
 
 ### v1.8.4
-
-Fixed Clear trip resetting "How far do you run between fuel stops?" to 625
-mi — a stale value nobody meant to keep. `ROUTE_DEFAULT_RANGE`, the
-constant Clear trip and the range-validation fallback both read, was never
-updated when the field's own HTML default moved to 850 mi in a previous
-change; it was still hardcoded to the original 625. The same staleness
-had a second, quieter effect: the Clear trip button would show itself on a
-completely untouched fresh page load, since `routeHasSomethingToClear()`
-compares the field's live value against this same constant, and
-850 (the real default) never equalled 625 (the stale one). Both spots now
-read `ROUTE_DEFAULT_RANGE`, one source of truth again instead of a second
-hardcoded number drifting out of sync.
-
-While fixing that, the default itself moved again — 850 mi → 875 mi — to
-match the fuel gauge's own F reading exactly (`FULL_TANK_MILES` reserve
-math already lands F at 875 plannable miles; the two numbers now agree
-instead of a driver seeing 850 in one place and 875 in the other for
-what's meant to be the same "full tank" concept). Updated in both the
-`rangeInput` HTML default and `ROUTE_DEFAULT_RANGE` together, so this
-exact drift can't recur.
+Clear trip was resetting the range to a stale number.
 
 ### v1.8.3
-
-Fixed HERE's own zoom + map-settings controls (bottom-right corner)
-staying hidden even after collapsing the fuel-stop results panel — the
-whole reason collapsing exists is to hand the map back, and this corner
-never actually came back. Root cause, confirmed by walking the actual
-parent chain in a real browser: `.H_l_bottom{z-index:390}` (declared to
-keep HERE's controls above the map) lives *inside* `#map`, but `#map`
-itself has no z-index of its own — a descendant's z-index only competes
-against other elements within the nearest ancestor that actually
-establishes a stacking context, so that 390 never reaches up to outrank
-`#routeResults` (z-index:360) at the `#mapwrap` sibling level. `#map`'s
-entire subtree, regardless of any z-index used inside it, just stacks by
-plain DOM order underneath `#routeResults` — measured, the collapsed tab
-(full width, flush to the bottom) genuinely overlapped that control column
-by 14px. Rather than trying to out-rank a z-index that structurally can't
-be reached from outside `#map` without restructuring the DOM, the fix
-pulls the collapsed panel's own right edge in (`right:70px`) past that
-column, leaving the corner uncovered. Expanded is untouched — still
-full-width, still covering that corner, same as before this fix and same
-as `#sheet` or `#routebar` legitimately covering other floating buttons
-while they're open; only the collapsed sliver was ever claiming to have
-given the map back.
+HERE's map controls stayed hidden after collapsing the results panel.
 
 ### v1.8.2
-
-Two more fixes to the fuel-stop results panel introduced in v1.8.0's
-collapsible-panel change.
-
-Once a stop list's content actually exceeded the panel's 62% cap, there was
-no way to scroll to the bottom — the Share trip button and the last stop
-could be entirely unreachable. Root cause: `.rr-body-wrap` (the collapsible
-wrapper added in v1.8.0) is a plain block, and while it does get correctly
-flex-shrunk by its own parent (`#routeResults`) to fit the available space,
-that shrunk *rendered* size isn't a definite `height` a block child's
-percentage/flex sizing can resolve against — only being a flex container
-itself makes a parent's height available to its children that way. Without
-that, `.rr-body` just grew to its own full content height instead of the
-actually-available space, so its `scrollHeight` and `clientHeight` came out
-equal (nothing registered as scrollable) and the wrapper's own
-`overflow:hidden` silently clipped whatever didn't fit, with no way to
-reach it. Fixed by making `.rr-body-wrap` a flex column itself and giving
-`.rr-body` `flex:1;min-height:0` — the standard nested-flex-scroll pattern,
-where every level in the chain needs to be a flex container for internal
-`overflow-y:auto` to work correctly at the innermost level.
-
-Separately, the collapsed tab sat flush against the very bottom of the
-screen with zero clearance, which on a phone with a home indicator collides
-with that gesture area — the app had no safe-area handling anywhere. Added
-`viewport-fit=cover` to the meta viewport tag (required for
-`env(safe-area-inset-*)` to resolve to anything nonzero on a notched/
-gesture-bar device) and `padding-bottom: env(safe-area-inset-bottom, 0px)`
-on `#routeResults`, so the collapsed tab — and the last item when scrolled
-to the end while expanded — gets real clearance from the bottom edge
-instead of sitting right against it. The `0px` fallback is a no-op on
-devices without one.
+A long stop list couldn't be scrolled to the bottom, and the collapsed tab sat
+under the home indicator.
 
 ### v1.8.1
-
-Two approved-copy fixes, no logic changed. The legend card's out-of-network
-note now reads "Fuel only at network stops. / Out-of-network fuel: call Fuel
-Dept / 423-463-3680" on three lines instead of one dense sentence, and the
-gauge's 1/8-tank floor note says "Fuel Dept" and "out-of-network fuel stop"
-in place of "Driver Support" and "emergency fuel stop". Both still render
-the number from `DRIVER_SUPPORT` as a `tel:` link, same as before — only the
-label text and line breaks changed, not the underlying constant or how it's
-linked. The three other "Driver Support" mentions elsewhere (the network-gap
-and doesn't-clear results, the floor-gap card) are untouched — this request
-only named these two spots.
+Approved copy for the legend and gauge notes.
 
 ### v1.8.0
-
-Three Route-mode fixes, found testing on a real phone.
-
-The map stayed visibly cut off — a blank gap where tiles should be — after
-collapsing the trip-details drawer with nothing else done. Collapsing the
-drawer changes `#mapwrap`'s height, but HERE's own canvas doesn't detect
-that on its own; only a real window resize or an explicit
-`map.getViewPort().resize()` call does, and `setRoutebarOpen()` was calling
-neither. It now does, 260ms after toggling — long enough for the drawer's
-own 250ms CSS collapse/expand transition to actually finish before resizing
-to the settled size rather than one that's mid-animation.
-
-The address-confirmation card ("Check the address") rendered while the
-trip-details drawer was still fully expanded above it, squeezed into
-whatever sliver of map was left in between — cramped, with a chunk of
-visible map wasted for no reason. `renderConfirmStep()` now collapses the
-drawer the same way a finished plan or gap result already did (`renderPlan`,
-`renderFloorGap`), so the confirmation card gets the same full space. Tapping
-"edit address" on a candidate reopens the drawer first, since the field
-being edited lives inside it.
-
-The fuel-stop results panel had no way to collapse — a long stop list could
-own most of the screen with no way back to just the map short of leaving
-Route mode entirely. `#routeResults` gets the same tab/collapsible-body
-mechanic the trip-details drawer already uses (`#rrTab`, `.rr-body-wrap`,
-`setRrCollapsed()`), offered only on the final plan/gap result — every other
-state (loading notes, errors, the confirm-address card) keeps the tab hidden
-since there's nothing worth collapsing there.
+Three fixes found on a real phone, including the map staying visibly cut off
+after collapsing the drawer.
 
 ### v1.7.2
-
-Three dark-mode visual fixes on top of v1.7.0, none of them logic changes.
-The legend card's Light/Dark/System toggle was overflowing past the card's
-own edge — its three buttons had no `min-width:0`, so flexbox's default
-`min-width:auto` held them to their full content width ("System") instead of
-actually shrinking to fit three-across; fixed by widening `#legendCard`
-(198px → 224px) and giving the toggle's buttons `min-width:0` with tighter
-padding/font-size. The gauge track's tick marks used a hardcoded
-navy-tinted `rgba(11,35,64,...)`, which all but disappeared against the new
-dark track background — now driven by `--gauge-tick`/`--gauge-tick-minor`
-variables, navy-tinted in light mode (unchanged) and white-tinted in dark.
-And "Trip details" (and a couple of other spots — the Legend button, the
-Share trip button) used `var(--navy)` as *text* color, which stayed
-just as dark in dark mode and read as almost invisible against the also-dark
-chrome behind it; introduced `--navy-text` (equal to `--navy` in light mode,
-a lighter `#6EA8FE` in dark) for every place navy is a text/border color
-rather than a filled pin/badge/header background — those keep using `--navy`
-directly and are unaffected. Also gave the legend card's Driver Support
-`<a>` its own color (it was inheriting the browser's default link blue
-instead of the theme, left over from the v1.7.1 tel: link fix). Light mode
-is unchanged in all four cases — confirmed programmatically, not just by
-eye.
+Dark-mode fixes: the theme toggle overflowed its card, and navy text stayed
+invisible.
 
 ### v1.7.1
-
-Two copy/markup fixes, no logic changed. The gauge's 1/8-tank floor note has
-new approved wording — still computes its mile figure from
-`FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS)` rather than a hardcoded
-125, so it stays correct if the reserve math ever changes. The legend card's
-Driver Support number was the one remaining plain-text phone number in the
-app; it's now a `tel:` link built from the same `DRIVER_SUPPORT` constant
-every other mention already used, rendered from JS (`#legendSupportNote`)
-the same way `#appVer` next to it already is, since the number needed the
-JS-side constant rather than a second hardcoded string in static markup.
+The gauge floor note computes its own figure rather than hardcoding it.
 
 ### v1.7.0
-
-Dark theme, covering both the UI chrome and the map tiles themselves. Two new
-CSS variables drive it — `--surface` (the 10 places that used to hardcode
-`background:#fff` now read `background:var(--surface)`) and a
-`html[data-theme="dark"]` override block for `--bg`, `--surface`, `--ink`,
-`--sub` and `--line`. Brand/marker colors (navy, TA blue, Petro green, gold,
-the location dot) are unchanged in dark mode — they're filled shapes on the
-map, not on this chrome, and contrast was checked (WCAG relative luminance)
-against both `--bg` and `--surface` before shipping. The map itself switches
-HERE's real vector night layer (`defaultLayers.vector.normal.mapnight`) via
-`map.setBaseLayer()`, not a CSS filter — center and zoom are preserved
-explicitly across the switch since HERE doesn't carry them over on its own.
-Defaults to the phone's `prefers-color-scheme` and keeps following it live
-via a `matchMedia` change listener, until the driver taps the new Light /
-Dark / System control in the Legend card — that becomes an explicit stored
-choice, and "System" is how they get back to following the OS again. A
-blocking script at the top of `<head>`, before the stylesheet, resolves and
-sets the theme ahead of first paint so there's no light-then-dark flash on
-load.
-
-This is the app's first localStorage usage, so it's also the first use of
-the versioned-key discipline future persisted settings should follow: the
-key is `fuelpost.theme.v1`, not a bare `fuelpost.theme`. Only the two
-explicit values (`'light'` / `'dark'`) are ever stored — no stored value
-already means "follow system," so there's nothing to encode for that state.
-Anything else found under the key (corrupted, from a future format) is
-treated as absent rather than thrown on or defaulted to a fixed theme. If a
-later brief changes what the default logic does (a scheduled
-night-mode-after-dark feature, say), bump to `fuelpost.theme.v2` and treat
-`v1` values as absent — never reuse a versioned key for a changed meaning.
+**Dark theme**, including the map itself. First stored setting, and the origin of
+the key-versioning rule.
 
 ### v1.6.5
-
-The default value for "How far do you run between fuel stops?" increased from
-625 mi to 850 mi, reflecting a more typical highway-segment planning distance
-for Covenant drivers.
+Default range raised to 850 miles.
 
 ### v1.6.4
-
-Every marker on the map — all 146 station pins, the current-location dot,
-and the pickup/delivery/fuel-stop markers on a planned route — was rendering
-visually offset from its true coordinate, always toward the bottom-right.
-Root cause: `H.map.DomIcon` (HERE's DOM-element icon class) has no anchor
-option, unlike Leaflet's `iconAnchor` that the original build used before
-migrating to HERE Maps — that setting had no direct equivalent and was
-dropped rather than replaced. HERE's default is to place an icon element's
-own top-left corner at the coordinate, not any visual center or tip.
-Measured in a real browser: 16px right, 16px down for every marker before
-this fix. Fixed with a CSS `translate()` on a wrapper sized to each marker's
-own box — `translate(-50%,-100%)` (bottom-center) for the rotated teardrop
-station pins, `translate(-50%,-50%)` (dead center) for the circular location
-dot and route markers, which have no rotation and measure an exact 0px error
-both ways. The pins have one small, understood residual — about 6px, from
-how a 45°-rotated square's corner pokes past its own un-rotated edge — left
-as-is rather than chasing an exact fix tied to the pin's current pixel
-dimensions; going from 16px to 6px, in one direction only, is the fix that
-actually matters for reading the map. One implementation wrinkle worth
-recording: HERE writes its own inline `transform: matrix(...)` directly onto
-whatever element is handed to `DomIcon`, which silently overwrites a CSS
-transform declared on that same element — every marker's HTML needed one
-extra neutral wrapper level so HERE's own positioning and this fix's anchor
-offset land on different elements instead of fighting over one `transform`.
-No logic changed — `passes()`, `render()`, `drawRoute()`, group membership
-and marker tap handlers are all untouched; only where within each marker's
-own box the anchor point sits.
+**Every pin on the map was drawing 16 pixels off its real position.**
 
 ### v1.6.3
-
-The state select ("All states") moved into the Filters popover from v1.6.2,
-alongside brand and type — one more toolbar control tucked away, and one
-more filter the Filters button's badge now accounts for (badge shows if
-brand, type, *or* state isn't "all"). Same reasoning as the other two: state
-is rarely touched, so it doesn't need to cost width on every screen.
-Filtering behavior is unchanged; `render()` and `passes()` don't know or
-care where the control that sets `state.st` lives.
+The state filter moved into the Filters popover.
 
 ### v1.6.2
-
-Brand (All/TA/Petro) and type (All types/Exclusive/Primary) filters moved
-behind a single Filters button in the STOPS toolbar, following the same
-button-toggles-a-popover-card pattern as the existing Legend button. They
-were the two least-touched controls in a toolbar that was packing mode
-switch, brand, type, state, search and list view into one horizontally-
-scrolling row — most sessions never leave "All", so they're the right ones
-to tuck behind a tap rather than pay their width on every screen. A small
-dot badge appears on the Filters button whenever brand or type isn't "all",
-so a driver can tell a filter is applied without opening the popover — same
-"don't lose context when collapsed" principle as the route panel's summary
-line. The popover closes on a second tap, a tap outside it, or switching to
-Route mode. No filtering behavior changed: `passes()` and `render()`, and
-the two segmented controls' own click handlers, are untouched — only where
-they live moved.
+Brand and type filters moved behind a Filters button.
 
 ### v1.6.1
-
-Fixed the STOPS locate button: the first tap started the location watch and
-drew the dot, but never moved the map to it — only a *second* tap (once a fix
-was already in hand) actually recentered and zoomed, because that logic lived
-solely in the button's click handler, not in the watch's first-fix callback.
-A driver tapping once and expecting to see themselves on the map got nothing
-until they tapped again. The first fix from a fresh watch now recenters and
-zooms (to 11) exactly once, the same as an already-in-hand fix does on
-tap; later position updates from the ongoing watch do not keep forcing the
-map back, so panning around afterward still works normally.
+The locate button needed two taps to actually move the map.
 
 ### v1.6.0
-
-The gauge's numbers were wrong in a specific way: reading "F" as 1000 mi
-implied the whole tank is plannable range, when in practice the bottom 1/8
-(125 mi, the existing `MILES_PER_TICK`) should never be routed on — it's the
-margin a driver limps toward a stop on, not miles to plan a leg with. The
-gauge now reports **plannable** range via `plannableMilesForTick` in
-`lib/gauge.js`: `max(0, (tick - 1) * 125)`, so **F reads as 875 mi**, not
-1000, and each tick down is still 125 mi apart. The floor also moves — tick 1
-(1/8 tank) is now selectable, one notch below the old floor of tick 2 (1/4
-tank); only E (tick 0) remains off the gauge. At the new floor the readout is
-honestly **0 plannable miles**: `planLoad()` recognizes `rangeAtPickup === 0`
-and skips the routing call entirely — the outcome is already determined, and
-feeding 0 through the real planner always lands on the same degenerate
-`{fromMile: 0, deadMile: 0}` gap, which is why that state gets its own
-message (`renderFloorGap`) instead of the generic "between mile X and mile
-Y" gap copy, worded around the honest ~125 mi of physical range still left to
-limp toward a stop, with the Driver Support number. `milesForTick` (the raw,
-non-reserve conversion) and `EMERGENCY_TICK_CEILING`/`isEmergencyZone` are
-unchanged and still used elsewhere — only what the UI treats as *plannable*,
-and how low the needle can go, changed. Also, "How far do you run between
-fuel stops?" now defaults to **625 mi**, down from 800; still editable,
-still bounded 300-1200.
+The gauge reports *plannable* range, so F reads 875 rather than 1000 — the bottom
+eighth is margin to limp on, not miles to plan with.
 
 ### v1.5.1
-
-Two fixes to the location feature from v1.4.0. The live position dot now
-renders in its own color (`--you-are-here`, a vivid magenta) instead of
-`var(--ta)` — it was the exact same blue as every TA station pin, so it got
-lost in a cluster of them at a zoomed-out view. It also gets a second ring:
-a fixed 30px CSS ring with a subtle opacity pulse, always the same pixel
-size regardless of zoom, purely so the dot stays easy to spot at a glance —
-separate from (and layered under) the real accuracy circle, which correctly
-keeps its true meter-based radius and shrinks toward invisible at low zoom;
-that one is unchanged. Also, the STOPS-mode recenter button no longer shows
-in Route mode, which has its own "use my location" entry point on the
-pickup field already — a redundant second location button in the corner was
-never the intent. The dot itself, and the watch that drives it, keep
-running across both modes exactly as before; only the STOPS recenter
-button's visibility changed.
+The location dot got its own colour; it was the same blue as every TA pin.
 
 ### v1.5.0
-
-"Range leaving shipper" is now a tappable fuel gauge instead of a mile-number
-input, in the "Not leaving with a full tank?" disclosure — E to F in eighths,
-matching how a driver reads a dash gauge instead of asking them to estimate
-and type a figure. Full tank is a fixed fleet-wide `FULL_TANK_MILES = 1000`
-(`lib/gauge.js`), giving 125 mi per tick. Tap or drag the track to move the
-needle; both snap to the nearest tick. The track's E-to-1/8 segment is a
-permanent red danger marking, like a tachometer redline — not tied to needle
-position — but the needle itself can't land there: selection is clamped to
-ticks 2-8 (1/4 tank through F), with a static note explaining why and a
-Driver Support number for the real emergency case. Opening (or closing) the
-disclosure now resets the needle to F — "assume full unless told otherwise"
-— replacing the old behavior of mirroring whatever the policy range number
-happened to be, which is a real behavior change from v1.4.x. Leaving the
-disclosure closed is unaffected: still assumes a full tank relative to
-policy range, `startBurned` 0. Nothing here persists across page loads.
+Range-at-pickup became a tappable gauge in eighths.
 
 ### v1.4.1
-
-Route mode's pickup/delivery/range fields collapse into a drawer once a plan
-or gap result is showing, so the map and the fuel stop list get the screen
-instead of permanently-visible input fields. A tab row (compact summary +
-chevron) stays visible and tappable in either state — tapping it toggles the
-drawer, and it's the only affordance needed to reach a collapsed Clear trip
-button, so that's never more than one tap away. Auto-collapses the moment a
-plan or gap renders; auto-expands again on a validation or geocoding
-failure, or when Clear trip resets the fields. Switching Stops → Route
-restores whichever state fits the current result — expanded if nothing's
-planned yet, collapsed with the summary intact if a plan is still showing.
-Layout only: no change to how a plan is computed.
+Route inputs collapse into a drawer once a plan is showing.
 
 ### v1.4.0
-
-Precise location, shared by both modes through one `navigator.geolocation`
-watch — permission is asked once, and whichever feature is tapped first
-reuses the fix for the other rather than prompting again. **Stops** gets a
-live position dot (own `H.map.Group`, so STOPS filter re-renders never touch
-it) with an accuracy ring and a recenter button; the dot renders only when
-`lib/location.js`'s `isPreciseFix` says the fix is good enough — an
-exact-looking dot on a bad fix is worse than just the ring. **Route**'s
-pickup field gets a "use my location" button that reverse-geocodes the fix
-(HERE Reverse Geocoding v7, falling back to `formatGpsFallbackLabel`'s
-coordinate label if that fails) and drops it straight into the existing
-single-candidate fast path — no disambiguation step, same as a clean typed
-match today. Editing a GPS-filled field afterward clears it back to normal
-typed-address handling. Permission denied, position unavailable and
-insecure-context failures all show a plain message with the button left
-tappable to retry. Nothing here is persisted — `liveFix` lives in memory
-only, gone on reload.
+**Location**, shared by both tabs through one permission prompt.
 
 ### v1.3.0
-
-**Clear trip** resets the route planner to a blank first-open state — inputs,
-both range values, geocode candidates, the results panel, and the route drawn
-on the map. **Share / save trip** hands the plan to the phone's native share
-sheet via `navigator.share`, so it can land in Notes, Messages, Mail or AirDrop
-in one native flow, falling back to a clipboard copy and then to a selectable
-textarea. The text comes from `formatTripText` in `lib/triptext.js`. Nothing is
-persisted — no `localStorage`, no saved-trips list, so no `PRESET_VERSION`
-question. The header no longer repeats "100% compliance required"; the legend
-card already carries the compliance note and the Driver Support number.
+Clear trip, and Share/save via the phone's share sheet.
 
 ### v1.2.0
-
-Two changes to Route mode. First, the fuel planner no longer declares a gap
-the moment nothing is within 8 miles of the route — `planAdaptive`
-(`lib/fuelplan-adaptive.js`) widens to 15, then 30 miles before giving up, and
-`stopsNearPickup` checks for a network stop within 50 miles of the pickup in
-any direction (not just along the route) before the app calls it a true dead
-end. A widened search shows a plain note above the plan; a gap that has a
-real near-pickup alternative names it instead of just telling the driver to
-call Driver Support. Second, "Look up addresses" and "Plan fuel for this load"
-are now one button. Two high-confidence matches route straight through with a
-"not right?" affordance on each address; the picker only reappears for an end
-that's actually ambiguous — more than one candidate, or a match that isn't an
-exact street address.
+The planner widens its detour search before declaring a gap, and look-up and plan
+became one button.
 
 ### v1.1.2
-
-Fixed a blank map on load and the greyed-out entries in the map settings control.
-The app now loads `mapsjs-harp.js` and runs on the HARP engine, with the engine
-type set in **both** `createDefaultLayers()` and the `H.Map` options — either one
-alone leaves the map half-working. The base layer moved from
-`raster.normal.map` to `vector.normal.map`, which is also what makes the settings
-control's active entry match the layer the map was actually built with. Satellite,
-Traffic conditions and Show traffic incidents are now selectable.
+Fixed a blank map on load.
 
 ### v1.1.1
-
-Restored the fuel book revision to the header, where v1.1.0 had replaced it with
-the app version, and moved the app version into the legend card. Both now render
-from their own named constant. Route mode's two side-by-side range inputs are now
-one input — "How far do you run between fuel stops?" — with range-at-pickup
-demoted to an optional disclosure, since it is the exception rather than a
-routine field. Collapsing that disclosure resets it to mirror the main range, so
-a hidden field can never sit on a value that is quietly changing the plan.
+Fuel book revision restored to the header, app version moved to the legend.
 
 ### v1.1.0
-
-Route mode. Pickup and delivery addresses geocoded via HERE Geocoding v7 with a
-confirmation step (matched address shown, alternate candidates selectable, poor
-matches flagged) before anything is routed; truck route from HERE Routing v8;
-fuel plan from `lib/fuelplan.js` with a fewest-stops selection, mile markers, leg
-mileage and an explicit warning when the route cannot be run on network fuel.
-Range-at-pickup input for a truck that does not leave the shipper full. Stops
-mode is unchanged and keeps working with no signal.
+**Route mode**: address confirmation, truck routing, and the fuel plan.
 
 ### v1.0.0
-
-Stops mode: map and list of all 146 Covenant network locations with filters,
-search, detail cards and legend. Station coordinates geocoded from their street
-addresses via the HERE Geocoding API (see `tools/geocode-report.txt`).
+**Stops mode**: map, list, filters, search and legend over 146 locations.
