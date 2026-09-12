@@ -745,6 +745,7 @@
   .rr-nav b{color:var(--ink);font-weight:800;}
   .rr-chev{align-self:center;color:var(--sub);font-size:16px;flex-shrink:0;}
   .rr-final{border-top:1px solid var(--line);padding-top:10px;font-size:12.5px;color:var(--sub);}
+  .rr-end .rr-final{border-top:0;padding-top:3px;}
   .rr-final b{color:var(--ink);}
   /* What a stop is worth at the pump, under its own leg figure. Muted when
      it earns the credit (it is confirmation, not news) and coloured when it
@@ -761,7 +762,6 @@
   .rr-arrive-low b{color:var(--danger-text);}
   .rr-skipped{font-size:12.5px;color:var(--sub);line-height:1.45;margin-top:6px;}
   .rr-skipped b{color:var(--ink);}
-  .rr-ok{background:#E4F3EA;border:1px solid #BFE3CC;border-radius:10px;padding:9px 12px;margin-top:10px;font-size:12.5px;color:#0F6B33;line-height:1.45;}
   .rr-warn{background:#FDECEC;border:1px solid #F0BEBE;border-radius:10px;padding:10px 12px;margin-top:12px;font-size:12.5px;color:#8A1C1C;line-height:1.45;}
   .rr-warn b{display:block;margin-bottom:4px;font-size:13px;}
   .rr-warn a{color:#8A1C1C;font-weight:800;}
@@ -862,7 +862,7 @@
   #vehicleHazmat, #vehicleCustom{margin-top:2px;}
 
   /* Alternative-route switcher. Themed off the CSS variables (unlike the
-     fixed-tint .rr-ok/.rr-warn callouts) since it's chrome, not a callout.
+     fixed-tint .rr-warn callouts) since it's chrome, not a callout.
      A gapped option stays fully readable and tappable — it's marked, not
      hidden, so the driver can see what was rejected and why. */
   .rr-opts{display:flex;flex-direction:column;gap:6px;margin:0 0 10px;}
@@ -1346,33 +1346,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.54.0"></script>
+<script src="lib/fuelplan.js?v=1.55.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.54.0"></script>
+<script src="lib/triptext.js?v=1.55.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.54.0"></script>
+<script src="lib/location.js?v=1.55.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.54.0"></script>
+<script src="lib/gauge.js?v=1.55.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.54.0"></script>
+<script src="lib/corridors.js?v=1.55.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.54.0"></script>
+<script src="lib/nearme.js?v=1.55.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.54.0"></script>
+<script src="lib/extract-version.js?v=1.55.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.54.0"></script>
+<script src="lib/autosuggest.js?v=1.55.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.54.0"></script>
+<script src="lib/baselayer.js?v=1.55.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.54.0"></script>
+<script src="lib/memocache.js?v=1.55.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.54.0"></script>
+<script src="lib/routerank.js?v=1.55.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.54.0"></script>
+<script src="lib/vehicleprofile.js?v=1.55.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.54.0"></script>
+<script src="lib/escape.js?v=1.55.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.54.0"></script>
+<script src="lib/navlinks.js?v=1.55.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1388,7 +1388,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.54.0')
+fetch('lib/fuelplan-adaptive.js?v=1.55.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1405,7 +1405,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.54.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.54.0')
+fetch('lib/shorttrip.js?v=1.55.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1416,7 +1416,7 @@ fetch('lib/shorttrip.js?v=1.54.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.54.0"></script>
+<script src="lib/flexible-polyline.js?v=1.55.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1588,7 +1588,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.54.0';
+const APP_VERSION = '1.55.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -4817,9 +4817,10 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     h += `<div class="rr-end" style="border-top:1px solid var(--line)">
       <div class="rr-mile"><b>${mi(routeMiles)}</b><span>mile</span></div>
       <div class="rr-info"><div class="rr-endlabel">Delivery</div>
-        <div class="rr-endaddr">${Esc.escapeHtml(delivery.label)}<button class="rr-fix" data-end="delivery">not right?</button></div></div></div>`;
-    h += `<div class="rr-final">Final leg <b>${mi(result.finalLegMiles)} mi</b>${
-      stops.length ? ' from your last fuel stop to delivery.' : ' — the whole run is inside your range, no stop needed.'}</div>`;
+        <div class="rr-endaddr">${Esc.escapeHtml(delivery.label)}<button class="rr-fix" data-end="delivery">not right?</button></div>
+        <div class="rr-final">Final leg <b>${mi(result.finalLegMiles)} mi</b>${
+          stops.length ? ' from your last fuel stop.' : ' — the whole run is inside your range, no stop needed.'}</div>
+      </div></div>`;
     // WHAT THE NEEDLE WILL READ AT THE RECEIVER. Measured from the tank, not
     // the tier: a full tank at the last stop, or whatever the driver said
     // they left the shipper with if the plan has no stop in it.
@@ -4858,22 +4859,18 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     // would have made it, and this is why.
     const skipped = result.droppedFinal;
     if(skipped){
-      const skipGal = Math.round(FuelGauge.combinedGallons(skipped.legMiles));
       // WHICH of the two tests let it go. "That close to the receiver" is
       // simply false for the case the road reported — TA Tonopah, 270 mi out
-      // — so each reason gets its own sentence. Re-derived from the one number
+      // — so each reason gets its own ending. Re-derived from the one number
       // the planner reports rather than plumbed back as a reason code: the
       // same threshold decides both, so the two cannot disagree.
       const wasNearReceiver = skipped.milesFromDelivery <= FuelGauge.SKIP_NEAR_RECEIVER_MI;
       const because = wasNearReceiver
-        ? 'that close to the receiver.'
+        ? `, ${mi(skipped.milesFromDelivery)} mi before delivery &mdash; it wouldn't have earned a credit.`
         : (nearDel
-            ? `and <b>${Esc.escapeHtml(nearDel.name)}</b> sits ${mi(nearDel.miles)} mi from your delivery.`
-            : 'and there is network fuel near your delivery instead.');
-      h += `<div class="rr-skipped">Auto skipped <b>${Esc.escapeHtml(skipped.name)}</b>,
-        ${mi(skipped.milesFromDelivery)} mi before delivery &mdash; it would only have taken
-        about <b>${skipGal} gal</b>, short of a credit, ${because}
-        You still get there with ${arriveLabel} of a tank.</div>`;
+            ? ` due to <b>${Esc.escapeHtml(nearDel.name)}</b> sitting ${mi(nearDel.miles)} mi from your delivery.`
+            : ` &mdash; it wouldn't have earned a credit, and there is network fuel near your delivery.`);
+      h += `<div class="rr-skipped">Auto skipped <b>${Esc.escapeHtml(skipped.name)}</b>${because}</div>`;
     }
     // Where fuel sits once the truck stops moving — the number that decides
     // whether arriving full matters. Searches ALL network stops, not just
@@ -4888,9 +4885,6 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     if(nearDel){
       h += `<button type="button" class="rr-near-del" id="rrNearDel">Nearest network fuel to your delivery:
         <b>${nearDel.name}</b>, ${mi(nearDel.miles)} mi away<span class="rr-chev">›</span></button>`;
-    }
-    if(stops.length){
-      h += `<div class="rr-ok">Fewest-stop plan on network fuel. Every leg is inside your ${mi(maxRange)} mi range.</div>`;
     }
     // A quiet option, not a warning: the first leg is long and a real station
     // sits close enough to the pickup that topping off first is worth naming.

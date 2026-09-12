@@ -895,13 +895,13 @@ ok('>>> the planner is handed planLoad\'s object, not the one readRanges built',
 // is false for the 270-mi case the road reported. Each reason gets its own.
 ok('>>> the skipped-stop note gives the reason that actually applied',
    /const wasNearReceiver = skipped\.milesFromDelivery <= FuelGauge\.SKIP_NEAR_RECEIVER_MI;/.test(codeOnly)
-   && /sits \$\{mi\(nearDel\.miles\)\} mi from your/.test(codeOnly));
+   && /sitting \$\{mi\(nearDel\.miles\)\} mi from your delivery/.test(codeOnly));
 // Pinned as the JOINED expression, not as two facts that happen to both be
 // present: a mutation that kept `wasNearReceiver` and the receiver wording but
 // branched on a constant passed the looser version of this and was caught only
 // by the browser suite.
 ok('  and the receiver wording is chosen BY that test, not unconditionally',
-   /const because = wasNearReceiver\s*\n\s*\? 'that close to the receiver\.'/.test(codeOnly));
+   /const because = wasNearReceiver\s*\n\s*\? `, \$\{mi\(skipped\.milesFromDelivery\)\} mi before delivery/.test(codeOnly));
 ok('  and nearDel is resolved BEFORE the note that names it',
    codeOnly.indexOf('nearDel = shortTrip.applies') < codeOnly.indexOf('const wasNearReceiver'),
    JSON.stringify([codeOnly.indexOf('nearDel = shortTrip.applies'),
@@ -910,11 +910,9 @@ ok('  and Auto off hands the planner null, so OFF cannot take the skip branch at
    /const skipShortFinal = arrivalOn\(\)\s*\n\s*\? \{ creditMiles: FuelGauge\.CREDIT_MILES, withinMiles: FuelGauge\.SKIP_NEAR_RECEIVER_MI \}\s*\n\s*: null;/.test(codeOnly));
 // The skipped stop is the one decision the stop list cannot show — it is
 // absent from it — so the note is the only place the driver learns of it.
-ok('>>> a skipped stop is reported, with its gallons and its distance from delivery',
+ok('>>> a skipped stop is reported by name',
    /const skipped = result\.droppedFinal;/.test(codeOnly)
-   && /class="rr-skipped">Auto skipped/.test(codeOnly)
-   && /FuelGauge\.combinedGallons\(skipped\.legMiles\)/.test(codeOnly)
-   && /mi\(skipped\.milesFromDelivery\)/.test(codeOnly));
+   && /class="rr-skipped">Auto skipped/.test(codeOnly));
 ok('  the name is escaped like every other station name on the screen',
    /Esc\.escapeHtml\(skipped\.name\)/.test(codeOnly));
 ok('>>> and a skip opens the nearest-fuel-to-delivery panel, which is the next question',
