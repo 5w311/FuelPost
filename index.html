@@ -794,7 +794,7 @@
   .rr-avail-toggle{display:block;width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--line);padding:9px 0 3px;font:inherit;font-size:12.5px;font-weight:700;color:var(--navy-text);text-decoration:underline;}
   .rr-avail-toggle[hidden],.rr-stop[hidden]{display:none;}
   .rr-avail-last{color:var(--navy-text);font-weight:700;}
-  .rr-near-del{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--line);margin-top:10px;padding:10px 0 0;font:inherit;font-size:12.5px;color:var(--ink);line-height:1.45;}
+  .rr-near-del{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--line);margin-top:10px;padding:10px 0 0;font:inherit;font-size:12.5px;color:var(--ink);line-height:1.45;}
   .rr-near-del .rr-chev{margin-left:auto;}
 
   /* Range tiers. Reuses .seg, but each button carries three stacked lines —
@@ -1315,33 +1315,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.59.0"></script>
+<script src="lib/fuelplan.js?v=1.60.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.59.0"></script>
+<script src="lib/triptext.js?v=1.60.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.59.0"></script>
+<script src="lib/location.js?v=1.60.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.59.0"></script>
+<script src="lib/gauge.js?v=1.60.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.59.0"></script>
+<script src="lib/corridors.js?v=1.60.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.59.0"></script>
+<script src="lib/nearme.js?v=1.60.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.59.0"></script>
+<script src="lib/extract-version.js?v=1.60.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.59.0"></script>
+<script src="lib/autosuggest.js?v=1.60.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.59.0"></script>
+<script src="lib/baselayer.js?v=1.60.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.59.0"></script>
+<script src="lib/memocache.js?v=1.60.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.59.0"></script>
+<script src="lib/routerank.js?v=1.60.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.59.0"></script>
+<script src="lib/vehicleprofile.js?v=1.60.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.59.0"></script>
+<script src="lib/escape.js?v=1.60.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.59.0"></script>
+<script src="lib/navlinks.js?v=1.60.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1357,7 +1357,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.59.0')
+fetch('lib/fuelplan-adaptive.js?v=1.60.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1374,7 +1374,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.59.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.59.0')
+fetch('lib/shorttrip.js?v=1.60.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1385,7 +1385,7 @@ fetch('lib/shorttrip.js?v=1.59.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.59.0"></script>
+<script src="lib/flexible-polyline.js?v=1.60.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1557,7 +1557,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.59.0';
+const APP_VERSION = '1.60.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -4622,6 +4622,28 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
   const shortfallFinalLeg = shortfall
     ? +(routeMiles - (result.plan.length ? result.plan[result.plan.length - 1].mile : 0)).toFixed(1)
     : null;
+  // WHERE NETWORK FUEL SITS ONCE THE TRUCK STOPS MOVING. Resolved up here,
+  // ahead of lastTrip, because two things read it and lastTrip is built before
+  // either: the tappable panel row and the shared text. One place per decision
+  // — while the panel resolved it for itself, the shared text answered
+  // differently, carrying the station on a no-stop plan and nothing at all on
+  // a plan with stops, which is the plan a driver is most likely to share.
+  //
+  // shortTrip computes it when it applies; otherwise ask the same ranking the
+  // Near Me footer uses, over the WHOLE network rather than the on-route
+  // stops, since the truck will be sitting still at the receiver. The station
+  // row is attached once, so panel and shared text quote the same station.
+  let nearDel = shortTrip.applies ? shortTrip.nearestToDelivery : null;
+  if(!nearDel && delivery){
+    const n = NearMe.nearestStops(delivery.lat, delivery.lng, FUEL_STOPS,
+                                  FuelPlan.haversine, 1)[0];
+    if(n) nearDel = { name: n.stop.name, id: n.stop.id, miles: Math.round(n.miles) };
+  }
+  if(nearDel){
+    const nds = FUEL_STOPS.find(f => f.id === nearDel.id);
+    nearDel = { ...nearDel, tier: nds ? nds.tier : null, row: nds ? nds.row : null };
+  }
+
   // Everything Share trip needs, captured at render time from the values
   // actually planned on — including the CONFIRMED matched addresses rather
   // than the raw text the driver typed.
@@ -4663,17 +4685,20 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     // stop needed" loses the useful half of the answer. Omitted otherwise,
     // keeping every other shared plan byte-identical.
     arrivalRange: shortTrip.applies ? shortTrip.arrivalRange : undefined,
-    nearestToDelivery: (shortTrip.applies && shortTrip.nearestToDelivery)
-      ? { name: shortTrip.nearestToDelivery.name, miles: shortTrip.nearestToDelivery.miles }
+    // On EVERY completable plan since v1.60.0, not just the no-stop one: the
+    // panel has shown it on every plan since v1.56.0, and a pasted plan that
+    // silently drops it answers a different question than the screen it came
+    // from. Exit and nav are mapped onto explicit fields for the same reason
+    // the stop lines map nav — lib/triptext.js must not know DATA's columns.
+    nearestToDelivery: (result.ok && nearDel)
+      ? { name: nearDel.name, miles: nearDel.miles, tier: nearDel.tier,
+          exit: nearDel.row ? nearDel.row[7] : undefined,
+          nav: nearDel.row ? nearDel.row[20] : undefined }
       : undefined,
     appVersion: APP_VERSION,
     fuelBookRev: FUEL_BOOK_REV
   };
   const { maxRange, rangeAtPickup, startBurned } = ranges;
-  // Declared out here because the button's HTML is built inside the plan
-  // branch and its click handler is wired at the end of the function — a
-  // block-scoped value would render a button that does nothing.
-  let nearDel = null;
   // Only call the search "widened" when it actually produced a plan — a failed
   // attempt at 30 mi is a dead end, not a plan that uses 30 mi stops.
   const widened = result.ok && result.detourMax > DETOUR_TIERS[0];
@@ -4723,6 +4748,19 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
   if(widened){
     h += `<div class="rr-caution">No network stops within ${DETOUR_TIERS[0]} miles of your route,
       so this plan uses stops up to ${result.detourMax} miles off route to keep the load on network fuel.</div>`;
+  }
+
+  // A quiet option, not a warning: the first leg is long and a real station
+  // sits close enough to the pickup that topping off first is worth naming.
+  // ABOVE the pickup row since v1.60.0 — it is advice about leaving the
+  // shipper, and it was sitting at the very bottom of the panel, past the
+  // delivery and the arrival, where a driver reads it after the decision it
+  // is about.
+  if(stops.length && stops[0].mile > maxRange / 2){
+    const near = nearPickup.find(s => s.fromPickup <= NEAR_PICKUP_RADIUS_TIP);
+    if(near){
+      h += `<div class="rr-tip">${nearPickupLine(near)} — topping off there before you roll is an option.</div>`;
+    }
   }
 
   h += `<div class="rr-end">
@@ -4825,16 +4863,6 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     // reachable? Road miles, not straight line — see gauge.js.
     const canFuelAfter = deliveryFuelMiles !== null
       && FuelGauge.canReachFuelAfter(arriveMiles, deliveryFuelMiles);
-    // Computed here rather than beside the button below, because the
-    // skipped-stop note NAMES it: when a stop was skipped because fuel waits
-    // at the receiver, saying so without naming the station asks the driver
-    // to take it on faith. The button itself still renders further down.
-    nearDel = shortTrip.applies ? shortTrip.nearestToDelivery : null;
-    if(!nearDel && delivery){
-      const n = NearMe.nearestStops(delivery.lat, delivery.lng, FUEL_STOPS,
-                                    FuelPlan.haversine, 1)[0];
-      if(n) nearDel = { name: n.stop.name, id: n.stop.id, miles: Math.round(n.miles) };
-    }
     // No "at" before the reading: needleReading already supplies its own
     // preposition ("about 1/2", "just under 3/8", "between 3/8 and 1/2"), and
     // "pulling in at between" is not a sentence. "roughly" on the mileage so
@@ -4878,16 +4906,21 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     // ranking the Near Me footer uses, over the whole network rather than the
     // on-route stops, since the truck will be sitting still at the receiver.
     if(nearDel){
-      h += `<button type="button" class="rr-near-del" id="rrNearDel">Nearest network fuel to your delivery:
-        <b>${nearDel.name}</b>, ${mi(nearDel.miles)} mi away<span class="rr-chev">›</span></button>`;
-    }
-    // A quiet option, not a warning: the first leg is long and a real station
-    // sits close enough to the pickup that topping off first is worth naming.
-    if(stops.length && stops[0].mile > maxRange / 2){
-      const near = nearPickup.find(s => s.fromPickup <= NEAR_PICKUP_RADIUS_TIP);
-      if(near){
-        h += `<div class="rr-tip">${nearPickupLine(near)} — topping off there before you roll is an option.</div>`;
-      }
+      // The same detail every other stop row carries. This is a stop a driver
+      // may actually drive to after dropping the trailer, so withholding the
+      // exit and the nav code made it the one row they would have to tap into
+      // and come back out of. Read off the hoisted value rather than looked up
+      // again here — the shared text quotes the same fields.
+      const ndRow = nearDel.row;
+      h += `<button type="button" class="rr-near-del" id="rrNearDel">
+        <div class="rr-info">
+          <div class="rr-endlabel">Nearest network fuel to your delivery</div>
+          <div class="rr-name">${Esc.escapeHtml(nearDel.name)}${nearDel.tier ? ' ' + tierBadge(nearDel.tier) : ''}</div>
+          <div class="rr-meta mono"><b>${mi(nearDel.miles)} mi</b> from your delivery</div>
+          ${ndRow && ndRow[7] ? `<div class="rr-meta">${Esc.escapeHtml(ndRow[7])}</div>` : ''}
+          ${ndRow ? navLine(ndRow) : ''}
+        </div>
+        <div class="rr-chev">›</div></button>`;
     }
   } else if(shortfall){
     // Every leg above is drivable and the delivery is reached; the only thing

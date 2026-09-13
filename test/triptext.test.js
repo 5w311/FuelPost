@@ -101,24 +101,63 @@ const t8 = formatTripText({
 ok('a second gap after the continuation is named',
    t8.includes('SECOND gap between mile 450 and mile 1325'));
 
-console.log('\n=== short-trip extras (only ever set on a no-stop plan) ===');
+console.log('\n=== arrival range (only ever set on a no-stop plan) ===');
 const t9 = formatTripText({
   pickupAddr: 'Orlando FL', deliveryAddr: 'Richmond Hill GA',
   plan: [], gap: null, finalLegMiles: 241, detourMax: 8,
-  arrivalRange: 634, nearestToDelivery: { name: 'TA Baldwin', miles: 121 }
+  arrivalRange: 634,
+  nearestToDelivery: { name: 'TA Baldwin', miles: 121, tier: 'prim',
+                       exit: 'I-10, Exit 343', nav: 'CVENTA019' }
 });
 ok('carries the arrival range', t9.includes('You arrive with about 634 mi of range.'));
-ok('carries nearest network fuel to delivery',
-   t9.includes('Nearest network fuel to delivery: TA Baldwin, 121 mi away.'));
-ok('still leads with the no-stop line, extras after it',
+ok('still leads with the no-stop line, the arrival range after it',
    t9.indexOf('No fuel stop needed') < t9.indexOf('You arrive with about'));
 ok('no-stop output without the fields is unchanged (t2 has neither line)',
-   !t2.includes('You arrive with about') && !t2.includes('Nearest network fuel'));
-ok('a plan WITH stops never grows these lines even if the fields leak through',
+   !t2.includes('You arrive with about') && !t2.includes('NEAREST NETWORK FUEL'));
+ok('the arrival range still never reaches a plan WITH stops',
    (() => { const t = formatTripText({ pickupAddr:'A', deliveryAddr:'B',
      plan:[{name:'S1', mile:100, legMiles:100, tier:'prim'}], gap:null, finalLegMiles:50,
-     arrivalRange: 634, nearestToDelivery: { name:'X', miles: 2 } });
-     return !t.includes('You arrive with about') && !t.includes('Nearest network fuel'); })());
+     arrivalRange: 634 });
+     return !t.includes('You arrive with about'); })());
+
+console.log('\n=== nearest network fuel to delivery (v1.60.0: EVERY plan) ===');
+// The panel has shown this on every plan since v1.56.0. A pasted plan that
+// drops it on exactly the plans a driver is most likely to share — the ones
+// with stops — answers a different question than the screen it came from.
+ok('carries the station and its distance as its own block',
+   t9.includes('NEAREST NETWORK FUEL TO DELIVERY')
+   && t9.includes('TA Baldwin \u2014 121 mi away'));
+ok('carries the exit', t9.includes('I-10, Exit 343'));
+ok('carries the nav code, labelled', t9.includes('Nav code CVENTA019'));
+ok('a primary stop carries no tier tag', !t9.includes('[Exclusive]'));
+// The regression this release fixed: with stops in the plan the field was
+// never set at all, so the shared text was silent about it.
+const tnd = formatTripText({
+  pickupAddr: 'A', deliveryAddr: 'B',
+  plan: [{name:'S1', mile:100, legMiles:100, tier:'prim'}],
+  gap: null, finalLegMiles: 50,
+  nearestToDelivery: { name: 'TA Ontario', miles: 24, tier: 'excl',
+                       exit: 'I-10, Exit 57', nav: 'CVENTA162' }
+});
+ok('a plan WITH stops carries it too',
+   tnd.includes('NEAREST NETWORK FUEL TO DELIVERY') && tnd.includes('TA Ontario'));
+ok('it sits after the final leg, not before the stop list',
+   tnd.indexOf('Final leg to delivery') < tnd.indexOf('NEAREST NETWORK FUEL'));
+ok('an exclusive station is tagged, same as a stop line',
+   tnd.includes('24 mi away  [Exclusive]'));
+ok('exit and nav ride along on a plan with stops',
+   tnd.includes('I-10, Exit 57') && tnd.includes('Nav code CVENTA162'));
+// Guarded fields: the formatter is tested independently of DATA and must not
+// assume the caller filled them in. A missing exit is no line, never a blank.
+const tnd2 = formatTripText({
+  pickupAddr: 'A', deliveryAddr: 'B', plan: [], gap: null,
+  nearestToDelivery: { name: 'TA Somewhere', miles: 9 }
+});
+ok('a bare station still renders, with no dangling lines',
+   tnd2.includes('TA Somewhere \u2014 9 mi away')
+   && !tnd2.includes('Nav code') && !tnd2.includes('undefined'));
+ok('omitted entirely when there is no station',
+   !t3.includes('NEAREST NETWORK FUEL'));
 
 console.log('\n=== nav codes on stop lines (v1.21.0) ===');
 // Byte-exact on the whole line, not a substring: the point of putting the
