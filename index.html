@@ -1312,33 +1312,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.57.0"></script>
+<script src="lib/fuelplan.js?v=1.58.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.57.0"></script>
+<script src="lib/triptext.js?v=1.58.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.57.0"></script>
+<script src="lib/location.js?v=1.58.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.57.0"></script>
+<script src="lib/gauge.js?v=1.58.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.57.0"></script>
+<script src="lib/corridors.js?v=1.58.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.57.0"></script>
+<script src="lib/nearme.js?v=1.58.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.57.0"></script>
+<script src="lib/extract-version.js?v=1.58.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.57.0"></script>
+<script src="lib/autosuggest.js?v=1.58.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.57.0"></script>
+<script src="lib/baselayer.js?v=1.58.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.57.0"></script>
+<script src="lib/memocache.js?v=1.58.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.57.0"></script>
+<script src="lib/routerank.js?v=1.58.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.57.0"></script>
+<script src="lib/vehicleprofile.js?v=1.58.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.57.0"></script>
+<script src="lib/escape.js?v=1.58.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.57.0"></script>
+<script src="lib/navlinks.js?v=1.58.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1354,7 +1354,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.57.0')
+fetch('lib/fuelplan-adaptive.js?v=1.58.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1371,7 +1371,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.57.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.57.0')
+fetch('lib/shorttrip.js?v=1.58.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1382,7 +1382,7 @@ fetch('lib/shorttrip.js?v=1.57.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.57.0"></script>
+<script src="lib/flexible-polyline.js?v=1.58.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1554,7 +1554,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.57.0';
+const APP_VERSION = '1.58.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -4569,12 +4569,15 @@ function nearPickupLine(stop){
    the plan gave a driver no way to see that coming. A short fill names how
    far short it is, because "5 gal short" is actionable and "no credit" is
    not — it is the difference between skipping a stop and tolerating it. */
-function fillNote(legMiles){
-  const gal = FuelGauge.combinedGallons(legMiles);
-  if(FuelGauge.earnsCredit(legMiles))
-    return `~${Math.round(gal)} gal &middot; shower credit`;
+// Takes the FILL, not the leg. They are the same number for every stop after
+// the first — see fillMilesAt in gauge.js for why, and for the case where they
+// are not.
+function fillNote(fillMiles){
+  const gal = FuelGauge.combinedGallons(fillMiles);
+  if(FuelGauge.earnsCredit(fillMiles))
+    return `~${Math.round(gal)} gal fill &middot; shower credit`;
   const short = FuelGauge.CREDIT_GALLONS - gal;
-  return `~${Math.round(gal)} gal &middot; ${short < 1 ? 'just' : Math.round(short) + ' gal'} short of a credit`;
+  return `~${Math.round(gal)} gal fill &middot; ${short < 1 ? 'just' : Math.round(short) + ' gal'} short of a credit`;
 }
 
 function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, shortTrip){
@@ -4716,13 +4719,17 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     <div class="rr-info"><div class="rr-endlabel">Pickup</div>
       <div class="rr-endaddr">${Esc.escapeHtml(pickup.label)}<button class="rr-fix" data-end="pickup">not right?</button></div></div></div>`;
 
+  // The pump replaces what the tank is short, which is the leg for every stop
+  // but the first — that one also replaces whatever was missing at the shipper.
+  const fillAt = (i, legMiles) =>
+    FuelGauge.fillMilesAt(i, legMiles, ranges.pickupFuelMiles);
   stops.forEach((s, i) => {
     h += `<button class="rr-stop" data-idx="${i}">
       <div class="rr-mile"><b>${mi(s.mile)}</b><span>mile</span></div>
       <div class="rr-info">
         <div class="rr-name">${i+1}. ${s.name} ${tierBadge(s.tier)}</div>
         <div class="rr-meta mono">${mi(s.legMiles)} mi this leg &middot; ${s.detour.toFixed(1)} mi off route</div>
-        <div class="rr-fill${FuelGauge.earnsCredit(s.legMiles) ? '' : ' rr-fill-short'}">${fillNote(s.legMiles)}</div>
+        <div class="rr-fill${FuelGauge.earnsCredit(fillAt(i, s.legMiles)) ? '' : ' rr-fill-short'}">${fillNote(fillAt(i, s.legMiles))}</div>
         <div class="rr-meta">${s.row[7] || ''}</div>
         ${navLine(s.row)}
       </div>
@@ -4926,7 +4933,6 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
             <div class="rr-name">${stops.length + i + 1}. ${s.name} ${tierBadge(s.tier)}</div>
             <div class="rr-meta mono">${mi(s.legMiles)} mi this leg &middot; ${s.detour.toFixed(1)} mi off route</div>
             <div class="rr-fill${FuelGauge.earnsCredit(s.legMiles) ? '' : ' rr-fill-short'}">${fillNote(s.legMiles)}</div>
-        <div class="rr-fill${FuelGauge.earnsCredit(s.legMiles) ? '' : ' rr-fill-short'}">${fillNote(s.legMiles)}</div>
             <div class="rr-meta">${s.row[7] || ''}</div>
             ${navLine(s.row)}
           </div>

@@ -272,6 +272,45 @@ console.log('\n=== arrival reserve: a TOGGLE since v1.35.0, floor + aim since v1
   ok('clamped above at the full tank minus the floor', G.arrivalReserveMiles(99) === 900);
 }
 
+// WHAT THE PUMP TAKES (v1.58.0) — the fill, not the leg burned getting there.
+{
+  const FULL = G.FULL_TANK_MILES;
+  ok('>>> a later stop pumps exactly its leg: it left the last stop full',
+     G.fillMilesAt(1, 400, G.milesForTick(5)) === 400
+     && G.fillMilesAt(3, 250, G.milesForTick(3)) === 250,
+     JSON.stringify([G.fillMilesAt(1, 400, G.milesForTick(5)),
+                     G.fillMilesAt(3, 250, G.milesForTick(3))]));
+  ok('  and the start reading cannot touch a later stop, whatever it says',
+     [8,7,6,5,4,3,2].every(t => G.fillMilesAt(2, 300, G.milesForTick(t)) === 300));
+  ok('>>> leaving FULL, the first stop pumps its leg too',
+     G.fillMilesAt(0, 400, FULL) === 400);
+  ok('>>> leaving part-full, the first stop also replaces what was missing',
+     G.fillMilesAt(0, 304, G.milesForTick(5)) === 754,
+     String(G.fillMilesAt(0, 304, G.milesForTick(5))));
+  // THE REPORTED RUN. Midland at 5/8, 304 mi to Petro El Paso: the leg reads
+  // 37 gal and looks 23 short, the real fill is ~91 and clears the line.
+  ok('  which turns the reported "23 gal short" into a credit',
+     !G.earnsCredit(304) && G.earnsCredit(G.fillMilesAt(0, 304, G.milesForTick(5))));
+  // The identity that makes the whole thing checkable: whatever you arrive
+  // with plus what you pump is a full tank.
+  {
+    let broken = null;
+    for (const t of [8,7,6,5,4,3]) {
+      const start = G.milesForTick(t);
+      for (const leg of [50, 120, 300, 450, 600, 750, 900]) {
+        if (leg > start) continue;
+        const fill = G.fillMilesAt(0, leg, start);
+        if (Math.abs((start - leg) + fill - FULL) > 1e-9) broken = { t, leg, fill };
+      }
+    }
+    ok('>>> arriving fuel + fill always comes to exactly one tank',
+       broken === null, JSON.stringify(broken));
+  }
+  ok('  and a fill can never exceed the tank',
+     [0,1,2].every(i => [0, 300, 900, 5000].every(l =>
+       G.fillMilesAt(i, l, 0) <= FULL)));
+}
+
 console.log('\n=== the range tiers against the tank scale ===');
 // READ FROM index.html, not restated as literals. The old version of this
 // block asserted arithmetic about the numbers 875 and 675 directly — claims
