@@ -78,6 +78,12 @@ of driving and about 72 gallons. That clears the credit with room to spare.
 Every stop in your results tells you what it's worth: *~68 gal · shower credit*,
 or *~44 gal · 16 gal short of a credit*.
 
+That figure is **what the pump will take**, not what you burned getting there.
+Those are the same number at every stop except the first — you leave each stop
+full, so what's missing is exactly the leg you just drove. But if you rolled out
+of the shipper part-full, your first fill also replaces whatever was already
+gone.
+
 > **⚠ The gallon numbers read a little high.** The app plans on 8.5 mpg. If
 > you're really getting 8.9, you'll pump *less* than it says — a leg it calls 60
 > gallons is closer to 57. **If it says you're within about 3 gallons of a
@@ -328,6 +334,13 @@ Several entries below record a test that passed for the wrong reason.
 
 Newest first, one line each. The full reasoning for any release is in its commit
 and in the code comments. Nothing below is needed to use the app.
+
+### v1.58.0
+Fixed the gallons figure at the first stop when you don't leave the shipper
+full. It showed what you burned on the leg instead of what the pump takes, so a
+Midland run at 5/8 read "~37 gal, 23 short of a credit" on a fill that actually
+takes ~91 and clears the credit easily. Wrong on 43 of 65 test plans, and
+backwards as advice. Also fixed post-gap stops rendering their fill row twice.
 
 ### v1.57.0
 Range tiers move to 600 / 750 / 900. All three are whole gauge marks now, so each

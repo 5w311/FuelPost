@@ -17,8 +17,28 @@ console.log('=== Auto: what a stop is worth, and the needle at the receiver (v1.
     .split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
   ok('>>> every stop row carries what it will pump',
      (src.match(/class="rr-fill/g) || []).length >= 2
-     && /function fillNote\(legMiles\)\{/.test(src)
+     && /function fillNote\(fillMiles\)\{/.test(src)
      && /shower credit/.test(src) && /short of a credit/.test(src));
+  // v1.58.0 — the FILL, not the leg. They differ only at the first stop, and
+  // only when the driver did not leave the shipper full: the pump also has to
+  // replace what was already missing. Reported from the road as "~37 gal" on a
+  // fill that actually takes ~91.
+  ok('>>> the label is computed from the fill, never the leg',
+     /FuelGauge\.fillMilesAt\(i, legMiles, ranges\.pickupFuelMiles\)/.test(src)
+     && /fillNote\(fillAt\(i, s\.legMiles\)\)/.test(src));
+  ok('  and the credit colour is judged on the same number as the words',
+     /earnsCredit\(fillAt\(i, s\.legMiles\)\)/.test(src));
+  // The word matters: "~84 gal" beside a leg figure reads as the leg. "~84 gal
+  // fill" says which quantity it is.
+  ok('  and the number is labelled a FILL, on both wordings',
+     (src.match(/gal fill &middot;/g) || []).length === 2,
+     String((src.match(/gal fill &middot;/g) || []).length));
+  // Shipping since v1.51.0: post-gap stops rendered their fill row twice.
+  // Counted over the whole file — one for the plan list, one for the post-gap
+  // list, and no third.
+  ok('  exactly two fill rows exist: the plan list and the post-gap list',
+     (src.match(/class="rr-fill/g) || []).length === 2,
+     String((src.match(/class="rr-fill/g) || []).length));
   ok('  and a short fill is coloured, not just worded',
      /\.rr-fill-short\{color:var\(--danger-text\)/.test(html)
      && /rr-fill-short.*: ''/.test(src.replace(/\n/g, ' ')));
