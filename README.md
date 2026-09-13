@@ -61,9 +61,9 @@ The bottom eighth is never touched at all. The stretch between 1/8 and 1/4 is
 backup — the app will dig into it if you're already down there and need to see
 what's nearby, but a normal plan never spends it.
 
-## Auto (on unless you turn it off)
+## What the planner does for you
 
-Auto does three things.
+Three things, all automatic — there's nothing to switch on.
 
 **1 · It spaces your stops so each fill is worth stopping for.** A stop that
 pumps 40 gallons costs you the same time as one that pumps 75. The target is
@@ -88,35 +88,44 @@ twice, changed nothing on 37, and never made anything worse. On 18 of those 39,
 isn't dense enough. So the real value here is that each stop now tells you what
 it's worth, not the shuffling.
 
-**2 · It leaves you fuel at the receiver** — at least half a tank, and more where
-the route allows. It's a minimum, not a target, so turning Auto on can never
-leave you with *less* fuel at the delivery than leaving it off.
+**2 · It leaves you enough fuel to reach the next stop after you deliver.** Not a
+flat half tank — that held back 300 miles whether fuel was across the street or
+200 miles away, and cost a stop on a fifth of all loads. It now works out how
+far network fuel actually is from *your* delivery and holds back that much.
+
+Most deliveries have fuel close by — the median is 26 miles — so most of the
+time this costs you nothing at all. Deliver somewhere remote and it will plan
+the stop you need.
+
+**You can never arrive below 1/4 of a tank.** That's built in and always was:
+the planner only spends the top three quarters, so there's always 300 miles
+sitting there when you pull in.
 
 **3 · It skips a stop that isn't worth taking.** Sometimes holding fuel back for
 the receiver forces a stop right near the end that only pumps 50-odd gallons —
-no credit, and a full pull-in for it. Auto will skip that stop when:
+no credit, and a full pull-in for it. It will skip that stop when:
 
 - you can reach the receiver without it, **and**
 - it wouldn't earn a credit, **and**
 - either it's inside the last 100 miles, or there's network fuel within 50 miles
   of your delivery.
 
-**You can't end up stranded doing this.** The miles the app plans with already
-exclude that bottom quarter tank, so the worst case is arriving at 1/4 — 300
-real miles still in the tank. Across 112 real runs the skip happened 18 times,
-and every one of them still arrived at half a tank or better.
-
-When it skips one, it tells you which stop and why.
+**You can't end up stranded doing this**, for the same reason as above — the
+worst case is arriving at 1/4 with 300 real miles in the tank. When it skips
+one, it tells you which stop and why.
 
 ## What your results tell you
 
 For each stop: the mile marker, how far off route it is, roughly what you'll
 pump and whether that earns a credit, the exit, and the nav code in bold.
 
-At the bottom: your final leg, and **what your gauge should read pulling in** —
-rounded *down* to the nearest mark, never up. If that's under half, it says to
-fuel before your next load rather than after, and names the closest network stop
-to your delivery.
+At the bottom: your final leg, and **how much fuel you'll pull in with** — both
+the miles and the gauge mark, so a number like 440 miles doesn't get printed as
+a bare "1/4" and read like you're on fumes.
+
+Then it answers the question that actually matters at the door: *TA Ontario is
+19 mi away, so you can fuel after you drop* — or *nearest network fuel is 260 mi
+away, so fuel before you deliver.*
 
 ## When it can't make a plan
 
@@ -314,6 +323,14 @@ Several entries below record a test that passed for the wrong reason.
 
 Newest first, one line each. The full reasoning for any release is in its commit
 and in the code comments. Nothing below is needed to use the app.
+
+### v1.56.0
+The reserve is now sized to your delivery instead of being a flat half tank —
+measured over 84 real plans, that drops a stop from 47 of them and adds one to
+none. The arrival line shows miles beside the gauge mark and says outright
+whether you can reach fuel after dropping. The Auto switch is gone: spacing and
+the skip cost nothing so they always run, and the reserve is no longer a
+preference the app has to ask about.
 
 ### v1.55.0
 Tidied the results panel: the final leg now sits inside the delivery box, the

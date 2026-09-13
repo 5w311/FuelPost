@@ -3,8 +3,12 @@ const { haversine, projectStops, planFuel, cumulativeMiles } = require('../lib/f
 // miles lives in the gauge. Importing the real converter here rather than
 // hardcoding 0/150/300/450 means this file fails if the two ever disagree,
 // which is the whole reason planFuel takes miles instead of ticks.
-const { arrivalReserveMiles: gaugeArrivalMiles, RESERVE_TICKS: FLOOR_TICK,
-        ARRIVAL_TOGGLE_TICK: SWITCH_TICK } = require('../lib/gauge.js');
+const { arrivalReserveMiles: gaugeArrivalMiles, RESERVE_TICKS: FLOOR_TICK } = require('../lib/gauge.js');
+// planFuel takes a reserve in MILES and does not care where it came from. These
+// fixtures were written against the flat half-tank the app used until v1.56.0;
+// the number is kept because what they pin is planFuel's response to a reserve,
+// not the rule that now sizes one.
+const HALF_TANK_RESERVE = 300;
 let pass = 0, fail = 0;
 const ok = (name, cond, extra='') => { if (cond) { pass++; console.log('  PASS', name); } else { fail++; console.log('  FAIL', name, extra); } };
 const near = (a,b,tol) => Math.abs(a-b) <= tol;
@@ -149,7 +153,7 @@ console.log('\n=== arrival reserve: THE REPORTED CASE — a route that planned z
   // number: it is one tick above the floor by construction, and v1.40.0 moved
   // it from 1/4 to 3/8 when the floor rose. Hardcoding "2" here would have
   // asserted a zero reserve and passed for the wrong reason.
-  const quarter = planFuel(870, dense, 875, 0, gaugeArrivalMiles(SWITCH_TICK));
+  const quarter = planFuel(870, dense, 875, 0, HALF_TANK_RESERVE);
   ok('>>> one tick above the floor, a stop appears before delivery',
      quarter.ok && quarter.plan.length === 1,
      JSON.stringify({ ok: quarter.ok, miles: quarter.plan.map(s => s.mile) }));
@@ -171,9 +175,9 @@ console.log('\n=== arrival reserve: THE REPORTED CASE — a route that planned z
      left(zero) === 5 && left(quarter) === 865 && left(half) === 865,
      JSON.stringify([left(zero), left(quarter), left(half)]));
   ok('  every setting is met or beaten, which is the actual contract',
-     left(zero) >= gaugeArrivalMiles(FLOOR_TICK) && left(quarter) >= gaugeArrivalMiles(SWITCH_TICK)
+     left(zero) >= gaugeArrivalMiles(FLOOR_TICK) && left(quarter) >= HALF_TANK_RESERVE
      && left(half) >= gaugeArrivalMiles(4),
-     JSON.stringify([left(quarter), gaugeArrivalMiles(SWITCH_TICK), left(half), gaugeArrivalMiles(4)]));
+     JSON.stringify([left(quarter), HALF_TANK_RESERVE, left(half), gaugeArrivalMiles(4)]));
 }
 
 console.log('\n=== arrival reserve: the extra-mileage arithmetic is exact ===');
