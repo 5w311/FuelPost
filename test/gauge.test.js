@@ -36,7 +36,7 @@ console.log('\n=== miles -> nearest tick (for display / migrating old values) ==
 ok('0 mi -> tick 0', G.tickForMiles(0) === 0);
 ok('1200 mi -> tick 8', G.tickForMiles(1200) === 8);
 ok('600 mi -> tick 4 (exactly half the tank)', G.tickForMiles(600) === 4);
-ok('700 mi (the Long tier) -> nearest tick 5 (750mi)', G.tickForMiles(700) === 5);
+ok('700 mi -> nearest tick 5 (750mi)', G.tickForMiles(700) === 5);
 ok('over 1200 clamps to tick 8', G.tickForMiles(5000) === 8);
 ok('round-trip is stable for exact ticks', G.tickForMiles(G.milesForTick(3)) === 3);
 
@@ -246,7 +246,7 @@ console.log('\n=== arrival reserve: a TOGGLE since v1.35.0, floor + aim since v1
     const dense = [];
     for (let m = 100; m <= 900; m += 100) dense.push({ id: 'd' + m, name: 'd' + m, mile: m, detour: 2 });
     const over = FuelPlan.planFuel(900, dense, 500, 0, 600);
-    ok('>>> an oversized reserve (600 > Regular 500) degrades to a flagged shortfall',
+    ok('>>> an oversized reserve (600 > a 500-mi range) degrades to a flagged shortfall',
        over.ok === false && over.gap && over.gap.reserveShortfall === true, JSON.stringify(over.gap));
     ok('  with every drivable stop still planned, nothing stranded',
        over.plan.length > 0 && over.gap.deadMile >= 900, JSON.stringify(over.plan.map(s => s.mile)));
@@ -288,22 +288,35 @@ console.log('\n=== the range tiers against the tank scale ===');
   const T = { regular: tier('regular'), long: tier('long'), max: tier('max') };
   ok('the tier table was actually parsed', T.regular > 0 && T.long > 0 && T.max > 0,
      JSON.stringify(T));
-  ok('>>> the tiers are 500 / 700 / 900 (v1.35.0)',
-     T.regular === 500 && T.long === 700 && T.max === 900, JSON.stringify(T));
-  // The tick-scale claim, SIXTH revision (v1.40.0 sized the tank so the
-  // PLANNABLE span is 900): Max is on the scale again, and this time on the
-  // scale that matters — it is exactly a full tank's plannable range, not
-  // merely a whole number of ticks. Long is 4.67 ticks, Regular 3.33. The
-  // block reads the real table because this claim will not sit still.
+  ok('>>> the tiers are 600 / 750 / 900 (v1.57.0)',
+     T.regular === 600 && T.long === 750 && T.max === 900, JSON.stringify(T));
+  // THE TICK-SCALE CLAIM, SEVENTH REVISION — and the first one that is a
+  // property rather than a coincidence. Every tier is now a whole number of
+  // marks, so each names the reading the driver pulls IN at. The old pin
+  // asserted the opposite (exactly one on the scale, the other two kept off it
+  // on purpose); asserting that now would pin a design that is gone.
   ok('Max is exactly 6 ticks — the whole plannable span',
      T.max === 6 * G.MILES_PER_TICK);
-  ok('Regular is NOT a whole tick (3.33) — a road-practice number',
-     T.regular % G.MILES_PER_TICK !== 0);
-  ok('Long is NOT a whole tick either (4.67)',
-     T.long % G.MILES_PER_TICK !== 0);
-  ok('  exactly one tier sits on the tick scale',
-     Object.values(T).filter(m => m % G.MILES_PER_TICK === 0).length === 1,
+  ok('>>> every tier is a whole number of gauge marks',
+     Object.values(T).every(m => m % G.MILES_PER_TICK === 0),
      JSON.stringify(Object.entries(T).map(([k, m]) => k + ':' + (m / G.MILES_PER_TICK))));
+  ok('  and they are consecutive marks — 4, 5, 6',
+     T.regular / G.MILES_PER_TICK === 4 && T.long / G.MILES_PER_TICK === 5
+     && T.max / G.MILES_PER_TICK === 6);
+  // The claim a driver can act on: run a tier out and this is what the needle
+  // reads when you pull in. Derived from the tank, never restated.
+  ok('>>> each tier lands the driver at 1/2, 3/8 and 1/4 respectively',
+     G.tickLabel((G.FULL_TANK_MILES - T.regular) / G.MILES_PER_TICK) === '1/2'
+     && G.tickLabel((G.FULL_TANK_MILES - T.long) / G.MILES_PER_TICK) === '3/8'
+     && G.tickLabel((G.FULL_TANK_MILES - T.max) / G.MILES_PER_TICK) === '1/4',
+     JSON.stringify(Object.entries(T).map(([k, m]) =>
+       k + ':' + G.tickLabel((G.FULL_TANK_MILES - m) / G.MILES_PER_TICK))));
+  // Every tier now reaches the credit line on a full leg, which the 500-mi
+  // Regular did not: 500 mi is 60.3 gal at 8.5 mpg but only 57.6 at a real
+  // 8.9, so it sat on the wrong side of the coin toss the mpg note describes.
+  ok('  and every tier can earn a credit on a full leg',
+     Object.values(T).every(m => G.earnsCredit(m)),
+     JSON.stringify(Object.values(T).map(m => Math.round(G.combinedGallons(m)))));
   // THE POINT OF THE v1.40.0 SIZING, and the end of a wart that has come and
   // gone twice: the biggest range a driver can pick is exactly the range a
   // full tank gives. No overhang (v1.35.0 and v1.39.0 each had Max sitting 25

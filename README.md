@@ -32,12 +32,15 @@ but it doesn't change the plan.
 
 Pick the one that matches how you run:
 
-| | Miles | |
-|---|---|---|
-| Regular | 500 | Most stops |
-| **Long** | **700** | Fewer stops — this is the default |
-| Max | 900 | Fewest stops |
-| Custom | 300–1200 | Type your own |
+| | Miles | You pull in at | |
+|---|---|---|---|
+| Regular | 600 | **1/2 a tank** | Most stops |
+| **Long** | **750** | **3/8** | Fewer stops — the default |
+| Max | 900 | **1/4** | Fewest stops |
+| Custom | 300–1200 | — | Type your own |
+
+Each tier is a whole number of gauge marks, so it names the reading you'll pull
+in at. Pick the one that matches how low you like to run.
 
 **Max (900) is everything a full tank gives you.** The app treats a full tank as
 1,200 miles and holds back the bottom quarter — 300 miles — as yours, not to be
@@ -258,13 +261,15 @@ the live key is domain-locked to the Pages origin.
 
 ### Things not to undo
 
-- **Don't "correct" the tier numbers.** Only Max is a whole number of gauge
-  marks; Regular and Long are road-practice figures, pinned. The test reads
-  `RANGE_TIERS` from source — its old form asserted arithmetic about literals and
-  sailed through v1.35.0 silently, the exact drift it existed to catch.
-- **`ARRIVAL_TOGGLE_TICK` must exceed `RESERVE_TICKS`**, or the switch asks for
-  zero miles. Derived, not a literal, after v1.40.0 raised the floor underneath
-  it.
+- **The tier test reads `RANGE_TIERS` from source, never literals.** Which tiers
+  sit on the tick scale has changed seven times; an earlier version asserted
+  arithmetic about the numbers themselves — claims that stay true whatever the
+  table says — and sailed through the v1.35.0 change silently, the exact drift it
+  existed to catch. The button labels are hand-written markup, so a pin checks
+  they still match the table.
+- **The reserve is sized from the delivery, through `reserveToReachFuel()`.** A
+  hardcoded circuity factor or floor here is how the plan and the arrival advice
+  drift into contradicting each other.
 - **An empty `Set` is truthy and never equals `'all'`** — guards test `.size`, or
   the filter badge pins on permanently.
 - **Split amenity codes on comma; never `includes()`.** `includes('R')` would
@@ -323,6 +328,11 @@ Several entries below record a test that passed for the wrong reason.
 
 Newest first, one line each. The full reasoning for any release is in its commit
 and in the code comments. Nothing below is needed to use the app.
+
+### v1.57.0
+Range tiers move to 600 / 750 / 900. All three are whole gauge marks now, so each
+names what the needle reads when you pull in — 1/2, 3/8 and 1/4. Every tier can
+also earn a shower credit on a full leg, which the old 500-mi Regular could not.
 
 ### v1.56.0
 The reserve is now sized to your delivery instead of being a flat half tank —
