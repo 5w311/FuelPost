@@ -30,15 +30,19 @@ console.log('=== Auto: what a stop is worth, and the needle at the receiver (v1.
      && !/fuelAtArrival\(ranges\.maxRange/.test(src));
   ok('  floored to the eighth below, so it can never over-state the tank',
      /FuelGauge\.tickLabel\(Math\.floor\(arriveTick\)\)/.test(src));
-  ok('  and it reports a tank level, not a mileage',
-     /of a tank<\/b>/.test(src) && !/of a tank<\/b>\$\{'' \}? ?\(/.test(src));
-  ok('>>> under half it says so and offers fuel past the delivery',
-     /belowHalf \? ' — under half/.test(src)
-     && /arriveTick < FuelGauge\.TARGET_FILL_TICK/.test(src)
-     // v1.52.0 widened this condition to cover a skipped stop as well; what
-     // this pin is here for is that being under half STILL opens the panel,
-     // so it matches the belowHalf arm rather than the whole expression.
-     && /\(belowHalf \|\| result\.droppedFinal\) && delivery/.test(src));
+  ok('  and it reports the tank level AND the miles (v1.56.0)',
+     /of a tank\./.test(src) && /mi\(arriveMiles\)\} mi<\/b> in the tank/.test(src));
+  ok('>>> it answers whether fuel past the delivery is reachable',
+     /FuelGauge\.canReachFuelAfter\(arriveMiles, deliveryFuelMiles\)/.test(src)
+     && /You can fuel after you drop/.test(src)
+     && /<b>Fuel before you deliver<\/b>/.test(src));
+  // The station and its distance belong to the tappable panel below, not to
+  // this line as well — the same duplication the green "fewest-stop" block was
+  // removed for in v1.55.0.
+  ok('  and it does not repeat the station the panel below already names',
+     !/canFuelAfter\s*\n?\s*\? ` \$\{Esc\.escapeHtml\(nearDel/.test(src));
+  ok('  and the nearest-fuel panel is offered on every plan, not just a low one',
+     /if\(!nearDel && delivery\)\{/.test(src));
   ok('  the near-delivery button is wired from the value that rendered it',
      /if\(ndBtn && nearDel\)\{/.test(src));
   ok('  and the old duplicate arrival figure is gone from the no-stop copy',
@@ -753,67 +757,30 @@ ok('  Custom is what reveals it', /\$\('rangeCustomWrap'\)\.hidden = rangeTier !
 // steered plans); a switch does not, because its state is visible on the
 // control itself. What follows pins the switch semantics in that contract's
 // place.
-// v1.43.0 — ON by default. The static markup has to agree with the constant,
-// or the control renders in one state and flips in the other the moment the
-// startup call runs.
-ok('>>> the reserve control is a switch, ON by default',
-   /id="arrivalToggle"[^>]*role="switch"[^>]*aria-checked="true"/.test(html));
-ok('  and the default lives in ONE constant the whole file reads',
-   /const ARRIVAL_DEFAULT_ON = true;/.test(codeOnly)
-   && (codeOnly.match(/setArrivalOn\(ARRIVAL_DEFAULT_ON\)/g) || []).length === 2,
-   String((codeOnly.match(/setArrivalOn\(ARRIVAL_DEFAULT_ON\)/g) || []).length));
-ok('  with no bare setArrivalOn(false)/(true) left to disagree with it',
-   !/setArrivalOn\(false\)/.test(codeOnly) && !/setArrivalOn\(true\)/.test(codeOnly));
-// v1.51.0 — it stopped being a question and became a MODE. The fleet's own
-// framing: "Auto", dimmed when off, because the control is something that is
-// running rather than something waiting for an answer.
-ok('  its label names the mode, and the row dims when it is off',
-   /Auto &mdash; plan real fuel stops/.test(html)
-   && /\.rb-switchrow\[aria-checked="false"\] \.rb-switch-text\{color:var\(--sub\)/.test(html));
-// The literal cannot read FuelGauge at that point in the file, so the test
-// reads the module and requires the two to agree — against whichever constant
-// the default selects. v1.40.0's floor move would have been caught by this,
-// and so would a default flipped in one place but not the other.
-{
-  const G = require('../lib/gauge.js');
-  const expectTick = /const ARRIVAL_DEFAULT_ON = true;/.test(codeOnly)
-    ? G.ARRIVAL_TOGGLE_TICK : G.RESERVE_TICKS;
-  ok('>>> the declared tick matches the default the switch starts in',
-     new RegExp('let arrivalTick = ' + expectTick + ';').test(codeOnly),
-     'expected let arrivalTick = ' + expectTick + ';');
-  ok('  and ON means the module\'s own minimum, never a local number',
-     /arrivalTick = on \? FuelGauge\.ARRIVAL_TOGGLE_TICK : FuelGauge\.RESERVE_TICKS;/.test(codeOnly));
-}
-ok('>>> ON maps to the gauge\'s toggle tick, never a local number',
-   /arrivalTick = on \? FuelGauge\.ARRIVAL_TOGGLE_TICK : FuelGauge\.RESERVE_TICKS;/.test(codeOnly));
-// Scoped to setArrivalOn's own body: the THEME radiogroup writes the
-// byte-identical setAttribute('aria-checked', String(on)) at its own site, so
-// an unscoped pin kept passing with the arrival write deleted — caught by a
-// mutation run, the same trap as the vehicle profile's Standard button.
-{
-  const sao = codeOnly.slice(codeOnly.indexOf('function setArrivalOn('));
-  const saoBody = sao.slice(0, sao.indexOf('\n}\n') + 3);
-  ok('  aria-checked is written from the same call, so state and announcement agree',
-     /setAttribute\('aria-checked', String\(on\)\)/.test(saoBody), saoBody.slice(0, 200));
-}
-// The help line has to explain the switch from OUTSIDE: what is already held
-// back, and what turning it on buys — both worded from the gauge's own
-// numbers, never a hardcoded 450 or 150. Since v1.38.0 the ON copy carries
-// BOTH numbers: the 1/2 aim (what the plan lands closest to) and the 1/4
-// floor (what it never goes under).
-// v1.51.0 — Auto does TWO things and the copy names both, because they are
-// exactly the two a driver would otherwise have to infer from the stop list:
-// how big each fill is, and how full the tank is at the receiver.
-ok('>>> the off state names what turning it on buys',
-   /Off — fewest stops, and no cushion held for the receiver/.test(codeOnly)
-   && /Turn Auto on to fill at about/.test(codeOnly));
-ok('  the on state states the fill target AND the arrival minimum',
-   /Spaces your stops to fill at about \$\{fillLabel\} a tank/.test(codeOnly)
-   && /at least about \$\{minLabel\} of a tank/.test(codeOnly));
-ok('  both figures read the model — no literal gallons or ticks in the copy',
-   /tickLabel\(FuelGauge\.TARGET_FILL_TICK\)/.test(codeOnly)
-   && /combinedGallons\(FuelGauge\.targetFillMiles\(\)\)/.test(codeOnly)
-   && /tickLabel\(FuelGauge\.ARRIVAL_TOGGLE_TICK\)/.test(codeOnly));
+// v1.56.0 — THE SWITCH IS GONE. Spacing and the skip cost the driver nothing,
+// so they run unconditionally; the reserve stopped being a tank fraction and
+// became a distance to the delivery's nearest fuel, which the app works out for
+// itself. There was no question left to ask.
+ok('>>> no arrival switch survives anywhere in the page',
+   !/arrivalToggle/.test(html) && !/setArrivalOn/.test(codeOnly)
+   && !/ARRIVAL_DEFAULT_ON/.test(codeOnly) && !/arrivalTick/.test(codeOnly));
+ok('  and its dead switch CSS went with it',
+   !/rb-switchrow/.test(html) && !/\.rb-switch\{/.test(html));
+// Sized from the DELIVERY, and through the model rather than a literal — a
+// hardcoded 1.3 or 150 here is how the plan and the advice line drift into
+// contradicting one another.
+ok('>>> the reserve is sized from the delivery, through the gauge model',
+   /FuelGauge\.reserveToReachFuel\(deliveryFuelMiles\)/.test(codeOnly));
+ok('  measured once per load, from the delivery and not the route',
+   /NearMe\.nearestStops\(\s*\n\s*delivery\.lat, delivery\.lng, FUEL_STOPS/.test(codeOnly));
+ok('  and readRanges no longer computes one — it cannot know the delivery',
+   !/const arrivalReserve = /.test(codeOnly));
+// Neither spacing nor the skip may be gated by a ternary any more.
+ok('>>> the fill target is unconditional',
+   /const targetLeg = FuelGauge\.targetFillMiles\(\);/.test(codeOnly));
+ok('  and so is the skip, with its thresholds still off the model',
+   /creditMiles: FuelGauge\.CREDIT_MILES, withinMiles: FuelGauge\.SKIP_NEAR_RECEIVER_MI/.test(codeOnly)
+   && !/skipShortFinal = arrivalOn\(\)/.test(codeOnly));
 ok('>>> and the separate "aim" is gone from the app entirely',
    !/arrivalTarget/.test(codeOnly) && !/ARRIVAL_TARGET_TICK/.test(html));
 // v1.40.0: the held-back band is a QUARTER, so any copy naming it has to ask
@@ -836,14 +803,11 @@ ok('  and its width comes from RESERVE_TICKS, not a hardcoded 12.5%',
 ok('  the old seg, choices array and disclosure are gone',
    !/arrivalSeg/.test(codeOnly) && !/ARRIVAL_TICK_CHOICES/.test(codeOnly)
    && !/setArrivalOpen/.test(codeOnly) && !/arrivalField/.test(codeOnly));
-ok('>>> Clear trip returns it to the DEFAULT through the same function',
-   /setArrivalOn\(ARRIVAL_DEFAULT_ON\);[\s\S]{0,400}geoCands = \{ pickup: \[\], delivery: \[\] \};/.test(codeOnly));
-// The trap of defaulting on: "has anything changed?" compared against the OFF
-// tick would report yes on a form nobody has touched, and Clear trip would
-// offer itself on an empty page.
-ok('>>> "anything to clear" is measured against the DEFAULT, not against off',
-   /aria-checked'\) === 'true'\) !== ARRIVAL_DEFAULT_ON/.test(codeOnly)
-   && !/arrivalChanged = arrivalTick !== FuelGauge\.RESERVE_TICKS/.test(codeOnly));
+// v1.56.0 removed the switch, and with it the whole class of bug those two
+// pins guarded: a default that disagreed with the markup, and a
+// "has anything changed?" check measured against the wrong end of it.
+ok('>>> nothing is left for Clear trip to reset about the reserve',
+   !/setArrivalOn/.test(codeOnly) && !/arrivalChanged/.test(codeOnly));
 
 // The reserve AND the target have to reach the planner, and the shortfall has
 // to stay distinct from a dry gap all the way out to the shared trip text.
@@ -855,9 +819,8 @@ ok('>>> "anything to clear" is measured against the DEFAULT, not against off',
 {
   const rr = codeOnly.slice(codeOnly.indexOf('function readRanges('));
   const rrBody = rr.slice(0, rr.indexOf('\n}\n') + 3);
-  ok('>>> readRanges computes the reserve from the model, not a literal',
-     /const arrivalReserve = FuelGauge\.arrivalReserveMiles\(arrivalTick\);/.test(rrBody),
-     rrBody.slice(rrBody.indexOf('arrivalReserve'), rrBody.indexOf('arrivalReserve') + 120));
+  ok('>>> readRanges does NOT compute a reserve — it cannot know the delivery',
+     !/arrivalReserve/.test(rrBody), rrBody.slice(0, 120));
   ok('  and the range at pickup comes from rangeForTick, likewise',
      /FuelGauge\.rangeForTick\(gaugeTick\)/.test(rrBody));
 }
@@ -865,12 +828,8 @@ ok('>>> the reserve AND the fill target are passed into planAdaptive',
    /planAdaptive\([\s\S]{0,240}ranges\.arrivalReserve, ranges\.targetLeg, skipShortFinal\)/.test(codeOnly));
 ok('  and into planBeyondGap the same way',
    /planBeyondGap\([\s\S]{0,240}ranges\.arrivalReserve, ranges\.targetLeg, skipShortFinal\)/.test(codeOnly));
-ok('  readRanges returns them alongside the rest',
-   /return \{ maxRange, rangeAtPickup, startBurned, arrivalTick, arrivalReserve,\s*\n\s*onBackupReserve, pickupFuelMiles, targetLeg, skipShortFinal \};/.test(codeOnly));
-// The target is Auto's own lever: off, it must be zero so the planner is
-// byte-identical to pre-v1.51.0.
-ok('>>> the fill target is zero with Auto off, so OFF plans as it always did',
-   /const targetLeg = arrivalOn\(\) \? FuelGauge\.targetFillMiles\(\) : 0;/.test(codeOnly));
+ok('  readRanges returns the rest, reserve excepted',
+   /return \{ maxRange, rangeAtPickup, startBurned,\s*\n\s*onBackupReserve, pickupFuelMiles, targetLeg, skipShortFinal \};/.test(codeOnly));
 
 // v1.52.0 — the skip. Both thresholds must come off the gauge model; a literal
 // 100 or 498 here is how the planner and the labels drift apart, and the drift
@@ -886,16 +845,19 @@ ok('>>> the skip thresholds come from the gauge model, not literals',
 // that passed ranges.skipShortFinal straight through would silently lose it.
 ok('>>> planLoad measures the network around the DELIVERY, not the route',
    /const deliveryFuel = delivery \? NearMe\.nearestStops\(\s*\n\s*delivery\.lat, delivery\.lng, FUEL_STOPS, FuelPlan\.haversine, 1\)\[0\] : null;/.test(codeOnly));
-ok('  and the threshold is the gauge constant, not a literal 50',
-   /deliveryFuel\.miles <= FuelGauge\.FUEL_NEAR_DELIVERY_MI/.test(codeOnly));
+// v1.56.0: the near-delivery skip branch is no longer fed from the app. It
+// cannot fire — the reserve stays zero until the delivery is 115 mi from fuel
+// and the flag was only ever set under 50, so a true flag always meant a zero
+// reserve, no forced stop, and nothing to skip.
+ok('  and the unreachable near-delivery skip flag is no longer passed',
+   !/fuelNearDelivery:/.test(codeOnly));
 ok('>>> the planner is handed planLoad\'s object, not the one readRanges built',
    /ranges\.arrivalReserve, ranges\.targetLeg, skipShortFinal\);[\s\S]{0,400}ranges\.arrivalReserve, ranges\.targetLeg, skipShortFinal\);/.test(codeOnly)
    && !/ranges\.targetLeg, ranges\.skipShortFinal\)/.test(codeOnly));
 // The note said "that close to the receiver" for every skip in v1.52.0, which
 // is false for the 270-mi case the road reported. Each reason gets its own.
-ok('>>> the skipped-stop note gives the reason that actually applied',
-   /const wasNearReceiver = skipped\.milesFromDelivery <= FuelGauge\.SKIP_NEAR_RECEIVER_MI;/.test(codeOnly)
-   && /sitting \$\{mi\(nearDel\.miles\)\} mi from your delivery/.test(codeOnly));
+ok('>>> the skipped-stop note still names the distance the test turned on',
+   /const wasNearReceiver = skipped\.milesFromDelivery <= FuelGauge\.SKIP_NEAR_RECEIVER_MI;/.test(codeOnly));
 // Pinned as the JOINED expression, not as two facts that happen to both be
 // present: a mutation that kept `wasNearReceiver` and the receiver wording but
 // branched on a constant passed the looser version of this and was caught only
@@ -906,8 +868,6 @@ ok('  and nearDel is resolved BEFORE the note that names it',
    codeOnly.indexOf('nearDel = shortTrip.applies') < codeOnly.indexOf('const wasNearReceiver'),
    JSON.stringify([codeOnly.indexOf('nearDel = shortTrip.applies'),
                    codeOnly.indexOf('const wasNearReceiver')]));
-ok('  and Auto off hands the planner null, so OFF cannot take the skip branch at all',
-   /const skipShortFinal = arrivalOn\(\)\s*\n\s*\? \{ creditMiles: FuelGauge\.CREDIT_MILES, withinMiles: FuelGauge\.SKIP_NEAR_RECEIVER_MI \}\s*\n\s*: null;/.test(codeOnly));
 // The skipped stop is the one decision the stop list cannot show — it is
 // absent from it — so the note is the only place the driver learns of it.
 ok('>>> a skipped stop is reported by name',
@@ -915,12 +875,8 @@ ok('>>> a skipped stop is reported by name',
    && /class="rr-skipped">Auto skipped/.test(codeOnly));
 ok('  the name is escaped like every other station name on the screen',
    /Esc\.escapeHtml\(skipped\.name\)/.test(codeOnly));
-ok('>>> and a skip opens the nearest-fuel-to-delivery panel, which is the next question',
-   /if\(!nearDel && \(belowHalf \|\| result\.droppedFinal\) && delivery\)\{/.test(codeOnly));
-// Auto's help line claims three things now. If the copy names fewer than the
-// code does, the driver is surprised by the third.
-ok('>>> the Auto help line names the skip alongside the fills and the arrival',
-   /skips a last stop that wouldn't earn a credit when there's fuel near your delivery anyway/.test(codeOnly));
+ok('>>> the nearest-fuel panel is offered whenever there is a delivery',
+   /if\(!nearDel && delivery\)\{/.test(codeOnly));
 
 // v1.41.0 — the backup reserve. The band between 1/8 and 1/4 is dipped into
 // only when the reading is already at or under the planning floor, and the

@@ -360,7 +360,8 @@ console.log('\n=== the near-delivery path: fuel waiting at the destination ===')
   // miles; startBurned is the 7/8 reading from the screenshot.
   const route = 1375, range = 900;
   const burned = G.computeStartBurned(range, G.plannableMilesForTick(7));
-  const reserve = G.arrivalReserveMiles(G.ARRIVAL_TOGGLE_TICK);
+  // The flat half-tank reserve the app used when this run was reported.
+  const reserve = 300;
   const real = [
     { id: 'ep', name: 'Petro El Paso', mile: 614, detour: 0.1 },
     { id: 'tn', name: 'TA Tonopah', mile: 1105, detour: 0.3 }
