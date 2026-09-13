@@ -81,6 +81,45 @@ console.log('=== Auto: what a stop is worth, and the needle at the receiver (v1.
      !/canFuelAfter\s*\n?\s*\? ` \$\{Esc\.escapeHtml\(nearDel/.test(src));
   ok('  and the nearest-fuel panel is offered on every plan, not just a low one',
      /if\(!nearDel && delivery\)\{/.test(src));
+  // v1.60.0 — that panel is a stop a driver may actually drive to, so it
+  // carries what every other stop row carries. Read off the ONE resolved
+  // value rather than re-ranked, so it can never name a different station
+  // than the one measured, or than the one the shared text quotes.
+  ok('>>> the nearest-fuel row carries the exit and the nav code',
+     /const ndRow = nearDel\.row;/.test(src)
+     && /ndRow\[7\]/.test(src) && /navLine\(ndRow\)/.test(src));
+  ok('  with the station name escaped and its tier badge shown',
+     /Esc\.escapeHtml\(nearDel\.name\)/.test(src) && /tierBadge\(nearDel\.tier\)/.test(src));
+  ok('  and it degrades rather than throwing if the id does not resolve',
+     /ndRow && ndRow\[7\] \?/.test(src) && /\$\{ndRow \? navLine\(ndRow\) : ''\}/.test(src));
+  // v1.60.0 — ONE resolution, above lastTrip. While the panel resolved it for
+  // itself, lastTrip could only copy shortTrip's copy, which exists on a
+  // no-stop plan and nowhere else: the shared text was silent about the
+  // nearest fuel on exactly the plans a driver is most likely to share.
+  ok('>>> the nearest station is resolved once, ahead of lastTrip',
+     src.indexOf('let nearDel = shortTrip.applies') < src.indexOf('lastTrip = {')
+     && (src.match(/let nearDel/g) || []).length === 1
+     && !/nearDel = shortTrip\.applies \? shortTrip\.nearestToDelivery : null;[\s\S]{0,200}nearDel = shortTrip\.applies/.test(src),
+     JSON.stringify([src.indexOf('let nearDel = shortTrip.applies'),
+                     src.indexOf('lastTrip = {')]));
+  ok('  and the station row is attached there, not looked up per reader',
+     /nearDel = \{ \.\.\.nearDel, tier: nds \? nds\.tier : null, row: nds \? nds\.row : null \};/.test(src));
+  ok('>>> the shared text carries it on every completable plan',
+     /nearestToDelivery: \(result\.ok && nearDel\)/.test(src)
+     && !/nearestToDelivery: \(shortTrip\.applies/.test(src));
+  ok('  with the exit and the nav code mapped onto named fields for triptext',
+     /exit: nearDel\.row \? nearDel\.row\[7\] : undefined/.test(src)
+     && /nav: nearDel\.row \? nearDel\.row\[20\] : undefined/.test(src));
+  // The top-off tip is advice about LEAVING the shipper. It used to render at
+  // the very bottom, past the delivery and the arrival — after the decision.
+  ok('>>> the top-off tip renders ABOVE the pickup row',
+     src.indexOf('topping off there before you roll') <
+       src.indexOf('<div class="rr-endlabel">Pickup</div>'),
+     JSON.stringify([src.indexOf('topping off there before you roll'),
+                     src.indexOf('<div class="rr-endlabel">Pickup</div>')]));
+  ok('  and only once — it did not get left behind at the bottom too',
+     (src.match(/topping off there before you roll/g) || []).length === 1,
+     String((src.match(/topping off there before you roll/g) || []).length));
   ok('  the near-delivery button is wired from the value that rendered it',
      /if\(ndBtn && nearDel\)\{/.test(src));
   ok('  and the old duplicate arrival figure is gone from the no-stop copy',

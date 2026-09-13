@@ -277,6 +277,10 @@ the live key is domain-locked to the Pages origin.
 - **The reserve is sized from the delivery, through `reserveToReachFuel()`.** A
   hardcoded circuity factor or floor here is how the plan and the arrival advice
   drift into contradicting each other.
+- **The nearest stop to the delivery is resolved once, above `lastTrip`.** While
+  the panel resolved it for itself, `lastTrip` could only copy `shortTrip`'s
+  copy, which exists on a no-stop plan and nowhere else — so the shared text
+  was silent about it on every plan that had stops. Two readers, one value.
 - **An empty `Set` is truthy and never equals `'all'`** — guards test `.size`, or
   the filter badge pins on permanently.
 - **Split amenity codes on comma; never `includes()`.** `includes('R')` would
@@ -335,6 +339,13 @@ Several entries below record a test that passed for the wrong reason.
 
 Newest first, one line each. The full reasoning for any release is in its commit
 and in the code comments. Nothing below is needed to use the app.
+
+### v1.60.0
+The nearest-fuel-to-your-delivery row now shows the exit and nav code like every
+other stop, instead of being the one you had to tap into, and a shared plan
+carries all three — before, it named that station only on trips that needed no
+fuel stop at all. The top-off tip about your pickup moved above the pickup row,
+where it is advice rather than hindsight.
 
 ### v1.59.0
 **Max is the default tier.** The arrival reading now says where the needle sits — "just under 3/8" — instead
