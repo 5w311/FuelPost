@@ -134,17 +134,43 @@ console.log('=== Auto: what a stop is worth, and the needle at the receiver (v1.
   ok('  from the row the LINE was written from, never a second lookup',
      /tipStop = near;/.test(src)
      && !/tipStop = FUEL_STOPS\.find/.test(src)
-     && src.indexOf('tipStop = near;') < src.indexOf('nearPickupLine(near)'),
+     && src.indexOf('tipStop = near;') < src.indexOf('nearPickupLineTappable(near)'),
      JSON.stringify([src.indexOf('tipStop = near;'),
-                     src.indexOf('nearPickupLine(near)')]));
+                     src.indexOf('nearPickupLineTappable(near)')]));
+  // v1.62.0 — the station NAME is what opens the sheet, so it wears the
+  // colour every other tappable thing in the app wears. Weight alone was not
+  // reading as a link against a whole bold line.
+  ok('>>> the station name is coloured as a link',
+     /\.rr-tip-name\{color:var\(--navy-text\);text-decoration:underline;\}/.test(src)
+     && /<span class="rr-tip-name">/.test(src));
+  ok('  and only in the tip — the gap notes promise no tap',
+     // Twice in the whole file: the rule, and the one span that uses it.
+     (src.match(/rr-tip-name/g) || []).length === 2,
+     String((src.match(/rr-tip-name/g) || []).length));
+  // .map passes the INDEX as a second argument. A flag parameter on the
+  // shared formatter would have linked the second station and not the first,
+  // which is why the tappable dressing is its own function.
+  ok('  the two gap notes still call the PLAIN formatter through .map',
+     (src.match(/\.map\(nearPickupLine\)/g) || []).length === 2
+     && !/nearPickupLine\(s, /.test(src),
+     String((src.match(/\.map\(nearPickupLine\)/g) || []).length));
+  ok('  and the wording lives in one place, so the two cannot drift',
+     (src.match(/mi from your pickup/g) || []).length === 1,
+     String((src.match(/mi from your pickup/g) || []).length));
   ok('  declared at function scope, or the handler wires nothing',
      /let tipStop = null;/.test(src)
      && src.indexOf('let tipStop = null;') < src.indexOf('tipStop = near;'));
   ok('  it carries a chevron, which is what says tappable',
      /<span class="rr-chev">\u203a<\/span>\s*<\/button>/.test(src)
      || /rr-chev">›<\/span>/.test(src));
-  ok('  and it keeps the muted tip weight — not promoted to a required stop',
-     /\.rr-tip\{display:flex;[^}]*font-size:12px;/.test(src)
+  // v1.62.0 — the chevron alone was not carrying it: at 12px muted the line
+  // read as a footnote, and nobody tries to tap a footnote. Weight is the
+  // affordance. The SIZE stays small and it stays out of a box, so it still
+  // reads as an option beside the pickup, not a stop the plan requires.
+  ok('  and the text is bold, which is what makes it look tappable',
+     /\.rr-tip\{[^}]*font-weight:700;/.test(src));
+  ok('  but still small and unboxed — not promoted to a required stop',
+     /\.rr-tip\{[^}]*font-size:12px;/.test(src)
      && /\.rr-tip\{[^}]*background:none;border:none;/.test(src));
   ok('  and the old duplicate arrival figure is gone from the no-stop copy',
      /No fuel stop <b>required<\/b> for this run\./.test(src)

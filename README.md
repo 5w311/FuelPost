@@ -340,6 +340,11 @@ Several entries below record a test that passed for the wrong reason.
 Newest first, one line each. The full reasoning for any release is in its commit
 and in the code comments. Nothing below is needed to use the app.
 
+### v1.62.0
+The top-off tip above your pickup — the one naming a station near the shipper
+— is bold now, and the station's name is a link, so it reads as something to
+tap rather than a footnote.
+
 ### v1.61.0
 The top-off tip above your pickup is now tappable, like every other station the
 app names — it told you a station was nearby and left you with no way to see
