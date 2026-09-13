@@ -1032,8 +1032,8 @@
     <div class="rb-field">
       <label id="rangeLabel">How far do you run between fuel stops?</label>
       <div class="seg range-seg" id="rangeSeg" role="group" aria-labelledby="rangeLabel">
-        <button type="button" data-tier="regular"><b>Regular</b><span>500 mi</span><em>Most stops</em></button>
-        <button type="button" data-tier="long" class="active"><b>Long</b><span>700 mi</span><em>Fewer stops</em></button>
+        <button type="button" data-tier="regular"><b>Regular</b><span>600 mi</span><em>Most stops</em></button>
+        <button type="button" data-tier="long" class="active"><b>Long</b><span>750 mi</span><em>Fewer stops</em></button>
         <button type="button" data-tier="max"><b>Max</b><span>900 mi</span><em>Fewest stops</em></button>
         <button type="button" data-tier="custom"><b>Custom</b><span>300&ndash;1200</span><em>Set a number</em></button>
       </div>
@@ -1312,33 +1312,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.56.0"></script>
+<script src="lib/fuelplan.js?v=1.57.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.56.0"></script>
+<script src="lib/triptext.js?v=1.57.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.56.0"></script>
+<script src="lib/location.js?v=1.57.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.56.0"></script>
+<script src="lib/gauge.js?v=1.57.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.56.0"></script>
+<script src="lib/corridors.js?v=1.57.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.56.0"></script>
+<script src="lib/nearme.js?v=1.57.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.56.0"></script>
+<script src="lib/extract-version.js?v=1.57.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.56.0"></script>
+<script src="lib/autosuggest.js?v=1.57.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.56.0"></script>
+<script src="lib/baselayer.js?v=1.57.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.56.0"></script>
+<script src="lib/memocache.js?v=1.57.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.56.0"></script>
+<script src="lib/routerank.js?v=1.57.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.56.0"></script>
+<script src="lib/vehicleprofile.js?v=1.57.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.56.0"></script>
+<script src="lib/escape.js?v=1.57.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.56.0"></script>
+<script src="lib/navlinks.js?v=1.57.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1354,7 +1354,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.56.0')
+fetch('lib/fuelplan-adaptive.js?v=1.57.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1371,7 +1371,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.56.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.56.0')
+fetch('lib/shorttrip.js?v=1.57.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1382,7 +1382,7 @@ fetch('lib/shorttrip.js?v=1.56.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.56.0"></script>
+<script src="lib/flexible-polyline.js?v=1.57.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1554,7 +1554,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.56.0';
+const APP_VERSION = '1.57.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -3843,9 +3843,18 @@ const RANGE_MIN = 300, RANGE_MAX = 1200;
 // which meant every driver who never touched the field was silently on the
 // fewest-stops setting; see the README for what that changes about existing
 // plans.
+/* THE TIERS SIT ON THE GAUGE (v1.57.0). 600 / 750 / 900 are 4, 5 and 6 marks
+   of a 150-mi tick, so each one names the reading the driver pulls IN at:
+   Regular leaves half a tank, Long three-eighths, Max a quarter. That is the
+   band the fleet described — fuel somewhere between 1/2 and 1/4 — laid out as
+   three choices instead of left to arithmetic.
+
+   This replaces 500/700/900, where only Max was a whole mark and the other two
+   were road-practice numbers deliberately kept off the scale. The old test
+   pinned that asymmetry; it now pins the property that actually holds. */
 const RANGE_TIERS = {
-  regular: { miles: 500, label: 'Regular', freq: 'Most stops' },
-  long:    { miles: 700, label: 'Long',    freq: 'Fewer stops' },
+  regular: { miles: 600, label: 'Regular', freq: 'Most stops' },
+  long:    { miles: 750, label: 'Long',    freq: 'Fewer stops' },
   max:     { miles: 900, label: 'Max',     freq: 'Fewest stops' }
 };
 const DEFAULT_RANGE_TIER = 'long';
