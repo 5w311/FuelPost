@@ -340,6 +340,11 @@ Several entries below record a test that passed for the wrong reason.
 Newest first, one line each. The full reasoning for any release is in its commit
 and in the code comments. Nothing below is needed to use the app.
 
+### v1.61.0
+The top-off tip above your pickup is now tappable, like every other station the
+app names — it told you a station was nearby and left you with no way to see
+its hours, amenities or nav code.
+
 ### v1.60.0
 The nearest-fuel-to-your-delivery row now shows the exit and nav code like every
 other stop, instead of being the one you had to tap into, and a shared plan

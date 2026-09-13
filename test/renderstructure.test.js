@@ -122,6 +122,30 @@ console.log('=== Auto: what a stop is worth, and the needle at the receiver (v1.
      String((src.match(/topping off there before you roll/g) || []).length));
   ok('  the near-delivery button is wired from the value that rendered it',
      /if\(ndBtn && nearDel\)\{/.test(src));
+  // v1.61.0 — the tip names a real station, so it opens that station's sheet.
+  // It was the ONLY named station in the panel that did not, which left the
+  // hours, the amenities and the nav code with nowhere to be reached from.
+  ok('>>> the top-off tip is a button, not a dead line of text',
+     /<button type="button" class="rr-tip" id="rrNearPick">/.test(src)
+     && !/<div class="rr-tip">/.test(src));
+  ok('  and it opens the station sheet',
+     /if\(tipBtn && tipStop && tipStop\.row\)\{/.test(src)
+     && /tipBtn\.addEventListener\('click', \(\) => openSheet\(tipStop\.row\)\)/.test(src));
+  ok('  from the row the LINE was written from, never a second lookup',
+     /tipStop = near;/.test(src)
+     && !/tipStop = FUEL_STOPS\.find/.test(src)
+     && src.indexOf('tipStop = near;') < src.indexOf('nearPickupLine(near)'),
+     JSON.stringify([src.indexOf('tipStop = near;'),
+                     src.indexOf('nearPickupLine(near)')]));
+  ok('  declared at function scope, or the handler wires nothing',
+     /let tipStop = null;/.test(src)
+     && src.indexOf('let tipStop = null;') < src.indexOf('tipStop = near;'));
+  ok('  it carries a chevron, which is what says tappable',
+     /<span class="rr-chev">\u203a<\/span>\s*<\/button>/.test(src)
+     || /rr-chev">›<\/span>/.test(src));
+  ok('  and it keeps the muted tip weight — not promoted to a required stop',
+     /\.rr-tip\{display:flex;[^}]*font-size:12px;/.test(src)
+     && /\.rr-tip\{[^}]*background:none;border:none;/.test(src));
   ok('  and the old duplicate arrival figure is gone from the no-stop copy',
      /No fuel stop <b>required<\/b> for this run\./.test(src)
      && !/required<\/b> — you arrive with about/.test(src));
