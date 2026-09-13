@@ -30,6 +30,12 @@ console.log('=== Auto: what a stop is worth, and the needle at the receiver (v1.
      /earnsCredit\(fillAt\(i, s\.legMiles\)\)/.test(src));
   // The word matters: "~84 gal" beside a leg figure reads as the leg. "~84 gal
   // fill" says which quantity it is.
+  // BOTH stop lists, counted — a pin that only needs one match passes while
+  // the other list quietly loses its bold, which a mutation walked through.
+  ok('>>> the leg and detour figures are bold on every stop list',
+     (src.match(/<b>\$\{mi\(s\.legMiles\)\} mi<\/b> this leg &middot; <b>\$\{s\.detour\.toFixed\(1\)\} mi<\/b> off route/g) || []).length === 2
+     && /\.rr-meta\.mono b\{color:var\(--ink\)/.test(html),
+     String((src.match(/<b>\$\{mi\(s\.legMiles\)\} mi<\/b> this leg/g) || []).length));
   ok('  and the number is labelled a FILL, on both wordings',
      (src.match(/gal fill &middot;/g) || []).length === 2,
      String((src.match(/gal fill &middot;/g) || []).length));
@@ -48,10 +54,22 @@ console.log('=== Auto: what a stop is worth, and the needle at the receiver (v1.
   ok('>>> the arrival reading comes from the TANK, never the tier',
      /const fuelLeaving = stops\.length \? FuelGauge\.FULL_TANK_MILES : ranges\.pickupFuelMiles;/.test(src)
      && !/fuelAtArrival\(ranges\.maxRange/.test(src));
-  ok('  floored to the eighth below, so it can never over-state the tank',
-     /FuelGauge\.tickLabel\(Math\.floor\(arriveTick\)\)/.test(src));
-  ok('  and it reports the tank level AND the miles (v1.56.0)',
-     /of a tank\./.test(src) && /mi\(arriveMiles\)\} mi<\/b> in the tank/.test(src));
+  // v1.59.0 — flooring never over-stated, but it understated by nearly a whole
+  // mark: 439 mi is 2.93 marks and printed as "1/4", hiding 139 mi of fuel.
+  // needleReading says where the needle sits and still never over-states.
+  ok('  read as a needle position, not floored to the mark below',
+     /FuelGauge\.needleReading\(arriveTick\)/.test(src)
+     && !/tickLabel\(Math\.floor\(arriveTick\)\)/.test(src));
+  // v1.59.0 — the mileage must be PLANNABLE, the same scale the pickup gauge
+  // quotes ("1/2 — about 300 mi"). Physical fuel here meant the app printed two
+  // different mileages against one set of marks: at 3/8 a driver expects 150 mi
+  // and the line said 439.
+  ok('  and the mileage is plannable range, not physical fuel',
+     /arriveMiles - FuelGauge\.milesForTick\(FuelGauge\.RESERVE_TICKS\)/.test(src)
+     && /roughly <b>\$\{mi\(arrivePlannable\)\} mi<\/b> of range left/.test(src)
+     && !/in the tank/.test(src));
+  ok('  and at the floor it says so rather than printing "0 mi"',
+     /no plannable range left<\/b>, on the \$\{FuelGauge\.tickLabel\(FuelGauge\.RESERVE_TICKS\)\} floor/.test(src));
   ok('>>> it answers whether fuel past the delivery is reachable',
      /FuelGauge\.canReachFuelAfter\(arriveMiles, deliveryFuelMiles\)/.test(src)
      && /You can fuel after you drop/.test(src)
@@ -736,15 +754,23 @@ ok('exactly four tier buttons', (tierSeg.match(/data-tier="/g) || []).length ===
    String((tierSeg.match(/data-tier="/g) || []).length));
 ok('they are regular / long / max / custom',
    ['regular','long','max','custom'].every(t => tierSeg.includes(`data-tier="${t}"`)));
-ok('>>> Long is the one marked active in the initial markup',
-   /data-tier="long"[^>]*class="active"/.test(tierSeg), tierSeg.slice(0, 400));
+// The markup's active class is hand-written, so it can disagree with
+// DEFAULT_RANGE_TIER — and would then render one tier selected while planning
+// on another. Read the constant rather than naming a tier here, so this pin
+// cannot go stale the next time the default moves.
+{
+  const def = (codeOnly.match(/const DEFAULT_RANGE_TIER = '(\w+)';/) || [])[1];
+  ok('>>> the DEFAULT tier is the one marked active in the initial markup',
+     !!def && new RegExp(`data-tier="${def}"[^>]*class="active"`).test(tierSeg),
+     JSON.stringify([def, (tierSeg.match(/data-tier="\w+" class="active"/g) || [])]));
+}
 ok('  and no other tier is', (tierSeg.match(/class="active"/g) || []).length === 1);
 ok('each button shows its mile figure, not just a name',
    /600 mi/.test(tierSeg) && /750 mi/.test(tierSeg) && /900 mi/.test(tierSeg));
 ok('and the stop-frequency tradeoff alongside it',
    /Most stops/.test(tierSeg) && /Fewer stops/.test(tierSeg) && /Fewest stops/.test(tierSeg));
 // The constants behind them.
-ok('DEFAULT_RANGE_TIER is long', /const DEFAULT_RANGE_TIER = 'long';/.test(codeOnly));
+ok('DEFAULT_RANGE_TIER is max (v1.59.0)', /const DEFAULT_RANGE_TIER = 'max';/.test(codeOnly));
 ok('>>> ROUTE_DEFAULT_RANGE is derived from the tier table, never hardcoded',
    /const ROUTE_DEFAULT_RANGE = RANGE_TIERS\[DEFAULT_RANGE_TIER\]\.miles;/.test(codeOnly));
 ok('  so it can no longer be the old 875 by accident',

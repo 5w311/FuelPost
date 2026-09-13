@@ -737,6 +737,9 @@
   .rr-info{flex:1;min-width:0;}
   .rr-name{font-weight:700;font-size:13.5px;}
   .rr-meta{font-size:11.5px;color:var(--sub);margin-top:2px;}
+  /* The mileages are what a driver scans this line for; the words between them
+     are scaffolding. Ink weight on the figures, muted on the rest. */
+  .rr-meta.mono b{color:var(--ink);font-weight:700;}
   /* The nav code is the string the driver keys into the truck, so on the
      results screen it takes the ink colour and the weight while its label
      stays muted. Bold alone inside .rr-meta would still have been grey. */
@@ -1033,8 +1036,8 @@
       <label id="rangeLabel">How far do you run between fuel stops?</label>
       <div class="seg range-seg" id="rangeSeg" role="group" aria-labelledby="rangeLabel">
         <button type="button" data-tier="regular"><b>Regular</b><span>600 mi</span><em>Most stops</em></button>
-        <button type="button" data-tier="long" class="active"><b>Long</b><span>750 mi</span><em>Fewer stops</em></button>
-        <button type="button" data-tier="max"><b>Max</b><span>900 mi</span><em>Fewest stops</em></button>
+        <button type="button" data-tier="long"><b>Long</b><span>750 mi</span><em>Fewer stops</em></button>
+        <button type="button" data-tier="max" class="active"><b>Max</b><span>900 mi</span><em>Fewest stops</em></button>
         <button type="button" data-tier="custom"><b>Custom</b><span>300&ndash;1200</span><em>Set a number</em></button>
       </div>
       <div class="rb-range-wrap" id="rangeCustomWrap" hidden>
@@ -1312,33 +1315,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.58.0"></script>
+<script src="lib/fuelplan.js?v=1.59.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.58.0"></script>
+<script src="lib/triptext.js?v=1.59.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.58.0"></script>
+<script src="lib/location.js?v=1.59.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.58.0"></script>
+<script src="lib/gauge.js?v=1.59.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.58.0"></script>
+<script src="lib/corridors.js?v=1.59.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.58.0"></script>
+<script src="lib/nearme.js?v=1.59.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.58.0"></script>
+<script src="lib/extract-version.js?v=1.59.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.58.0"></script>
+<script src="lib/autosuggest.js?v=1.59.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.58.0"></script>
+<script src="lib/baselayer.js?v=1.59.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.58.0"></script>
+<script src="lib/memocache.js?v=1.59.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.58.0"></script>
+<script src="lib/routerank.js?v=1.59.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.58.0"></script>
+<script src="lib/vehicleprofile.js?v=1.59.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.58.0"></script>
+<script src="lib/escape.js?v=1.59.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.58.0"></script>
+<script src="lib/navlinks.js?v=1.59.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1354,7 +1357,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.58.0')
+fetch('lib/fuelplan-adaptive.js?v=1.59.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1371,7 +1374,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.58.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.58.0')
+fetch('lib/shorttrip.js?v=1.59.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1382,7 +1385,7 @@ fetch('lib/shorttrip.js?v=1.58.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.58.0"></script>
+<script src="lib/flexible-polyline.js?v=1.59.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1554,7 +1557,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.58.0';
+const APP_VERSION = '1.59.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -3857,7 +3860,15 @@ const RANGE_TIERS = {
   long:    { miles: 750, label: 'Long',    freq: 'Fewer stops' },
   max:     { miles: 900, label: 'Max',     freq: 'Fewest stops' }
 };
-const DEFAULT_RANGE_TIER = 'long';
+// MAX BY DEFAULT (v1.59.0), at the fleet's direction. This reverses v1.27.0's
+// reasoning, which is worth stating rather than quietly undoing: back then the
+// default WAS the fewest-stops setting only because nobody had chosen it — the
+// old number box shipped 875 and most drivers never touched it. Choosing it is
+// a different thing from inheriting it, and the guardrails that were missing
+// then are here now: the reserve is sized to the delivery, every stop is
+// labelled with what it will pump, and the arrival says whether fuel is
+// reachable afterwards.
+const DEFAULT_RANGE_TIER = 'max';
 
 // Which tier is selected, and how much fuel the driver wants left on arrival.
 // Session state only, deliberately: neither is remembered across sessions. A
@@ -4527,7 +4538,7 @@ function clearTrip(){
   hidePickupGeoError();
 
   $('rangeInput').value = '';   // empty, so the greyed placeholder returns — not the number in black
-  setRangeTier(DEFAULT_RANGE_TIER);   // back to Long, and hides the custom input
+  setRangeTier(DEFAULT_RANGE_TIER);   // back to the default, hides the custom input
   // Reuse the pickup disclosure's own collapse behaviour — it already resets
   // the gauge to F and closes its field — and put the reserve back to its
   // default rather than to off, which are no longer the same thing.
@@ -4728,7 +4739,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
       <div class="rr-mile"><b>${mi(s.mile)}</b><span>mile</span></div>
       <div class="rr-info">
         <div class="rr-name">${i+1}. ${s.name} ${tierBadge(s.tier)}</div>
-        <div class="rr-meta mono">${mi(s.legMiles)} mi this leg &middot; ${s.detour.toFixed(1)} mi off route</div>
+        <div class="rr-meta mono"><b>${mi(s.legMiles)} mi</b> this leg &middot; <b>${s.detour.toFixed(1)} mi</b> off route</div>
         <div class="rr-fill${FuelGauge.earnsCredit(fillAt(i, s.legMiles)) ? '' : ' rr-fill-short'}">${fillNote(fillAt(i, s.legMiles))}</div>
         <div class="rr-meta">${s.row[7] || ''}</div>
         ${navLine(s.row)}
@@ -4795,21 +4806,19 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     const fuelLeaving = stops.length ? FuelGauge.FULL_TANK_MILES : ranges.pickupFuelMiles;
     const arriveMiles = FuelGauge.fuelAtArrival(fuelLeaving, result.finalLegMiles);
     const arriveTick = FuelGauge.tickAtArrival(fuelLeaving, result.finalLegMiles);
-    // A TANK READING, not a mileage: this is the number the driver will see on
-    // the needle when they shut down, and miles of range is the planner's
-    // language rather than theirs.
+    const arriveLabel = FuelGauge.needleReading(arriveTick);
+    // THE SAME SCALE THE PICKUP GAUGE USES (v1.59.0), and this is the whole
+    // point of the line. That gauge reads "1/2 — about 300 mi", which is
+    // PLANNABLE range: what is left above the quarter-tank floor. v1.56.0 put
+    // PHYSICAL fuel here instead — "439 mi in the tank" — so the app quoted two
+    // different mileages against one set of marks with nothing saying which was
+    // which. Reported from the road: at 3/8 a driver expects 150 mi, and 439
+    // does not look like 3/8 of anything.
     //
-    // FLOORED to the eighth below, never rounded to the nearest. 1140 mi is
-    // 7.6 ticks, and rounding calls that "F" — a gauge reading that
-    // over-states what is in the tank, which is the one direction that costs
-    // something. The needle a driver actually sees sits between marks and
-    // gets read down; so does this. The half-tank test below uses the exact
-    // tick, so the advice is not affected by the rounding.
-    const arriveLabel = FuelGauge.tickLabel(Math.floor(arriveTick));
-    // MILES ALONGSIDE THE MARK (v1.56.0). Flooring never over-states the tank,
-    // which is right, but at the bottom it reads as alarm: 439 mi is nearly 3/8
-    // and printed as "1/4", the floor itself. The number says what the mark
-    // cannot.
+    // Derived from the physical figure rather than recomputed, so the two can
+    // never disagree about the same arrival.
+    const arrivePlannable = Math.max(0,
+      arriveMiles - FuelGauge.milesForTick(FuelGauge.RESERVE_TICKS));
     const deliveryFuelMiles = ranges.deliveryFuelMiles;
     // The real question, not the "under half" stand-in it replaces: with this
     // much in the tank, is the nearest network stop past the delivery
@@ -4826,8 +4835,14 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
                                     FuelPlan.haversine, 1)[0];
       if(n) nearDel = { name: n.stop.name, id: n.stop.id, miles: Math.round(n.miles) };
     }
-    h += `<div class="rr-arrive${canFuelAfter || deliveryFuelMiles === null ? '' : ' rr-arrive-low'}">Pulling in with about
-      <b>${mi(arriveMiles)} mi</b> in the tank &mdash; ${arriveLabel} of a tank.${
+    // No "at" before the reading: needleReading already supplies its own
+    // preposition ("about 1/2", "just under 3/8", "between 3/8 and 1/2"), and
+    // "pulling in at between" is not a sentence. "roughly" on the mileage so
+    // the line does not say "about" twice.
+    h += `<div class="rr-arrive${canFuelAfter || deliveryFuelMiles === null ? '' : ' rr-arrive-low'}">Pulling in
+      <b>${arriveLabel}</b> &mdash; ${arrivePlannable > 0
+        ? `roughly <b>${mi(arrivePlannable)} mi</b> of range left.`
+        : `<b>no plannable range left</b>, on the ${FuelGauge.tickLabel(FuelGauge.RESERVE_TICKS)} floor.`}${
       deliveryFuelMiles === null ? '' : canFuelAfter
         ? ' You can fuel after you drop.'
         : ' <b>Fuel before you deliver</b> — the nearest network fuel is too far to reach afterwards.'}</div>`;
@@ -4931,7 +4946,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
           <div class="rr-mile"><b>${mi(s.mile)}</b><span>mile</span></div>
           <div class="rr-info">
             <div class="rr-name">${stops.length + i + 1}. ${s.name} ${tierBadge(s.tier)}</div>
-            <div class="rr-meta mono">${mi(s.legMiles)} mi this leg &middot; ${s.detour.toFixed(1)} mi off route</div>
+            <div class="rr-meta mono"><b>${mi(s.legMiles)} mi</b> this leg &middot; <b>${s.detour.toFixed(1)} mi</b> off route</div>
             <div class="rr-fill${FuelGauge.earnsCredit(s.legMiles) ? '' : ' rr-fill-short'}">${fillNote(s.legMiles)}</div>
             <div class="rr-meta">${s.row[7] || ''}</div>
             ${navLine(s.row)}

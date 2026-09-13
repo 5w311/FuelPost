@@ -311,6 +311,37 @@ console.log('\n=== arrival reserve: a TOGGLE since v1.35.0, floor + aim since v1
        G.fillMilesAt(i, l, 0) <= FULL)));
 }
 
+// WHERE THE NEEDLE SITS (v1.59.0). Flooring never over-stated but understated
+// by up to a whole mark; this says the position and still never over-states.
+{
+  const at = mi => G.needleReading(mi / G.MILES_PER_TICK);
+  ok('>>> the reported case: 439 mi reads as just under 3/8, not as 1/4',
+     at(439) === 'just under 3/8', at(439));
+  ok('  on a mark, it says so plainly', at(450) === 'about 3/8' && at(600) === 'about 1/2',
+     JSON.stringify([at(450), at(600)]));
+  ok('  midway, it names both marks', at(521) === 'between 3/8 and 1/2', at(521));
+  ok('  and the ends behave', at(1200) === 'about F' && at(0) === 'about E',
+     JSON.stringify([at(1200), at(0)]));
+  // THE PROPERTY WORTH KEEPING from the flooring it replaces.
+  {
+    let overstated = null;
+    for (let m = 0; m <= G.FULL_TANK_MILES; m += 7) {
+      const r = at(m);
+      const named = r.replace(/^(about|just under|between .* and) /, '');
+      const claimed = ['E','1/8','1/4','3/8','1/2','5/8','3/4','7/8','F'].indexOf(named)
+                      * G.MILES_PER_TICK;
+      // "about X" claims at least X; "just under Y" and "between X and Y" claim
+      // less than the upper mark. Neither may promise fuel that is not there.
+      if (r.startsWith('about') && m + 1e-9 < claimed) overstated = { m, r };
+      if (!r.startsWith('about') && m >= claimed) overstated = { m, r };
+    }
+    ok('>>> no reading ever promises more fuel than the tank holds',
+       overstated === null, JSON.stringify(overstated));
+  }
+  ok('  out-of-range input is clamped, not thrown on',
+     G.needleReading(-3) === 'about E' && G.needleReading(99) === 'about F');
+}
+
 console.log('\n=== the range tiers against the tank scale ===');
 // READ FROM index.html, not restated as literals. The old version of this
 // block asserted arithmetic about the numbers 875 and 675 directly — claims

@@ -35,8 +35,8 @@ Pick the one that matches how you run:
 | | Miles | You pull in at | |
 |---|---|---|---|
 | Regular | 600 | **1/2 a tank** | Most stops |
-| **Long** | **750** | **3/8** | Fewer stops — the default |
-| Max | 900 | **1/4** | Fewest stops |
+| Long | 750 | **3/8** | Fewer stops |
+| **Max** | **900** | **1/4** | Fewest stops — the default |
 | Custom | 300–1200 | — | Type your own |
 
 Each tier is a whole number of gauge marks, so it names the reading you'll pull
@@ -128,9 +128,10 @@ one, it tells you which stop and why.
 For each stop: the mile marker, how far off route it is, roughly what you'll
 pump and whether that earns a credit, the exit, and the nav code in bold.
 
-At the bottom: your final leg, and **how much fuel you'll pull in with** — both
-the miles and the gauge mark, so a number like 440 miles doesn't get printed as
-a bare "1/4" and read like you're on fumes.
+At the bottom: your final leg, and **where the needle will sit when you pull
+in** — *"just under 3/8 — roughly 139 mi of range left"*. The mileage is the
+same plannable range the pickup gauge quotes, so 3/8 means 150 mi in both
+places.
 
 Then it answers the question that actually matters at the door: *TA Ontario is
 19 mi away, so you can fuel after you drop* — or *nearest network fuel is 260 mi
@@ -334,6 +335,12 @@ Several entries below record a test that passed for the wrong reason.
 
 Newest first, one line each. The full reasoning for any release is in its commit
 and in the code comments. Nothing below is needed to use the app.
+
+### v1.59.0
+**Max is the default tier.** The arrival reading now says where the needle sits — "just under 3/8" — instead
+of flooring to the mark below, which printed 439 mi as "1/4" and hid 139 mi of
+fuel. Its mileage is now plannable range, the same scale the pickup gauge uses,
+so 3/8 means 150 mi in both places. Leg and off-route figures are bold.
 
 ### v1.58.0
 Fixed the gallons figure at the first stop when you don't leave the shipper
