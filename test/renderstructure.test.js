@@ -260,8 +260,22 @@ console.log('=== the search box has two jobs (v1.46.0) ===');
      /clearPlace\(\);/.test(cb.slice(0, cb.indexOf('});') + 3)), cb.slice(0, 300));
   ok('  and the placeholder says which job is live, from the first paint',
      /function syncSearchMode\(\)\{/.test(src)
-     && /Look up a city/.test(src) && /Search city, state, exit/.test(src)
+     && /'Look up a city'/.test(src) && /'City, state, exit'/.test(src)
      && /syncSearchMode\(\);\s*\nrender\(\);/.test(src));
+  // v1.64.0 — the filter copy was cut off the same way the lookup copy was:
+  // 139px of "Search city, state, exit…" in an 88px box, so the driver read
+  // "Search city, state,…" and lost the field they were least likely to
+  // guess. The verb goes because the magnifier icon already says it; the
+  // three field names stay, because that is the half carrying information.
+  ok('>>> the filter copy no longer leads with a verb the icon already says',
+     !/Search city, state, exit/.test(src));
+  ok('  and the two modes still say different things',
+     /filtering \? 'City, state, exit' : 'Look up a city'/.test(src));
+  // The markup's own placeholder is the FIRST paint, before syncSearchMode
+  // runs. Left stale it would flash the old copy on every load.
+  ok('  with the static markup carrying the same string, for the first paint',
+     /id="searchInput"[^>]*placeholder="City, state, exit"/.test(html)
+     && !/placeholder="Search city, state, exit/.test(html));
   // v1.47.0 — suggestions on the Stops box, and a centred view.
   ok('>>> the box is a combobox with its own dropdown',
      /id="searchInput"[^>]*role="combobox"[^>]*aria-controls="placeSuggest"/.test(html)

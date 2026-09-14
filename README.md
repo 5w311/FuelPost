@@ -340,6 +340,10 @@ Several entries below record a test that passed for the wrong reason.
 Newest first, one line each. The full reasoning for any release is in its commit
 and in the code comments. Nothing below is needed to use the app.
 
+### v1.64.0
+When the stop list is open, the search box now says "City, state, exit" — the
+old wording ran off the edge of the box and hid the last one.
+
 ### v1.63.0
 The city search box just says "Look up a city" now. The rest of the line was
 cut off on a phone anyway.
