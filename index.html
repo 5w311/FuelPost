@@ -998,7 +998,7 @@
     </button>
     <div class="search-wrap stops-only">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input id="searchInput" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="placeSuggest" autocomplete="off" placeholder="Search city, state, exit…">
+      <input id="searchInput" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="placeSuggest" autocomplete="off" placeholder="City, state, exit">
       <button type="button" id="searchClearBtn" class="rb-clear-field-btn" title="Clear search" aria-label="Clear search" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
@@ -1333,33 +1333,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.63.0"></script>
+<script src="lib/fuelplan.js?v=1.64.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.63.0"></script>
+<script src="lib/triptext.js?v=1.64.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.63.0"></script>
+<script src="lib/location.js?v=1.64.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.63.0"></script>
+<script src="lib/gauge.js?v=1.64.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.63.0"></script>
+<script src="lib/corridors.js?v=1.64.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.63.0"></script>
+<script src="lib/nearme.js?v=1.64.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.63.0"></script>
+<script src="lib/extract-version.js?v=1.64.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.63.0"></script>
+<script src="lib/autosuggest.js?v=1.64.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.63.0"></script>
+<script src="lib/baselayer.js?v=1.64.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.63.0"></script>
+<script src="lib/memocache.js?v=1.64.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.63.0"></script>
+<script src="lib/routerank.js?v=1.64.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.63.0"></script>
+<script src="lib/vehicleprofile.js?v=1.64.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.63.0"></script>
+<script src="lib/escape.js?v=1.64.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.63.0"></script>
+<script src="lib/navlinks.js?v=1.64.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1375,7 +1375,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.63.0')
+fetch('lib/fuelplan-adaptive.js?v=1.64.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1392,7 +1392,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.63.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.63.0')
+fetch('lib/shorttrip.js?v=1.64.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1403,7 +1403,7 @@ fetch('lib/shorttrip.js?v=1.63.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.63.0"></script>
+<script src="lib/flexible-polyline.js?v=1.64.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1575,7 +1575,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.63.0';
+const APP_VERSION = '1.64.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -3020,7 +3020,16 @@ function syncSearchMode(){
   // so the half that explained anything was the half that got cut: the driver
   // read "Look up a city — tap a…" and learned nothing the short version
   // does not already say. The dropdown itself is what teaches the gesture.
-  inp.placeholder = filtering ? 'Search city, state, exit…' : 'Look up a city';
+  //
+  // BOTH strings are measured against the box, not guessed at. The input's
+  // content width floors at 88px from 320 to 390 CSS px — the phone range —
+  // and the filter copy used to read "Search city, state, exit…", which paints
+  // 139px. A driver saw "Search city, state,…" and lost the one field they
+  // were least likely to guess. "City, state, exit" paints 84px and fits at
+  // every width; the verb goes because the magnifier icon beside the box is
+  // already saying it, and naming the three fields is the half that carries
+  // information the driver cannot get anywhere else.
+  inp.placeholder = filtering ? 'City, state, exit' : 'Look up a city';
   // A mobile keyboard should offer "search" for the lookup and nothing
   // special for a filter that applies as you type.
   inp.setAttribute('enterkeyhint', filtering ? 'done' : 'search');
