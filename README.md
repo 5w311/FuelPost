@@ -340,6 +340,10 @@ Several entries below record a test that passed for the wrong reason.
 Newest first, one line each. The full reasoning for any release is in its commit
 and in the code comments. Nothing below is needed to use the app.
 
+### v1.63.0
+The city search box just says "Look up a city" now. The rest of the line was
+cut off on a phone anyway.
+
 ### v1.62.0
 The top-off tip above your pickup — the one naming a station near the shipper
 — is bold now, and the station's name is a link, so it reads as something to
