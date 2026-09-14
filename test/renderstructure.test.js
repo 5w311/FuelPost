@@ -229,8 +229,13 @@ console.log('=== the search box has two jobs (v1.46.0) ===');
      /if\(field === 'place'\)\{[\s\S]{0,400}showPlace\(cand\.lat, cand\.lng, cand\.label\);/.test(src)
      && (src.match(/lookupPlace\(/g) || []).length === 2,   // the definition + the needsLookup fallback
      String((src.match(/lookupPlace\(/g) || []).length));
-  ok('  and the copy names that gesture, not a key that no longer works',
-     /Look up a city — tap a match/.test(src) && !/press enter/.test(src));
+  // v1.63.0 — the copy no longer spells the gesture out. On a phone the box
+  // truncates to "Look up a city — tap a…", so the explaining half was the
+  // half that got cut; the dropdown teaches the gesture. What still matters
+  // is that the copy never points at a key that does nothing.
+  ok('  and the copy points at no key that no longer works',
+     /'Look up a city'/.test(src)
+     && !/tap a match/.test(src) && !/press enter/i.test(src));
   // Hiding the dropdown has to cancel the work still coming, or a response
   // that lands a moment after enter re-opens a list the driver dismissed.
   {
