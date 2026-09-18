@@ -192,6 +192,26 @@ than labels baked into the picture. That matters when you're sizing up a lot at
 
 ---
 
+# Opening the app on a weak signal
+
+The app now keeps a copy of itself on your phone, so opening it does not
+re-download the app every time. On a weak signal that is the wait before
+anything appears, and it is gone.
+
+**It still needs a signal to open.** The map and route planning come from the
+map provider and cannot work without one — that was always true. What is new is
+that everything *we* wrote loads from your phone instead of over the air.
+
+**Updates** work exactly as before. Open the menu and tap the version to check;
+a new one comes down the next time you open the app from closed. Checking always
+asks the network, so it tells you the truth.
+
+**Not yet: using the station list with no signal at all.** That is the point of
+all this and it does not work yet — see the note in the developer section. It
+needs one more change before it can be promised.
+
+---
+
 # About the station list
 
 **144 stops. 142 you can be routed to** — one is the Covenant yard, one is
@@ -260,11 +280,128 @@ derived, not stored. Escape everything external. localStorage keys are versioned
 (`fuelpost.<setting>.v1`), store only explicit choices, treat anything unexpected
 as absent, and bump to `.v2` if what "unset" resolves to changes.
 
-**Releasing:** bump `APP_VERSION` **and all 17 `?v=` stamps**, add a version
-entry (a test requires one matching `APP_VERSION`, another requires
-`FUEL_BOOK_REV`), get `node test/run.js` green, PR. Browser checks live in a
-scratchpad Playwright harness with the real vendored SDK and HERE intercepted;
-the live key is domain-locked to the Pages origin.
+**Releasing:** bump `APP_VERSION`, **all 17 `?v=` stamps, and `VERSION` in
+`sw.js`** — since v1.65.0 the service worker names its cache from its own
+`VERSION`, and a partial bump ships a worker whose precache list no page ever
+requests. `test/cachebust.test.js` fails the build on any of the three drifting.
+Add a version entry (a test requires one matching `APP_VERSION`, another
+requires `FUEL_BOOK_REV`), get `node test/run.js` green, PR. Browser checks live
+in a scratchpad Playwright harness with the real vendored SDK and HERE
+intercepted; the live key is domain-locked to the Pages origin.
+
+### Offline: the service worker
+
+`sw.js` precaches **our own files only** and serves them cache-first.
+
+| Cached | Not cached |
+| --- | --- |
+| `index.html` | Anything on `js.api.here.com` |
+| All 17 `lib/*.js`, **at their `?v=` stamps** | Any `hereapi.com` endpoint |
+| The four icons | Map tiles, routing, geocoding, autosuggest |
+
+**Why HERE is left out, deliberately.** Their scripts load without
+`crossorigin`, so a worker fetching them gets opaque responses: status 0,
+contents uninspectable, `cache.addAll` rejects on them, and they are padded
+heavily against the storage quota. Caching them needs `no-cors` fetch plus
+`cache.put` plus a quota strategy, and a failure there is indistinguishable
+from success until the map silently stops rendering. Leaving HERE on the
+network means everything cached is code we wrote and can test, the map behaves
+exactly as it does today, and the offline win — the entire Stops tab — still
+lands. **Caching HERE is a possible second pass, once this one is trusted in
+the truck.**
+
+**The version contract.** The cache is named `fuelpost-v<APP_VERSION>`. On
+`activate`, every cache whose name starts with `fuelpost-` and is not the
+current one is deleted. That one rule is what makes a stale-version lock
+impossible: a new `APP_VERSION` means a new cache name, a full refetch, and the
+old cache dropped. `sw.js`'s `VERSION` must equal `APP_VERSION`; the build
+fails if it does not.
+
+**The lib URLs are precached with their `?v=` query**, because the query is
+part of the cache key. A list that omitted it would store keys the page never
+asks for — every module would miss and fall through to network-only. Working,
+but pointless. The list is generated from one `VERSION` constant so a bump
+cannot half-apply.
+
+**What is not intercepted at all** — non-GET, anything cross-origin, and any
+request carrying `_cb=`. Those return from the fetch handler without calling
+`respondWith`, so they go to the network exactly as they would with no worker
+installed, rather than through a pass-through that could alter them.
+
+**Registration** happens after `load`, guarded on `'serviceWorker' in
+navigator`, with failure swallowed. The app works without the worker; that is
+the whole fallback. There is no `skipWaiting`, no `clients.claim` and no
+update-available toast — a new version activates on the next cold start.
+
+**`test/serviceworker.test.js` runs the worker rather than reading it**: it
+loads `sw.js` into a sandbox with stubbed `caches`/`fetch`, fires real install,
+activate and fetch events, and asserts what actually happened — what landed in
+the cache, that old caches are swept, that HERE and `_cb` pass through, and
+that an offline miss fails rather than hangs.
+
+**None of that proves the worker functions in a browser.** Device checks —
+airplane mode, cold start, a version bump arriving — are the real gate.
+`scratchpad/pw-offline.js` covers everything but a physical phone: a real
+Chromium install, real Cache Storage, a real airplane-mode cold start, and a
+real version bump.
+
+#### Why the offline win does not land yet
+
+**The app opens with no signal and is then inert.** Measured, not assumed.
+
+`index.html` constructs HERE objects at the TOP LEVEL of the main script block
+— `const HERE_ENGINE = H.Map.EngineType.HARP` and eight more `const`s like it.
+With no signal the SDK never loads, `H` is undefined, that line throws, and the
+whole script block dies **630 lines before `state` is declared**. The cached
+libs load, `DATA`'s 144 rows are present, and none of it is wired to anything:
+the list renders empty, and `state` is left in the temporal dead zone — `typeof
+state` throws, which is itself the proof that execution stopped part-way.
+
+So the premise "the Stops tab needs nothing but its own files" is true of the
+data and the logic, and **not true of how the page is currently built**.
+
+Making it land needs map construction deferred behind a readiness guard and
+`render()` split into its list half and its map half. That is a change to the
+app's startup path, with its own risk, and it does not belong in the same
+change as the worker. Until it happens the worker buys faster repeat opens and
+nothing more — and offline it produces a page that looks alive and is not,
+which is worth weighing against today's honest browser error.
+
+#### The kill switch
+
+If the worker ever pins drivers to a broken build, **replace `sw.js` with this
+file and deploy.** Browsers revalidate the worker script independently of the
+caches it controls, so publishing it reaches every driver with no action on
+their part. It is written out here in full on purpose: the moment it is needed
+is the moment nobody wants to be writing it.
+
+```js
+// FuelPost KILL SWITCH. Replaces sw.js to undo it everywhere.
+// Unregisters the worker, deletes every fuelpost- cache, and reloads any open
+// page so the driver is back on plain network behaviour without doing anything.
+// skipWaiting and clients.claim ARE wanted here, unlike in the real worker:
+// this needs to take effect now, not on the next cold start.
+self.addEventListener('install', () => self.skipWaiting());
+
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    await self.registration.unregister();
+    const names = await caches.keys();
+    await Promise.all(
+      names.filter(n => n.startsWith('fuelpost-')).map(n => caches.delete(n))
+    );
+    const clients = await self.clients.matchAll({ type: 'window' });
+    for (const client of clients) client.navigate(client.url);
+  })());
+});
+
+// No fetch handler at all: while this worker is briefly in control, every
+// request goes straight to the network.
+```
+
+After it has reached everyone, `sw.js` can be deleted or replaced with a fixed
+worker. A driver who never opens the app in between is unregistered the first
+time they do.
 
 ### Things not to undo
 
@@ -281,6 +418,20 @@ the live key is domain-locked to the Pages origin.
   the panel resolved it for itself, `lastTrip` could only copy `shortTrip`'s
   copy, which exists on a no-stop plan and nowhere else — so the shared text
   was silent about it on every plan that had stops. Two readers, one value.
+- **The service worker must never answer a request carrying `_cb=`.** That is
+  `checkForUpdate`'s cache-buster, and a cache-first answer to it reports "you
+  are on the latest version" forever — including to a driver pinned on a broken
+  one. The guard in `sw.js` and the fetch in `checkForUpdate` are one decision
+  in two files; neither is safe to edit alone.
+- **The service worker caches our own files only.** No `js.api.here.com`, no
+  `hereapi.com`. Their scripts load without `crossorigin`, so a worker fetching
+  them gets opaque responses — status 0, uninspectable, `addAll` rejects, padded
+  heavily against quota — and a failure there looks exactly like success until
+  the map silently stops rendering. A test fails if any HERE URL appears in the
+  worker's code.
+- **No `skipWaiting` and no `clients.claim` in `sw.js`.** A new version taking
+  over on the next cold start is what the version contract assumes. Seizing
+  pages mid-session is a separate decision with its own risk.
 - **An empty `Set` is truthy and never equals `'all'`** — guards test `.size`, or
   the filter badge pins on permanently.
 - **Split amenity codes on comma; never `includes()`.** `includes('R')` would
@@ -339,6 +490,11 @@ Several entries below record a test that passed for the wrong reason.
 
 Newest first, one line each. The full reasoning for any release is in its commit
 and in the code comments. Nothing below is needed to use the app.
+
+### v1.65.0
+The app keeps a copy of itself on your phone, so opening it no longer
+re-downloads everything — a real difference on a weak signal. Using it with no
+signal at all is not there yet.
 
 ### v1.64.0
 When the stop list is open, the search box now says "City, state, exit" — the

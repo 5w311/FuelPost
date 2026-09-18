@@ -17,5 +17,13 @@ regressions this project has already paid for once.
 
 ## Shipping
 
-`node test/run.js` must be green. Bump `APP_VERSION` **and all 17 `?v=` stamps**
-together, and add a one-line version-history entry — tests enforce both.
+`node test/run.js` must be green. Bump `APP_VERSION`, **all 17 `?v=` stamps, and
+`VERSION` in `sw.js`** together, and add a one-line version-history entry —
+tests enforce all of it. The service worker names its cache from its own
+`VERSION`, so a partial bump ships a worker nothing requests from.
+
+## Before touching sw.js
+
+Read **For developers → Offline: the service worker** in `README.md`. It caches
+our own files only, never HERE, and never answers a `_cb=` request. The kill
+switch is in that section, verbatim, for when it is needed.
