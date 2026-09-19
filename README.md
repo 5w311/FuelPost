@@ -192,6 +192,23 @@ than labels baked into the picture. That matters when you're sizing up a lot at
 
 ---
 
+# If the map won't load
+
+The map needs a signal. The station list does not.
+
+If the map can't load — no bars, a truck stop's sign-in wifi, or the map
+service having a bad day — the app now says so and keeps going. The station
+list, search, the filters, exits and nav codes all still work. Tap the ☰
+button to open the list.
+
+Before, a map that couldn't load took the whole app with it: the screen came
+up and nothing on it did anything. That's fixed.
+
+Route planning still needs a signal, because the roads and the mileages come
+from the map service. When the signal comes back, the map loads on its own.
+
+---
+
 # About the station list
 
 **144 stops. 142 you can be routed to** — one is the Covenant yard, one is
@@ -266,6 +283,45 @@ entry (a test requires one matching `APP_VERSION`, another requires
 scratchpad Playwright harness with the real vendored SDK and HERE intercepted;
 the live key is domain-locked to the Pages origin.
 
+### Surviving a missing map SDK
+
+`index.html` loads HERE from four `<script>` tags. Until v1.65.0 it then built
+the map at the **top level** of the main script, so a missing SDK threw on the
+first `H.` reference and killed the whole script — 630 lines before `state` was
+declared. Measured in Chromium with the tags aborted: the page loaded, `DATA`'s
+144 rows were present, and nothing was wired to anything.
+
+Two pieces now:
+
+- **`MAP_SDK`** — `typeof H !== 'undefined' && !!(H && H.Map)`. Every map
+  construction sits inside `if(MAP_SDK){ ... }`, in its original position, so
+  with the SDK present the order of startup is byte-for-byte what it was.
+- **`mapLive()`** — reads `map !== null`, not the flag, so a construction that
+  failed part-way reads as no map rather than a half-built one. Every function
+  touching a map object guards on it.
+
+Functions that do map work *and* app work are guarded **line by line**, never
+wrapped: `switchTheme` still sets the app-wide `data-theme` and updates the
+toggle, and `clearPlace` still clears `placeAnchor`, the token and the Near Me
+panel. Wrapping either would break dark mode or leave a stale pin anchor.
+
+With no SDK the loading overlay is retired immediately and replaced with a
+message naming what still works, rather than leaving the 20-second watchdog
+spinning over a map that is never coming.
+
+`test/nomap.test.js` is a scope walk, not a regex sweep: it strips comments and
+strings, then tracks whether each line is inside a function and inside a guard,
+and fails on any unguarded top-level map construction. It also injects a
+violation and checks the walker still catches it, so a broken walker cannot
+pass silently. `scratchpad/pw-nomap.js` drives the real page in Chromium with
+the four HERE scripts aborted and exercises the whole Stops tab, then repeats
+every check with the SDK present and asserts the two agree.
+
+**Still coupled, deliberately:** the map is built at startup when the SDK is
+there, not lazily when the map is first shown. Lazy construction would cut
+2.3 MB off the startup path, but it changes online behaviour and belongs in its
+own change.
+
 ### Things not to undo
 
 - **The tier test reads `RANGE_TIERS` from source, never literals.** Which tiers
@@ -281,6 +337,18 @@ the live key is domain-locked to the Pages origin.
   the panel resolved it for itself, `lastTrip` could only copy `shortTrip`'s
   copy, which exists on a no-stop plan and nowhere else — so the shared text
   was silent about it on every plan that had stops. Two readers, one value.
+- **Nothing may construct a HERE object at the top level of the main script.**
+  Everything map-shaped is built inside `if(MAP_SDK)`, and every function that
+  touches a map object guards on `mapLive()`. Until v1.65.0 the map was built
+  at the top level, so a missing SDK threw before `state` was even declared and
+  took the whole app with it — the driver got a page that looked alive and did
+  nothing. `test/nomap.test.js` walks the script and fails the build on any
+  unguarded top-level construction; it is a scope walk, not a regex, because a
+  regex cannot tell top-level code from a function body.
+- **`switchTheme` and `clearPlace` are guarded line-by-line, not wrapped.**
+  Both do map work AND app work — `data-theme` for the whole app, and the
+  place pin's state. An early return in either quietly breaks dark mode or
+  leaves a stale pin anchor on a page with no map.
 - **An empty `Set` is truthy and never equals `'all'`** — guards test `.size`, or
   the filter badge pins on permanently.
 - **Split amenity codes on comma; never `includes()`.** `includes('R')` would
@@ -339,6 +407,10 @@ Several entries below record a test that passed for the wrong reason.
 
 Newest first, one line each. The full reasoning for any release is in its commit
 and in the code comments. Nothing below is needed to use the app.
+
+### v1.65.0
+If the map can't load, the app now says so and the station list, search and
+filters keep working. Before, a failed map took the whole app down with it.
 
 ### v1.64.0
 When the stop list is open, the search box now says "City, state, exit" — the
