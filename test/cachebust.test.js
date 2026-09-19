@@ -38,5 +38,16 @@ const drifted = refs.filter(r => r.v && r.v !== appVersion);
 ok(`every stamp equals APP_VERSION (${appVersion})`, drifted.length === 0,
    JSON.stringify(drifted));
 
+// ---- version.txt holds the SAME version (v1.66.0) -------------------------
+// checkForUpdate reads version.txt rather than dragging index.html down the
+// wire. If that file drifts from APP_VERSION the app reports an update that
+// does not exist \u2014 or worse, reports "you're on the latest" to a driver who
+// is not. It is seven bytes; there is no excuse for it to be wrong.
+const vfile = fs.readFileSync(path.join(__dirname, '..', 'version.txt'), 'utf8');
+ok('version.txt contains exactly one dotted version and nothing else',
+   /^\d+\.\d+\.\d+\n?$/.test(vfile), JSON.stringify(vfile));
+ok(`version.txt matches APP_VERSION (${appVersion})`, vfile.trim() === appVersion,
+   `version.txt has ${JSON.stringify(vfile.trim())}, index.html has ${appVersion}`);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) process.exitCode = 1;
