@@ -258,6 +258,19 @@ console.log('=== the search box has two jobs (v1.46.0) ===');
   const cb = src.slice(src.indexOf("getElementById('searchClearBtn').addEventListener"));
   ok('>>> clearing the search clears the pin with it',
      /clearPlace\(\);/.test(cb.slice(0, cb.indexOf('});') + 3)), cb.slice(0, 300));
+  // v1.66.0 — the check asks for seven bytes, not 367 KB, and still never
+  // reads from a cache.
+  ok('>>> the update check fetches version.txt, not the whole page',
+     /fetch\(new URL\('version\.txt', location\.href\) \+ '\?_cb=' \+ Date\.now\(\),/.test(src)
+     && /ExtractVersion\.parseVersionFile/.test(src));
+  ok('  relative to location.href, so the subpath deploy resolves',
+     !/fetch\('\/version\.txt/.test(src));
+  ok('  still cache-busted and never served from cache',
+     /version\.txt[\s\S]{0,160}cache: 'no-store'/.test(src));
+  ok('  and the HTML fallback is still there for a deploy that lost the file',
+     /if\(live === null\)\{[\s\S]{0,260}ExtractVersion\.extractVersion\(text\);/.test(src));
+  ok('  and the whole page is NOT fetched unless that fallback fires',
+     src.indexOf("fetch(new URL('version.txt'") < src.indexOf('location.pathname + \'?_cb=\''));
   ok('  and the placeholder says which job is live, from the first paint',
      /function syncSearchMode\(\)\{/.test(src)
      && /'Look up a city'/.test(src) && /'City, state, exit'/.test(src)

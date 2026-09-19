@@ -322,6 +322,28 @@ there, not lazily when the map is first shown. Lazy construction would cut
 2.3 MB off the startup path, but it changes online behaviour and belongs in its
 own change.
 
+### The update check
+
+`checkForUpdate` runs on load **and on every `visibilitychange` to visible** —
+so every time a driver comes back from their nav app. Until v1.66.0 it fetched
+`index.html`, **367 KB**, to read one string out of it. It now fetches
+`version.txt`, which is seven bytes and says the same thing.
+
+- Resolved with `new URL('version.txt', location.href)`, never rooted at `/`,
+  because the app is served from a subpath on Pages.
+- `?_cb=` and `cache: 'no-store'` stay. This is the one request in the app that
+  must never be answered from anything but the live server.
+- `parseVersionFile` is **strict**: only a bare dotted number is accepted. A
+  404 page, a captive-portal login, or `index.html` served by mistake are all
+  "text that came back 200", and a loose parse would report one of them to the
+  driver as a version.
+- **The HTML fallback is kept on purpose.** If `version.txt` is missing or
+  unparseable, it reads the version out of the page as before. Losing the
+  update check entirely is a worse failure than paying for the big fetch once.
+- `test/cachebust.test.js` fails the build if `version.txt` drifts from
+  `APP_VERSION`. A wrong file here tells a driver they are up to date when
+  they are not.
+
 ### Things not to undo
 
 - **The tier test reads `RANGE_TIERS` from source, never literals.** Which tiers
@@ -349,6 +371,10 @@ own change.
   Both do map work AND app work — `data-theme` for the whole app, and the
   place pin's state. An early return in either quietly breaks dark mode or
   leaves a stale pin anchor on a page with no map.
+- **`version.txt` is bumped with `APP_VERSION`, and `parseVersionFile` stays
+  strict.** The update check reads that file and nothing else; a drifted value
+  tells a driver they are on the latest when they are not, and a loose parse
+  reports a captive-portal page as a version number. Both are tested.
 - **An empty `Set` is truthy and never equals `'all'`** — guards test `.size`, or
   the filter badge pins on permanently.
 - **Split amenity codes on comma; never `includes()`.** `includes('R')` would
@@ -407,6 +433,10 @@ Several entries below record a test that passed for the wrong reason.
 
 Newest first, one line each. The full reasoning for any release is in its commit
 and in the code comments. Nothing below is needed to use the app.
+
+### v1.66.0
+Checking for updates no longer re-downloads the whole app to read one line. It
+runs every time you come back to the app, so on a weak signal that adds up.
 
 ### v1.65.0
 If the map can't load, the app now says so and the station list, search and
