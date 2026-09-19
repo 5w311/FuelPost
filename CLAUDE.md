@@ -17,5 +17,5 @@ regressions this project has already paid for once.
 
 ## Shipping
 
-`node test/run.js` must be green. Bump `APP_VERSION` **and all 17 `?v=` stamps**
+`node test/run.js` must be green. Bump `APP_VERSION` **and all 18 `?v=` stamps**
 together, and add a one-line version-history entry — tests enforce both.

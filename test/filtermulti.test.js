@@ -1,11 +1,11 @@
 // v1.32.0 — state and corridor as MULTI-SELECT, and the removal of the brand
 // and tier filters.
 //
-// passes() lives in index.html and cannot be required, so this mirrors it the
-// way amenityfilter.test.js does — and then PINS the mirror against the real
-// source, because a mirror that has drifted proves things about itself rather
-// than about the app. Every semantic assertion below is only worth what those
-// source pins are worth.
+// v2.0.0: THE MIRROR IS GONE. passes() moved to lib/stopfilter.js, so this
+// calls the real predicate instead of a copy of it. The source pins that kept
+// the copy honest went with it — they were the price of not being able to
+// require the thing under test, and every semantic assertion below is now
+// worth what the real function is worth rather than what a mirror was.
 //
 // The combination rule is the thing this file exists to hold still:
 //   WITHIN a dimension  -> OR   (TX or OK; I-20 or I-59)
@@ -37,54 +37,62 @@ const DATA = splitDataBlock(html).rowLines.map(parseRowLine);
 const ROW_CORRIDORS = new Map(DATA.map(r => [r, Corridors.corridorsForRow(r[0], r[7])]));
 const SHOWERS_MANY = Number((html.match(/const SHOWERS_MANY\s*=\s*(\d+)/) || [])[1]);
 
-// ---------------------------------------------------------------- the mirror
-const hasCode = (r, c) => String(r[16] || '').split(',').some(x => x.trim() === c);
-function passes(row, st) {
-  if (st.st.size && !st.st.has(row[5])) return false;
-  if (st.corridor.size
-      && !(ROW_CORRIDORS.get(row) || []).some(c => st.corridor.has(c))) return false;
-  if (st.q) {
-    // row[20], the nav code, joined the haystack in v1.33.0. This mirror had
-    // to move with it — the tests here search for 'a' and 'dallas', which
-    // match through name and city either way, so a stale mirror would have
-    // gone on passing while quietly describing a different function. The pin
-    // below is what actually catches that.
-    const hay = (row[2] + ' ' + row[4] + ' ' + row[5] + ' ' + row[7] + ' ' + row[20]).toLowerCase();
-    if (!hay.includes(st.q)) return false;
-  }
-  if (st.showers && !(Number(row[14]) >= SHOWERS_MANY)) return false;
-  if (st.gym && !(hasCode(row, 'F') || hasCode(row, 'O'))) return false;
-  if (st.restaurant && !hasCode(row, 'R')) return false;
-  return true;
-}
+// ------------------------------------------------- the real thing, required
+const StopFilter = require('../lib/stopfilter.js');
+// The shape index.html hands it, built here from the same shorthand the cases
+// below already used. Nothing is reimplemented: this only names the state.
+const criteria = (o = {}) => ({
+  states: new Set(o.st || []), corridors: new Set(o.corridor || []),
+  query: o.q || '', showers: !!o.showers, gym: !!o.gym, restaurant: !!o.restaurant,
+  showersMany: SHOWERS_MANY
+});
+const run = o => {
+  const c = criteria(o);
+  return DATA.filter(r =>
+    StopFilter.stopPasses(r, { ...c, rowCorridors: ROW_CORRIDORS.get(r) }));
+};
+const ids = rows => rows.map(r => r[0]).sort();
+
+// filtersActive() is a DIFFERENT inline function — it decides whether Reset
+// is offered, not which rows show — and it has not been extracted, so it is
+// still mirrored, with its own state shape. Search is deliberately absent
+// from it; see the reset section at the bottom.
 const S = (o = {}) => ({
   st: new Set(o.st || []), corridor: new Set(o.corridor || []),
   q: o.q || '', showers: !!o.showers, gym: !!o.gym, restaurant: !!o.restaurant
 });
-const run = o => DATA.filter(r => passes(r, S(o)));
-const ids = rows => rows.map(r => r[0]).sort();
-
-// Mirrors index.html's filtersActive(). Search is deliberately absent — see
-// the reset section at the bottom.
 const filtersActive = st =>
   st.st.size > 0 || st.corridor.size > 0 || st.showers || st.gym || st.restaurant;
 
 console.log('=== the mirror above still matches index.html ===');
 // If any of these fail, everything below is testing a fiction.
-ok('>>> state is a membership test on row[5], guarded on .size',
-   /if\(state\.st\.size && !state\.st\.has\(row\[5\]\)\) return false;/.test(code));
-ok('>>> corridor intersects the row\'s corridor list, guarded on .size',
-   /if\(state\.corridor\.size\s*&& !\(ROW_CORRIDORS\.get\(row\) \|\| \[\]\)\.some\(c => state\.corridor\.has\(c\)\)\) return false;/.test(code));
+// v2.0.0 — these used to pin the mirror's clauses against index.html. The
+// rule is required now, so what index.html still has to get right is the
+// WIRING: that it hands the real state to the real predicate.
+ok('>>> index.html delegates the rule rather than restating it',
+   /return StopFilter\.stopPasses\(row, \{/.test(code)
+   && !/if\(state\.st\.size && !state\.st\.has/.test(code));
+ok('  and hands it every dimension',
+   /states:\s+state\.st,/.test(code) && /corridors:\s+state\.corridor,/.test(code)
+   && /rowCorridors: ROW_CORRIDORS\.get\(row\),/.test(code)
+   && /query:\s+activeSearchQuery\(\),/.test(code)
+   && /showers:\s+state\.showers,/.test(code) && /gym:\s+state\.gym,/.test(code)
+   && /restaurant:\s+state\.restaurant,/.test(code)
+   && /showersMany:\s+SHOWERS_MANY/.test(code), code.slice(0,0));
+// The search box has two jobs; which one is live decides whether the query
+// filters these rows at all. That decision stays in index.html on purpose.
+ok('  reading the query through activeSearchQuery, not state.q directly',
+   /query:\s+activeSearchQuery\(\),/.test(code));
 ok('>>> both are declared as Sets, not strings',
    /let state = \{st:new Set\(\), corridor:new Set\(\), q:''/.test(code));
-// The search clause is pinned here for the same reason the others are: this
-// file's `q` cases would keep passing against a haystack that had gained or
-// lost a column, so only the source pin can tell.
-ok('>>> the search haystack is exactly the five columns this mirror joins',
-   /const hay = \(row\[2\]\+' '\+row\[4\]\+' '\+row\[5\]\+' '\+row\[7\]\+' '\+row\[20\]\)\.toLowerCase\(\);/.test(code));
-ok('  and the amenity clauses this mirror copies are unchanged',
-   /if\(state\.showers\s+&& !\(Number\(row\[14\]\) >= SHOWERS_MANY\)\) return false;/.test(code)
-   && /if\(state\.restaurant && !hasAmenCode\(row,'R'\)\) return false;/.test(code));
+// The haystack is testable directly now instead of pinned by its spelling.
+ok('>>> the search haystack is name, city, state, exit and nav code',
+   (() => {
+     const r = DATA[0];
+     const hay = StopFilter.searchHaystack(r);
+     return [2, 4, 5, 7, 20].every(i => hay.includes(String(r[i]).toLowerCase()))
+       && !hay.includes(String(r[3]).toLowerCase());   // street address is NOT in it
+   })(), JSON.stringify(StopFilter.searchHaystack(DATA[0])));
 ok('  SHOWERS_MANY was parsed', SHOWERS_MANY === 10, String(SHOWERS_MANY));
 
 console.log('\n=== brand and tier filters are GONE ===');

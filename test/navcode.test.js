@@ -59,17 +59,38 @@ const hay = row => (row[2] + ' ' + row[4] + ' ' + row[5] + ' ' + row[7] + ' ' + 
 const search = q => DATA.filter(r => hay(r).includes(String(q).trim().toLowerCase()));
 
 console.log('\n=== the mirror above still matches index.html ===');
-ok('>>> the haystack includes row[20], after the exit field',
-   /const hay = \(row\[2\]\+' '\+row\[4\]\+' '\+row\[5\]\+' '\+row\[7\]\+' '\+row\[20\]\)\.toLowerCase\(\);/.test(code));
-ok('  and the match is still a plain lowercased substring',
-   /if\(!hay\.includes\(q\)\) return false;/.test(code));
+// v2.0.0 — the haystack is built by lib/stopfilter.js now, so these assert
+// what it CONTAINS rather than how it is spelled.
+const SF = require('../lib/stopfilter.js');
+ok('>>> the haystack includes the nav code, after the exit field', (() => {
+  const r = DATA.find(x => x[20]);
+  const hay = SF.searchHaystack(r);
+  return hay.includes(String(r[20]).toLowerCase())
+    && hay.indexOf(String(r[20]).toLowerCase()) > hay.indexOf(String(r[7]).toLowerCase());
+})(), JSON.stringify(SF.searchHaystack(DATA.find(x => x[20]))));
+ok('  and the match is a plain lowercased substring — case does not matter',
+   (() => {
+     const r = DATA.find(x => x[20]);
+     const c = { showersMany: 10 };
+     return SF.stopPasses(r, { ...c, query: String(r[20]).toLowerCase() })
+         && SF.stopPasses(r, { ...c, query: String(r[20]).slice(-3).toLowerCase() });
+   })());
+ok('  with no prefix anchoring — a mid-string match still counts',
+   (() => {
+     const r = DATA.find(x => /^CVEN/.test(x[20] || ''));
+     return SF.stopPasses(r, { showersMany: 10, query: String(r[20]).slice(4).toLowerCase() });
+   })());
 ok('  with no prefix anchoring or field-scoped syntax added',
    !/startsWith\(q\)/.test(code) && !/\.split\(':'\)/.test(code));
 // v1.46.0 put the typed text through activeSearchQuery() so it only filters
 // while the LIST is open — on the map the same box looks a place up instead.
 // What is matched is unchanged; only whether it is matched at all.
+// Which query the rule is handed is still index.html's decision, and the one
+// it has to get right: on the map the same box looks a place up instead of
+// filtering, so passing state.q straight through would filter the map from a
+// lookup. That wiring is what this pins.
 ok('  and what it matches is the ACTIVE query, so the map is not filtered by a lookup',
-   /const q = activeSearchQuery\(\);/.test(code)
+   /query:\s+activeSearchQuery\(\),/.test(code)
    && /return listIsOpen\(\) \? state\.q : '';/.test(code));
 
 console.log('\n=== searching by nav code ===');

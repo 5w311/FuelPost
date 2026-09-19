@@ -277,7 +277,7 @@ derived, not stored. Escape everything external. localStorage keys are versioned
 (`fuelpost.<setting>.v1`), store only explicit choices, treat anything unexpected
 as absent, and bump to `.v2` if what "unset" resolves to changes.
 
-**Releasing:** bump `APP_VERSION` **and all 17 `?v=` stamps**, add a version
+**Releasing:** bump `APP_VERSION`, **all 18 `?v=` stamps and `version.txt`**, add a version
 entry (a test requires one matching `APP_VERSION`, another requires
 `FUEL_BOOK_REV`), get `node test/run.js` green, PR. Browser checks live in a
 scratchpad Playwright harness with the real vendored SDK and HERE intercepted;
@@ -322,6 +322,51 @@ there, not lazily when the map is first shown. Lazy construction would cut
 2.3 MB off the startup path, but it changes online behaviour and belongs in its
 own change.
 
+### Where the logic lives, and what tests it
+
+`lib/*.js` is pure logic with no DOM and no network, unit-tested under plain
+node. `index.html` holds the markup, the CSS, `DATA` and the wiring, and is
+tested by `renderstructure.test.js` and friends — which read its **source
+text** and assert against it.
+
+**Source pins are a proxy, and their ceiling is real.** Three times this
+project has watched a matcher aimed at code match the sentence describing it
+instead. A pin can check that a line is spelled a certain way; it cannot check
+that the line is right.
+
+So the direction of travel is to move decision logic into `lib/` where it can
+be run. Most of it already has: `readRanges` now mostly delegates to
+`FuelGauge`, and the planner, the gauge model, the trip text and the corridor
+lookup are all libs with their own tests. **Measured before starting v2.0.0,
+only 247 of the inline script's 4,924 lines were pure enough to lift out
+unchanged** — the rest is DOM assembly, which is what it should be.
+
+`passes()` was the exception worth taking: the predicate every one of the 144
+rows goes through on every keystroke, impure only because it read `state`
+directly. It is `lib/stopfilter.js` now.
+
+**What that bought, concretely:** two test files carried a hand-written copy
+of `passes()` plus source pins to stop the copy drifting. One said so in its
+own header — *"every semantic assertion below is only worth what those source
+pins are worth."* Both mirrors are gone. Their assertions now run against the
+real function, and the pins that policed them were replaced by pins on the one
+thing `index.html` still decides: which state it hands the rule, and that the
+search box's two jobs stay separate.
+
+**One thing this release taught, the hard way:** the libs load as classic
+scripts, so a lib's top-level names are globals. Wiring `lib/stopfilter.js` in
+with a convenience alias in `index.html` was a redeclaration that killed the
+whole main script — and the node suite passed 1,383 assertions while the app
+was dead in Chromium. `test/libglobals.test.js` closes that gap, because the
+hazard grows with every function that moves into `lib/`.
+
+**Still source-pinned, and fine for now:** the renderers. `renderPlan` is 456
+lines of DOM assembly, and what it produces is checked end-to-end by the
+Playwright suites rather than by unit tests. Those suites are the real
+behavioural coverage for `index.html`, and they live in a scratchpad outside
+the repo — moving them in would mean vendoring HERE's 2.3 MB SDK, which is a
+decision worth making deliberately rather than as a side effect.
+
 ### CI
 
 `.github/workflows/tests.yml` runs `node test/run.js` on every pull request and
@@ -330,7 +375,7 @@ suite is plain Node with no dependencies, and adding one would be the first
 build step this project has ever had.
 
 It matters because the release discipline lives in the suite: `APP_VERSION`
-against all 17 `?v=` stamps and `version.txt`, a README entry for the current
+against all 18 `?v=` stamps and `version.txt`, a README entry for the current
 version, the structural pins on `index.html`, the scope walk that keeps the app
 alive without the map SDK. All of that used to be enforced only when someone
 remembered to run it.
@@ -407,6 +452,14 @@ so every time a driver comes back from their nav app. Until v1.66.0 it fetched
   `getBoundingClientRect()`, not `contentRect`.
 - **The vector satellite layer is inserted at index 1**, never appended, or it
   draws over the pins and route.
+- **A lib's top-level names are GLOBALS, so they must not collide with
+  `index.html`'s.** The libs load as classic scripts through the module shim,
+  which share one global lexical scope: a lib declaring `hasAmenCode` and
+  `index.html` declaring it too is a redeclaration that kills the **entire**
+  main script at parse time — no state, no list, no search. That happened
+  wiring up `lib/stopfilter.js`, and the node suite passed 1,383 assertions
+  while the app was dead in a browser. `test/libglobals.test.js` now catches
+  it, and the hazard grows every time logic moves into `lib/`.
 - **Don't add `defer` to the lib scripts** — the inline shims aren't deferred, so
   each would capture an empty `module.exports` and every module would silently
   become `{}`. A test fails if `defer` or `async` appears.
@@ -454,6 +507,10 @@ Several entries below record a test that passed for the wrong reason.
 
 Newest first, one line each. The full reasoning for any release is in its commit
 and in the code comments. Nothing below is needed to use the app.
+
+### v2.0.0
+Which stops the filters keep is now real, tested code instead of a rule the
+tests could only describe. Nothing about using the app changes.
 
 ### v1.66.0
 Checking for updates no longer re-downloads the whole app to read one line. It
