@@ -301,7 +301,7 @@ console.log('=== the search box has two jobs (v1.46.0) ===');
      && (src.match(/showPlace\(/g) || []).length === 3);
   // The pin is not network data: it must never be ranked, filtered or planned.
   ok('>>> the pin lives in its own group, apart from the stops',
-     /const placeGroup = new H\.map\.Group\(\);/.test(src)
+     /placeGroup = new H\.map\.Group\(\);/.test(src)
      && /placeGroup\.setVisibility\(!route\);/.test(src));
   ok('  and a lookup never touches FUEL_STOPS or the filters',
      !/FUEL_STOPS\.push/.test(src) && !/placeGroup[\s\S]{0,80}markerGroup/.test(src));
@@ -835,9 +835,9 @@ ok('exactly one baselayerchange handler owns it',
 // base layers by identity, and handing it a vector overlay as though it were
 // one would put a layer the driver can't be on into the allow-list.
 ok('the pairs hold rasters only; the vector half is a separate lookup',
-   /const HYBRID_LAYERS = \{\s*light:\s*defaultLayers\.hybrid\.day\.raster,\s*dark:\s*defaultLayers\.hybrid\.night\.raster\s*\};/.test(jsOnly));
+   /HYBRID_LAYERS = \{\s*light:\s*defaultLayers\.hybrid\.day\.raster,\s*dark:\s*defaultLayers\.hybrid\.night\.raster\s*\};/.test(jsOnly));
 ok('both pairs are handed to nextBaseLayer as THEMED_LAYERS',
-   /const THEMED_LAYERS = \{ pairs: \[ROAD_LAYERS, HYBRID_LAYERS\] \};/.test(jsOnly) &&
+   /THEMED_LAYERS = \{ pairs: \[ROAD_LAYERS, HYBRID_LAYERS\] \};/.test(jsOnly) &&
    (jsOnly.match(/nextBaseLayer\(map\.getBaseLayer\(\), [^,]+, THEMED_LAYERS\)/g) || []).length === 2,
    'both call sites must pass the pairs');
 // TDZ: the pairs are read at parse time by the H.Map construction below them.

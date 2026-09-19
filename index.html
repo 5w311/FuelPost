@@ -1333,33 +1333,33 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.64.0"></script>
+<script src="lib/fuelplan.js?v=1.65.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.64.0"></script>
+<script src="lib/triptext.js?v=1.65.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.64.0"></script>
+<script src="lib/location.js?v=1.65.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.64.0"></script>
+<script src="lib/gauge.js?v=1.65.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.64.0"></script>
+<script src="lib/corridors.js?v=1.65.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.64.0"></script>
+<script src="lib/nearme.js?v=1.65.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.64.0"></script>
+<script src="lib/extract-version.js?v=1.65.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.64.0"></script>
+<script src="lib/autosuggest.js?v=1.65.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.64.0"></script>
+<script src="lib/baselayer.js?v=1.65.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.64.0"></script>
+<script src="lib/memocache.js?v=1.65.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.64.0"></script>
+<script src="lib/routerank.js?v=1.65.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.64.0"></script>
+<script src="lib/vehicleprofile.js?v=1.65.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.64.0"></script>
+<script src="lib/escape.js?v=1.65.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.64.0"></script>
+<script src="lib/navlinks.js?v=1.65.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1375,7 +1375,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.64.0')
+fetch('lib/fuelplan-adaptive.js?v=1.65.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1392,7 +1392,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.64.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.64.0')
+fetch('lib/shorttrip.js?v=1.65.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1403,7 +1403,7 @@ fetch('lib/shorttrip.js?v=1.64.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.64.0"></script>
+<script src="lib/flexible-polyline.js?v=1.65.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1575,7 +1575,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.64.0';
+const APP_VERSION = '1.65.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -1775,10 +1775,32 @@ const hereCache = MemoCache.createMemoCache(200);
 // fell back to the WEBGL engine, under which HERE's own MapSettingsControl
 // greyed out Satellite. The 3.2 upgrade removed WEBGL and that entire
 // hazard with it.
-const HERE_ENGINE = H.Map.EngineType.HARP;
+// IS THE MAP SDK ACTUALLY HERE? Until v1.65.0 this question was never asked:
+// the four HERE <script> tags were assumed to have loaded, and the map was
+// built at the top level of this script. When they had NOT loaded — a dead
+// cell, a captive portal at a truck stop, a CDN blip, a rejected key — the
+// first reference to H threw, and because it threw at the TOP LEVEL it took
+// the whole script with it: no state, no renderList, no station list, no
+// search. The driver got a page that looked alive and did nothing.
+//
+// Everything the map needs is now built behind this flag, and every function
+// that touches a map object checks mapLive() first. With the SDK present
+// nothing about the app changes — same construction, same order, same frame.
+// Without it the map is absent and the rest of the app works, which is the
+// half a driver with no signal actually needs.
+const MAP_SDK = typeof H !== 'undefined' && !!(H && H.Map);
 
-const platform = new H.service.Platform({ apikey: HERE_API_KEY });
-const defaultLayers = platform.createDefaultLayers({ engineType: HERE_ENGINE });
+// The one predicate every map-touching function guards on. Reads the map
+// itself rather than the flag, so a construction that failed part-way is
+// treated as no map at all rather than as a half-built one.
+function mapLive(){ return map !== null; }
+
+let HERE_ENGINE = null, platform = null, defaultLayers = null;
+if(MAP_SDK){
+  HERE_ENGINE = H.Map.EngineType.HARP;
+  platform = new H.service.Platform({ apikey: HERE_API_KEY });
+  defaultLayers = platform.createDefaultLayers({ engineType: HERE_ENGINE });
+}
 
 // The two themed layer pairs, declared HERE — above the H.Map construction,
 // the layer switcher, switchTheme and the backstop — because every one of
@@ -1787,10 +1809,13 @@ const defaultLayers = platform.createDefaultLayers({ engineType: HERE_ENGINE });
 // that has blanked this app more than once.
 
 // Road map: the pair this app has always had.
-const ROAD_LAYERS = {
-  light: defaultLayers.vector.normal.map,
-  dark:  defaultLayers.vector.normal.mapnight
-};
+let ROAD_LAYERS = null;
+if(MAP_SDK){
+  ROAD_LAYERS = {
+    light: defaultLayers.vector.normal.map,
+    dark:  defaultLayers.vector.normal.mapnight
+  };
+}
 
 // Satellite, and why it is two layers rather than one.
 //
@@ -1826,15 +1851,19 @@ const ROAD_LAYERS = {
 // native detail past z17 rural / z18 metro — above that it is magnification.
 // USGS measured worse. What can be fixed is spending a fixed resolution on
 // ground instead of on paint, which is what this does.
-const HYBRID_LAYERS = {
-  light: defaultLayers.hybrid.day.raster,
-  dark:  defaultLayers.hybrid.night.raster
-};
+let HYBRID_LAYERS = null;
+if(MAP_SDK){
+  HYBRID_LAYERS = {
+    light: defaultLayers.hybrid.day.raster,
+    dark:  defaultLayers.hybrid.night.raster
+  };
+}
 
 // The vector half, keyed to its raster by identity. Kept OUT of the pair
 // above on purpose: nextBaseLayer compares base layers by identity and must
 // never be handed something that is not one.
 function hybridOverlayFor(baseLayer){
+  if(!mapLive()) return null;
   if(baseLayer === HYBRID_LAYERS.light) return defaultLayers.hybrid.day.vector;
   if(baseLayer === HYBRID_LAYERS.dark)  return defaultLayers.hybrid.night.vector;
   return null;
@@ -1842,7 +1871,8 @@ function hybridOverlayFor(baseLayer){
 
 // Both pairs, so a theme change moves whichever one the driver is actually
 // looking at — and still leaves anything else alone.
-const THEMED_LAYERS = { pairs: [ROAD_LAYERS, HYBRID_LAYERS] };
+let THEMED_LAYERS = null;
+if(MAP_SDK){ THEMED_LAYERS = { pairs: [ROAD_LAYERS, HYBRID_LAYERS] }; }
 
 // Theme: first persisted preference in this app, hence the versioned key
 // (fuelpost.theme.v1, not a bare fuelpost.theme) — if a future brief changes
@@ -1866,7 +1896,8 @@ function resolvedTheme(){ return storedTheme() || systemTheme(); }
 
 const initialTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
 
-const map = new H.Map(
+let map = null;
+if(MAP_SDK){ map = new H.Map(
   document.getElementById('map'),
   initialTheme === 'dark' ? ROAD_LAYERS.dark : ROAD_LAYERS.light,
   {
@@ -1878,7 +1909,7 @@ const map = new H.Map(
     zoom: 5,
     pixelRatio: window.devicePixelRatio || 1
   }
-);
+); }
 
 // Retire the startup loading state when the map is ACTUALLY on screen, which
 // takes two things: the camera has settled, and at least one base-map tile
@@ -1912,7 +1943,7 @@ const map = new H.Map(
 // Also clears the watchdog from the inline script next to the markup, and
 // runs even if that watchdog already fired: a map that limps up late still
 // clears the error message rather than leaving it stuck over a working map.
-{
+if(MAP_SDK){
   const MAP_TILE_HOST = 'vector.hereapi.com';
   const TILE_WAIT_CAP_MS = 6000;
   let cameraSettled = false, tilesSeen = false, retired = false;
@@ -1960,8 +1991,23 @@ const map = new H.Map(
     tilesSeen = true;
   }
   capTimer = setTimeout(() => { tilesSeen = true; maybeRetire(); }, TILE_WAIT_CAP_MS);
+} else {
+  // NO SDK, so no map is coming. Retire the loading state NOW rather than
+  // leaving a spinner turning for the 20-second watchdog over a map that will
+  // never arrive — and say what still works, because most of the app does.
+  clearTimeout(window.__mapLoadTimer);
+  const spin = document.querySelector('.mapLoadingSpin');
+  if(spin) spin.remove();
+  const msg = document.getElementById('mapLoadingMsg');
+  if(msg) msg.textContent = 'The map needs a connection and could not load. '
+    + 'The station list, search, filters and nav codes still work \u2014 '
+    + 'open the list with the \u2630 button above.';
 }
-window.addEventListener('resize', () => { map.getViewPort().resize(); syncMapPadding(); });
+
+window.addEventListener('resize', () => {
+  if(!mapLive()) return;
+  map.getViewPort().resize(); syncMapPadding();
+});
 // HERE's canvas only re-measures on a real window resize or an explicit
 // resize() call — it cannot see #mapwrap itself change height, which happens
 // whenever the drawer above it grows or shrinks (vehicle Custom/Hazmat
@@ -1976,6 +2022,7 @@ let mapwrapResizeTimer = 0;
 new ResizeObserver(() => {
   clearTimeout(mapwrapResizeTimer);
   mapwrapResizeTimer = setTimeout(() => {
+    if(!mapLive()) return;
     map.getViewPort().resize();
     // First observation with a real size is the earliest point the engine
     // can actually honour a bounds fit — see fitNetworkOnce. No-op once done.
@@ -2043,6 +2090,7 @@ let networkFitDone = false;
 // can honour a bounds fit. Every guard here is about WHETHER to fit; the
 // mechanics of fitting live in fitBoundsWithMargin below.
 function fitNetworkOnce(){
+  if(!mapLive()) return;
   if(networkFitDone) return;
   const r = document.getElementById('mapwrap').getBoundingClientRect();
   if(r.width < 1 || r.height < 1) return;   // no layout yet; a later call gets it
@@ -2057,6 +2105,7 @@ function fitNetworkOnce(){
 // startup fit and the place fit would otherwise each carry their own copy of
 // a bug that is invisible until someone looks at the camera.
 function fitBoundsWithMargin(b){
+  if(!mapLive()) return;
   if(!b) return;
   // Symmetric margin so the extreme pins (Seattle, Maine, South Florida,
   // SoCal) aren't clipped.
@@ -2081,6 +2130,7 @@ function fitBoundsWithMargin(b){
 // The free area a bounds fit actually gets: the map element inset by the
 // current viewport padding.
 function mapFreeArea(){
+  if(!mapLive()) return { w: 0, h: 0 };
   const r = document.getElementById('mapwrap').getBoundingClientRect();
   const p = map.getViewPort().padding || { top:0, right:0, bottom:0, left:0 };
   return { w: Math.round(r.width - p.left - p.right),
@@ -2099,6 +2149,7 @@ function mapFreeArea(){
 // synchronously (it is DOM-measured and already correct), and the guard
 // covers Clear trip landing between schedule and frame.
 function fitLastBounds(){
+  if(!mapLive()) return;
   lastFitFree = mapFreeArea();
   requestAnimationFrame(() => {
     if(!lastFitBounds) return;
@@ -2115,6 +2166,7 @@ function fitLastBounds(){
 // DOM-derived padding — zero in Stops mode — as soon as its fit is done).
 const MAP_FIT_MARGIN = 32;
 function syncMapPadding(){
+  if(!mapLive()) return;
   // document.getElementById, NOT the $ helper: the startup network fit
   // calls this before the `const $ =` line has executed, and a TDZ read
   // there is a startup crash — the same failure that once took the app
@@ -2135,13 +2187,16 @@ function syncMapPadding(){
   }
 }
 
-const mapEvents = new H.mapevents.MapEvents(map);
-new H.mapevents.Behavior(mapEvents);
-const ui = H.ui.UI.createDefault(map, defaultLayers);
+let mapEvents = null, ui = null;
+if(MAP_SDK){
+  mapEvents = new H.mapevents.MapEvents(map);
+  new H.mapevents.Behavior(mapEvents);
+  ui = H.ui.UI.createDefault(map, defaultLayers);
+}
 // HERE's scale bar (and its distance-measurement control) default to
 // metric — this app's drivers and distances are US miles throughout
 // (routing, gauge, plan text), so the scale bar should read the same way.
-ui.setUnitSystem(H.ui.UnitSystem.IMPERIAL);
+if(MAP_SDK) ui.setUnitSystem(H.ui.UnitSystem.IMPERIAL);
 
 // The layer switcher (the "mapsettings" control behind the layers icon,
 // bottom-right) is built by this app rather than taken from createDefault,
@@ -2189,6 +2244,7 @@ ui.setUnitSystem(H.ui.UnitSystem.IMPERIAL);
 // deliberately: restructuring the deferral to chase 45ms of no-highlight
 // would trade a real race fix for a cosmetic one.
 function buildMapSettings(theme){
+  if(!mapLive()) return null;
   return new H.ui.MapSettingsControl({
     baseLayers: [
       { label: 'Map view',  layer: theme === 'dark' ? ROAD_LAYERS.dark   : ROAD_LAYERS.light },
@@ -2212,12 +2268,13 @@ function buildMapSettings(theme){
 // unaffected — measured, not assumed, along with the resulting geometry
 // matching createDefault's to the pixel across repeated rebuilds.
 function installMapSettings(theme){
+  if(!mapLive()) return;
   ui.removeControl('mapsettings');
   ui.addControl('mapsettings', buildMapSettings(theme));
   const scalebar = ui.removeControl('scalebar');
   if(scalebar) ui.addControl('scalebar', scalebar);
 }
-installMapSettings(initialTheme);
+if(MAP_SDK) installMapSettings(initialTheme);
 
 function updateThemeToggleUI(){
   const mode = storedTheme() || 'system';
@@ -2262,6 +2319,7 @@ updateThemeToggleUI(); // map was already constructed on the right layer above �
 // every route to the base layer at once.
 let baseLayerCorrectionTimer = null;
 function setThemedBaseLayer(layer){
+  if(!mapLive()) return;
   clearTimeout(baseLayerCorrectionTimer);
   baseLayerCorrectionTimer = setTimeout(() => {
     if(map.getBaseLayer() === layer) return;
@@ -2299,9 +2357,13 @@ function switchTheme(theme){
   // Rebuilding the control is how that happens — no internal-property write.
   // See buildMapSettings for the measured behaviour of a rebuild landing a
   // beat before the deferred swap.
-  installMapSettings(theme);
-  const next = BaseLayer.nextBaseLayer(map.getBaseLayer(), theme, THEMED_LAYERS);
-  if(next) setThemedBaseLayer(next);
+  // The map half only. data-theme on documentElement and the toggle UI are
+  // the WHOLE APP's dark mode, and must still work on a page with no map.
+  if(mapLive()){
+    installMapSettings(theme);
+    const next = BaseLayer.nextBaseLayer(map.getBaseLayer(), theme, THEMED_LAYERS);
+    if(next) setThemedBaseLayer(next);
+  }
   updateThemeToggleUI();
 }
 
@@ -2326,6 +2388,7 @@ function switchTheme(theme){
 // unmount it.
 let hybridOverlay = null;
 function syncHybridOverlay(){
+  if(!mapLive()) return;
   const want = hybridOverlayFor(map.getBaseLayer());
   if(want === hybridOverlay) return;
   if(hybridOverlay) map.removeLayer(hybridOverlay);
@@ -2347,7 +2410,7 @@ function syncHybridOverlay(){
 // The overlay sync goes first and unconditionally: it has to run on every
 // base-layer change including the ones that need no correction at all, which
 // is most of them.
-map.addEventListener('baselayerchange', () => {
+if(MAP_SDK) map.addEventListener('baselayerchange', () => {
   syncHybridOverlay();
   const next = BaseLayer.nextBaseLayer(map.getBaseLayer(), resolvedTheme(), THEMED_LAYERS);
   if(next) setThemedBaseLayer(next);
@@ -2370,13 +2433,13 @@ document.querySelectorAll('#themeSeg button').forEach(b=>b.addEventListener('cli
   switchTheme(v === 'system' ? systemTheme() : v);
 }));
 
-const markerGroup = new H.map.Group();
-map.addObject(markerGroup);
+let markerGroup = null;
+if(MAP_SDK){ markerGroup = new H.map.Group(); map.addObject(markerGroup); }
 // The looked-up place sits in its own group: it is not network data, it must
 // never be filtered with the stops, and clearing it is one removeAll rather
 // than a search through the stop markers for the odd one out.
-const placeGroup = new H.map.Group();
-map.addObject(placeGroup);
+let placeGroup = null;
+if(MAP_SDK){ placeGroup = new H.map.Group(); map.addObject(placeGroup); }
 
 /* Amenity thresholds. These are judgment calls, named so each is one edit
    if it proves wrong in practice — and each was set against the real DATA
@@ -2418,6 +2481,7 @@ let state = {st:new Set(), corridor:new Set(), q:'',
 // uncached.
 const iconCache = new Map();
 function buildIcon(row, opts){
+  if(!mapLive()) return null;
   const brand = row[1], type = row[11];
   let cls = brand==='TA' ? 'pin-ta' : (brand==='Petro' ? 'pin-petro' : 'pin-term');
   let label = brand==='TA' ? 'T' : (brand==='Petro' ? 'P' : 'HQ');
@@ -2791,7 +2855,9 @@ const CLOSED_PIN_Z = -1;
 // with these per-marker flags — verified on the real SDK: hiding and
 // re-showing the group preserves each marker's own flag.
 const STOP_MARKERS = new Map();   // DATA row -> its DomMarker
-{
+// Built only when there is a map to put them on. renderMarkers() below walks
+// STOP_MARKERS, so an empty one is simply a no-op rather than a crash.
+if(MAP_SDK){
   const sorted = [...DATA].sort((a,b)=> a[5]===b[5] ? a[4].localeCompare(b[4]) : a[5].localeCompare(b[5]));
   const markers = sorted.map(row => {
     const marker = new H.map.DomMarker({lat:row[9], lng:row[10]}, {icon:buildIcon(row)});
@@ -2879,8 +2945,10 @@ function renderList(filtered){
       </div>`;
     item.addEventListener('click', ()=>{
       document.getElementById('listview').classList.remove('show');
-      map.setCenter({lat:row[9], lng:row[10]});
-      map.setZoom(12);
+      if(mapLive()){
+        map.setCenter({lat:row[9], lng:row[10]});
+        map.setZoom(12);
+      }
       openSheet(row);
     });
     frag.appendChild(item);
@@ -3202,8 +3270,8 @@ function saveLocatePref(){
 }
 let locateBtnPending = false;     // STOPS locate button is waiting on startWatch()'s first fix, to recenter once
 
-const locateGroup = new H.map.Group();
-map.addObject(locateGroup);
+let locateGroup = null;
+if(MAP_SDK){ locateGroup = new H.map.Group(); map.addObject(locateGroup); }
 
 function geoErrorMessage(err){
   if(!window.isSecureContext) return 'Location needs a secure (https) connection. This works on the deployed site.';
@@ -3293,6 +3361,7 @@ function handleLocationError(err){
 }
 
 function renderLocationDot(){
+  if(!mapLive()) return;
   locateGroup.removeAll();
   if(!liveFix) return;
   const { lat, lng, accuracy } = liveFix;
@@ -3402,7 +3471,7 @@ function setLocationOff(off){
     watchPaused = false;
     locateBtnPending = false;
     liveFix = null;
-    locateGroup.removeAll();
+    if(mapLive()) locateGroup.removeAll();
     renderNearMe();          // liveFix is gone, so this hides the footer
     setLocateBtnState(null);
     hidePickupGeoError();
@@ -3481,6 +3550,7 @@ const LOCATE_STOPS_IN_VIEW = 3;
 const MI_PER_DEG_LAT = 69;
 
 function frameFixWithNearestStops(){
+  if(!mapLive()) return;
   if(!liveFix) return;
   const at = { lat: liveFix.lat, lng: liveFix.lng };
   const near = NearMe.nearestStops(at.lat, at.lng, FUEL_STOPS,
@@ -3627,8 +3697,10 @@ function dropPlacePin(lat, lng, label){
 }
 
 function clearPlace(){
-  if(!placeAnchor && !placeGroup.getObjects().length) return;
-  placeGroup.removeAll();
+  // placeAnchor, the token and the Near Me panel below are app state, not map
+  // state — they still have to be cleared when there is no pin to remove.
+  if(!placeAnchor && !(mapLive() && placeGroup.getObjects().length)) return;
+  if(mapLive()) placeGroup.removeAll();
   placeAnchor = null;
   placeToken++;            // any lookup still in flight is now stale
   renderNearMe();          // back to the GPS answer, or hidden if there is none
@@ -3646,6 +3718,7 @@ function clearPlace(){
 // direction when it is not.
 const PLACE_ZOOM = 8;
 function centreOnPlace(){
+  if(!mapLive()) return;
   map.getViewModel().setLookAtData({
     position: { lat: placeAnchor.lat, lng: placeAnchor.lng },
     zoom: PLACE_ZOOM
@@ -3923,9 +3996,12 @@ const DRIVER_SUPPORT = '423-463-3680';
 document.getElementById('legendSupportNote').innerHTML =
   `Fuel only at network stops. <br>Out-of-network fuel: call Fuel Dept<br><a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>`;
 
-const routeGroup = new H.map.Group();
-map.addObject(routeGroup);
-routeGroup.setVisibility(false);
+let routeGroup = null;
+if(MAP_SDK){
+  routeGroup = new H.map.Group();
+  map.addObject(routeGroup);
+  routeGroup.setVisibility(false);
+}
 
 let planStops = [];  // chosen stops from the last plan, for tap-through to openSheet
 
@@ -4100,9 +4176,11 @@ function setMode(mode){
   document.body.classList.toggle('route-mode', route);
   document.querySelectorAll('#modeSeg button').forEach(b =>
     b.classList.toggle('active', b.dataset.v === mode));
-  markerGroup.setVisibility(!route);
-  placeGroup.setVisibility(!route);
-  routeGroup.setVisibility(route);
+  if(mapLive()){
+    markerGroup.setVisibility(!route);
+    placeGroup.setVisibility(!route);
+    routeGroup.setVisibility(route);
+  }
   $('routeResults').classList.toggle('show', route && !!$('routeResultsBody').innerHTML);
   syncRrTabShowing();
   // Both directions: Route->Stops used to leave the legend open behind the
@@ -4117,7 +4195,7 @@ function setMode(mode){
     if(enteringRoute) setRoutebarOpen(!$('routeResultsBody').innerHTML);
   }
   closeSheet();
-  map.getViewPort().resize();
+  if(mapLive()) map.getViewPort().resize();
 }
 document.querySelectorAll('#modeSeg button').forEach(b =>
   b.addEventListener('click', () => setMode(b.dataset.v)));
@@ -4281,6 +4359,7 @@ async function truckRoute(orig, dest){
 
 /* ---- Map drawing ---- */
 function drawRoute(poly, chosen, resumeStops, availableStops){
+  if(!mapLive()) return;
   routeGroup.removeAll();
 
   const ls = new H.geo.LineString();
@@ -4584,7 +4663,7 @@ function clearTrip(){
   $('routeResultsBody').innerHTML = '';
   $('routeResults').classList.remove('show');
   syncRrTabShowing();
-  routeGroup.removeAll();   // polyline + endpoint pins + chosen fuel stops
+  if(mapLive()) routeGroup.removeAll();   // polyline + endpoint pins + chosen fuel stops
 
   updateClearVisibility();
   updateFieldClearVisibility();
@@ -5152,7 +5231,7 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
 
   // No route to draw at this fill level — clear anything left from a
   // previous plan rather than leaving a stale polyline/pins on the map.
-  routeGroup.removeAll();
+  if(mapLive()) routeGroup.removeAll();
 
   setRoutebarOpen(false);
 }
@@ -6025,7 +6104,7 @@ async function startPlan(){
   btn.textContent = 'Looking up…';
   lastFitBounds = null; lastFitFree = null;   // the old route is going away — don't re-fit to it
   showRoutePanel('<div class="rr-note">Looking up both addresses…</div>');
-  routeGroup.removeAll();
+  if(mapLive()) routeGroup.removeAll();
 
   try {
     // A field filled by "use my location" or a tapped autosuggest suggestion
@@ -6182,7 +6261,7 @@ async function planLoad(pickup, delivery){
       : `<div class="rr-note"><b>Could not plan this load.</b><br>${
           err && err.message ? err.message : 'Unknown error.'}<br><br>
         Switch back to <b>Stops</b> — the map and all ${DATA.length} locations still work.</div>`);
-    routeGroup.removeAll();
+    if(mapLive()) routeGroup.removeAll();
     clearRouteOptions();
   }
 }
