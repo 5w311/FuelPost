@@ -322,6 +322,27 @@ there, not lazily when the map is first shown. Lazy construction would cut
 2.3 MB off the startup path, but it changes online behaviour and belongs in its
 own change.
 
+### CI
+
+`.github/workflows/tests.yml` runs `node test/run.js` on every pull request and
+every push to `main`. That is the whole job — no install step, because the
+suite is plain Node with no dependencies, and adding one would be the first
+build step this project has ever had.
+
+It matters because the release discipline lives in the suite: `APP_VERSION`
+against all 17 `?v=` stamps and `version.txt`, a README entry for the current
+version, the structural pins on `index.html`, the scope walk that keeps the app
+alive without the map SDK. All of that used to be enforced only when someone
+remembered to run it.
+
+`test/ci.test.js` checks the workflow still runs the **whole** suite on pull
+requests. The failure to worry about is not CI breaking loudly — it is someone
+narrowing it to one file, or to pushes only, and nobody noticing that PRs
+stopped being checked.
+
+**Not in CI:** the Playwright suites. They live in a scratchpad, need a browser
+and a vendored copy of the HERE SDK, and are run by hand before a release.
+
 ### The update check
 
 `checkForUpdate` runs on load **and on every `visibilitychange` to visible** —

@@ -1,0 +1,36 @@
+# The suite already enforces this project's release discipline — APP_VERSION
+# against all 17 ?v= stamps and version.txt, a README entry for the current
+# version, the structural pins on index.html. Until now all of that was run by
+# hand, which meant it was enforced only when someone remembered.
+#
+# No package.json and no install step: the tests are plain Node with no
+# dependencies, and test/run.js exits non-zero if anything fails or crashes.
+# Keeping it that way is the point — a build step here would be the first one
+# this project has ever had.
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A second push to a PR makes the first run pointless; cancel it rather than
+# queueing behind it.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: node test/run.js
+        run: node test/run.js
