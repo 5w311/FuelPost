@@ -1333,33 +1333,35 @@
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=1.66.0"></script>
+<script src="lib/fuelplan.js?v=2.0.0"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=1.66.0"></script>
+<script src="lib/triptext.js?v=2.0.0"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=1.66.0"></script>
+<script src="lib/location.js?v=2.0.0"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=1.66.0"></script>
+<script src="lib/gauge.js?v=2.0.0"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=1.66.0"></script>
+<script src="lib/corridors.js?v=2.0.0"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=1.66.0"></script>
+<script src="lib/nearme.js?v=2.0.0"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=1.66.0"></script>
+<script src="lib/extract-version.js?v=2.0.0"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=1.66.0"></script>
+<script src="lib/autosuggest.js?v=2.0.0"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=1.66.0"></script>
+<script src="lib/baselayer.js?v=2.0.0"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=1.66.0"></script>
+<script src="lib/memocache.js?v=2.0.0"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=1.66.0"></script>
+<script src="lib/routerank.js?v=2.0.0"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=1.66.0"></script>
+<script src="lib/vehicleprofile.js?v=2.0.0"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=1.66.0"></script>
+<script src="lib/escape.js?v=2.0.0"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=1.66.0"></script>
+<script src="lib/stopfilter.js?v=2.0.0"></script>
+<script>var StopFilter = module.exports; module = { exports: {} };</script>
+<script src="lib/navlinks.js?v=2.0.0"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1375,7 +1377,7 @@
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=1.66.0')
+fetch('lib/fuelplan-adaptive.js?v=2.0.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1392,7 +1394,7 @@ fetch('lib/fuelplan-adaptive.js?v=1.66.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=1.66.0')
+fetch('lib/shorttrip.js?v=2.0.0')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1403,7 +1405,7 @@ fetch('lib/shorttrip.js?v=1.66.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=1.66.0"></script>
+<script src="lib/flexible-polyline.js?v=2.0.0"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1575,7 +1577,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '1.66.0';
+const APP_VERSION = '2.0.0';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2681,8 +2683,12 @@ document.getElementById('scrim').addEventListener('click', closeSheet);
 // refactored into one another on purpose: amenChips turns codes into labels
 // for display, this answers a yes/no for filtering, and fusing them would
 // couple the filter path to the sheet's presentation.
-const hasAmenCode = (row, code) =>
-  String(row[16] || '').split(',').some(c => c.trim() === code);
+// hasAmenCode and the filter rule both moved to lib/stopfilter.js in v2.0.0,
+// so they could be tested against the real 144 rows rather than through the
+// browser. NO ALIAS IS DECLARED HERE for either: the lib files load as
+// classic scripts through the module shim, so their top-level names are
+// already globals, and `const hasAmenCode = StopFilter.hasAmenCode` was a
+// redeclaration that killed the whole script. Call them through StopFilter.
 
 // HOW THE DIMENSIONS COMBINE, since it is the thing a reader most wants
 // confirmed: WITHIN a dimension the selections are OR — pick TX and OK and you
@@ -2695,61 +2701,28 @@ const hasAmenCode = (row, code) =>
 // An EMPTY set is no constraint. That is why each test is guarded on .size
 // rather than on the set being falsy: an empty Set is truthy.
 function passes(row){
-  if(state.st.size && !state.st.has(row[5])) return false;
-  // Corridor is set-intersects-set. It was already a membership test rather
-  // than equality because 25 stops sit on two or more interstates (TA
-  // Tuscaloosa is on both I-20 and I-59 and must be findable under either);
-  // multi-select makes the other side a set too, so the row passes if ANY of
-  // its corridors is among the selected ones. Two corridors therefore return
-  // their union, and a stop on both appears once — it is one row either way,
-  // not one per matching corridor. The row's list was derived once at startup
-  // — see ROW_CORRIDORS.
-  if(state.corridor.size
-     && !(ROW_CORRIDORS.get(row) || []).some(c => state.corridor.has(c))) return false;
-  // THE SEARCH BOX HAS TWO JOBS (v1.46.0), and which one it is doing depends
-  // on whether the list is open. Open, it filters these rows, exactly as it
-  // always has. Closed — when the driver is looking at the MAP — it looks up
-  // a place instead, and filtering the map from the same keystrokes would
-  // mean typing a city both hid stops and searched for them.
-  const q = activeSearchQuery();
-  if(q){
-    // Name, city, state, exit — and since v1.33.0 the NAV CODE, so a driver
-    // holding a code off a dispatch message or a fuel receipt can look the
-    // stop up instead of having no way to.
-    //
-    // The match is a lowercased substring, which gives DIGITS-ONLY search for
-    // free and that is the point: a driver reads the number off a card, not
-    // the CVEN prefix. "260" finds CVENTA260, and so do "ta260" and the whole
-    // code. Verified, not assumed — see navcode.test.js.
-    //
-    // What makes digits-only trustworthy: every numeric suffix is UNIQUE
-    // across all 143 codes, so a complete digit string always identifies
-    // exactly one stop. navcode.test.js asserts that over DATA, so it cannot
-    // quietly stop being true when the fuel book revs.
-    //
-    // Short numeric queries do match more broadly now — "20" already matched
-    // every I-20 stop through the exit field and now also matches codes
-    // containing 20. That is inherent to substring search, is not new, and is
-    // deliberately not special-cased: no prefix anchoring, no field-scoped
-    // syntax.
-    const hay = (row[2]+' '+row[4]+' '+row[5]+' '+row[7]+' '+row[20]).toLowerCase();
-    if(!hay.includes(q)) return false;
-  }
-  // Amenity filters — the evening question, AND-combined with everything
-  // above. Three, chosen for SELECTIVITY: a filter earns its place by landing
-  // roughly between 15% and 60% of stops. Below that it returns almost
-  // nothing, above it almost everything.
+  // THE RULE IS IN lib/stopfilter.js; what stays here is the STATE it reads.
+  // That split is the point: the predicate every one of the 144 rows goes
+  // through on every keystroke is now unit-testable, with its edge cases
+  // named — a stop on two interstates, a nav code found by bare digits, a
+  // gym coded O and not F.
   //
-  // Removed because they could not narrow anything: CAT scale
-  // (144 of 144 — literally inert), 100+ parking (79%), 4+ bays (71%). The
-  // DATA fields all remain and the station sheet still shows them; only the
-  // filters went.
-  if(state.showers    && !(Number(row[14]) >= SHOWERS_MANY)) return false;
-  // F or O: the outdoor variant is only two rows, but NEITHER also carries F,
-  // so dropping it would silently hide those two stops from a gym search.
-  if(state.gym        && !(hasAmenCode(row,'F') || hasAmenCode(row,'O'))) return false;
-  if(state.restaurant && !hasAmenCode(row,'R')) return false;
-  return true;
+  // THE SEARCH BOX HAS TWO JOBS (v1.46.0), and which one it is doing depends
+  // on whether the list is open. Open, it filters these rows. Closed — when
+  // the driver is looking at the MAP — it looks up a place instead, and
+  // filtering the map from the same keystrokes would mean typing a city both
+  // hid stops and searched for them. activeSearchQuery() is what encodes
+  // that, and it is why the query is read here rather than from state.q.
+  return StopFilter.stopPasses(row, {
+    states:       state.st,
+    corridors:    state.corridor,
+    rowCorridors: ROW_CORRIDORS.get(row),
+    query:        activeSearchQuery(),
+    showers:      state.showers,
+    gym:          state.gym,
+    restaurant:   state.restaurant,
+    showersMany:  SHOWERS_MANY
+  });
 }
 
 /* Split so the map never waits on list DOM it may never show.

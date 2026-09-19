@@ -215,7 +215,7 @@ console.log('=== the search box has two jobs (v1.46.0) ===');
   ok('>>> one function decides which job is live, from the list state',
      /function activeSearchQuery\(\)\{\s*\n\s*return listIsOpen\(\) \? state\.q : '';/.test(src));
   ok('  and the row filter reads THAT, never state.q directly',
-     /const q = activeSearchQuery\(\);/.test(src)
+     /query:\s+activeSearchQuery\(\),/.test(src)
      && !/if\(state\.q\)\{/.test(src));
   // v1.48.0 — ONLY a tapped suggestion pins a place. Enter used to geocode
   // whatever was typed, which put a pin on a place the driver never chose.
@@ -1109,10 +1109,29 @@ ok('>>> each row\'s corridors are derived once into a Map keyed by row',
 ok('  and passes() only READS that map, never re-parses',
    /ROW_CORRIDORS\.get\(row\)/.test(codeOnly) &&
    !/corridorsForRow[\s\S]{0,80}function passes/.test(codeOnly));
-ok('>>> the predicate is a membership test, not equality',
-   /!\(ROW_CORRIDORS\.get\(row\) \|\| \[\]\)\.some\(c => state\.corridor\.has\(c\)\)/.test(codeOnly));
-ok('  and it is AND-combined like every other filter (an early return)',
-   /if\(state\.corridor\.size[\s\S]{0,120}?\) return false;/.test(codeOnly));
+// v2.0.0 — the rule moved to lib/stopfilter.js, so these test the BEHAVIOUR
+// they were standing in for instead of its spelling.
+{
+  const SF = require('../lib/stopfilter.js');
+  const base = { showersMany: 10 };
+  const row = {};   // the predicate only reads indices, so a sparse row is fine
+  ok('>>> the corridor test is membership, not equality — a stop on two roads'
+     + ' is found under either',
+     SF.stopPasses(row, { ...base, corridors: new Set(['I-20']), rowCorridors: ['I-20', 'I-59'] })
+     && SF.stopPasses(row, { ...base, corridors: new Set(['I-59']), rowCorridors: ['I-20', 'I-59'] })
+     && !SF.stopPasses(row, { ...base, corridors: new Set(['I-40']), rowCorridors: ['I-20', 'I-59'] }));
+  ok('  two selected corridors return their union, and a stop on both once',
+     SF.stopPasses(row, { ...base, corridors: new Set(['I-20', 'I-40']), rowCorridors: ['I-20', 'I-59'] }));
+  ok('  and it is AND-combined with the other dimensions',
+     !SF.stopPasses(['', '', 'n', '', 'c', 'OK', '', '', '', '', '', '', '', '', 0, '', '', '', '', '', ''],
+                    { ...base, states: new Set(['TX']), corridors: new Set(['I-20']),
+                      rowCorridors: ['I-20'] }),
+     'matching the corridor must not rescue a row the state filter rejected');
+  ok('  an empty corridor selection is no constraint',
+     SF.stopPasses(row, { ...base, corridors: new Set(), rowCorridors: [] }));
+}
+ok('  and index.html hands the row its corridors rather than deriving them per keystroke',
+   /rowCorridors: ROW_CORRIDORS\.get\(row\),/.test(codeOnly));
 // Both of these were called out as easy to miss, and each leaves a filter the
 // driver cannot see or cannot clear.
 ok('>>> the corridor counts toward the filter badge',

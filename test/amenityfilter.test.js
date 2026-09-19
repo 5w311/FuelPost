@@ -50,7 +50,9 @@ ok('BAYS_MANY is gone from the source', constOf('BAYS_MANY') === null);
 
 // Mirrors passes()'s amenity clauses exactly, including EXACT membership on
 // the comma-separated amenity column rather than a substring test.
-const hasCode = (r, c) => String(r[16] || '').split(',').some(x => x.trim() === c);
+// v2.0.0: the real one, required, instead of a copy of it.
+const StopFilter = require('../lib/stopfilter.js');
+const hasCode = StopFilter.hasAmenCode;
 const amen = {
   showers:    r => Number(r[14]) >= SHOWERS_MANY,
   gym:        r => hasCode(r, 'F') || hasCode(r, 'O'),
@@ -209,8 +211,30 @@ ok('>>> render() never writes filter state (no auto-widening fallback)',
    !/state\.(showers|gym|restaurant|brand|type|st)\s*=[^=]/.test(renderBody));
 ok('>>> passes() never writes filter state either',
    !/state\.\w+\s*=[^=]/.test(passesBody));
-ok('  passes() only ever rejects — every amenity clause is a plain guard',
-   (passesBody.match(/return false;/g) || []).length >= 3 && /return true;/.test(passesBody));
+
+// v2.0.0 — "only ever rejects" used to be a count of `return false;` in the
+// inline body. The rule lives in lib/stopfilter.js now, so it is testable as
+// BEHAVIOUR: run it and check it changed nothing it was handed.
+{
+  const row = DATA.find(r => hasCode(r, 'R')) || DATA[0];
+  const frozenRow = JSON.stringify(row);
+  const crit = { states: new Set(['TX']), corridors: new Set(['I-20']),
+                 rowCorridors: ['I-20'], query: 'ta', showers: true, gym: true,
+                 restaurant: true, showersMany: 10 };
+  const frozenCrit = JSON.stringify({ ...crit, states: [...crit.states],
+                                      corridors: [...crit.corridors] });
+  StopFilter.stopPasses(row, crit);
+  ok('>>> stopPasses mutates neither the row nor the criteria',
+     JSON.stringify(row) === frozenRow
+     && JSON.stringify({ ...crit, states: [...crit.states],
+                         corridors: [...crit.corridors] }) === frozenCrit);
+  ok('  it is a pure predicate — same inputs, same answer, every time',
+     [1, 2, 3].every(() => StopFilter.stopPasses(row, crit)
+                        === StopFilter.stopPasses(row, crit)));
+  ok('  and with nothing selected, every row passes',
+     DATA.every(r => StopFilter.stopPasses(r, { showersMany: 10 })),
+     'an empty selection is no constraint at all');
+}
 
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
