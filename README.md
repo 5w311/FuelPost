@@ -1,8 +1,5 @@
 # FuelPost
 
-> **Design test build.** This repo tries out an iOS-style redesign of FuelPost.
-> The planner, data, filters and every rule behind them are the live app's,
-> unchanged; only the look and the placement of the controls differ.
 
 **Finds Covenant network fuel stops, and plans where to fuel on a load.**
 
