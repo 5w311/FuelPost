@@ -1488,5 +1488,9 @@ console.log('\n=== filter and More dim and blur what is behind them (v2.2.3) ===
      /card\.classList\.contains\('show'\) && !card\.contains\(e\.target\)/.test(codeOnly));
 }
 
+console.log('\n=== the list button lights up while the list is open (v2.2.5) ===');
+ok('>>> #listToggle takes the active tint while #listview is showing',
+   /#app:has\(#listview\.show\) #listToggle\{color:var\(--navy-text\);\}/.test(html));
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
