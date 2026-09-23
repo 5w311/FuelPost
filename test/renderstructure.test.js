@@ -1308,9 +1308,10 @@ console.log('\n=== the map runs under the tab bar (v2.1.1) ===');
   // .H_ui is height:100%/top:auto in HERE's CSS, so a margin moved nothing —
   // measured, the copyright lifted and the zoom and scalebar stayed under.
   ok('>>> HERE\'s controls are lifted clear of the bar (.H_ui, by bottom)',
-     /#mapwrap \.H_ui\{bottom:var\(--tab-h,0px\);\}/.test(html));
+     /#mapwrap \.H_ui\{bottom:var\(--tab-h,0px\);\}/.test(html)
+     && /body\.rr-tab-showing #mapwrap \.H_ui\{bottom:calc\(var\(--tab-h,0px\) \+ var\(--rr-h,0px\)\);\}/.test(html));
   ok('>>> and so is HERE\'s COPYRIGHT (.H_imprint, !important over the inline bottom)',
-     /#mapwrap \.H_imprint\{bottom:var\(--tab-h,0px\) !important;\}/.test(html));
+     /#mapwrap \.H_imprint\{bottom:calc\(var\(--tab-h,0px\) \+ var\(--rr-h,0px\)\) !important;\}/.test(html));
   const bleedFn = html.slice(html.indexOf('function mapBleed('));
   const bleedBody = bleedFn.slice(0, bleedFn.indexOf('\n}\n') + 3);
   ok('the bleed is MEASURED (#map bottom minus #mapwrap bottom), not a constant',
@@ -1388,6 +1389,23 @@ console.log('\n=== the locate button sits low, and HERE\'s logo moves to clear i
   // was, so the logo must start to the RIGHT of the button's right edge.
   ok('>>> HERE\'s logo starts clear of the button, not underneath it',
      lb && logo && +logo[1] > +lb[3] + +lb[2], JSON.stringify({ button: lb && [lb[3], lb[2]], logo: logo && logo[1] }));
+}
+
+console.log('\n=== the route results card: inset, no home-indicator band, HERE rides above it (v2.1.5) ===');
+{
+  // The base rule pads the card by env(safe-area-inset-bottom) from when it
+  // met the bottom of the screen. Above the tab bar that was a 34pt band of
+  // empty panel that scrolled content vanished into.
+  ok('>>> the results card has no home-indicator padding under its scroll area',
+     /#routeResults\{left:21\.5px;right:21\.5px;padding-bottom:0;/.test(html));
+  ok('  and is inset exactly like the trip card above it',
+     /#routebar\{margin:calc\(env\(safe-area-inset-top,0px\) \+ 6px\) 21\.5px /.test(html));
+  const rr = codeOnly.slice(codeOnly.indexOf('function setRouteResultsHeight(){'));
+  const rrBody = rr.slice(0, rr.indexOf('\n}\n') + 3);
+  ok('>>> its height is published live as --rr-h, and is 0 while it is hidden',
+     /classList\.contains\('show'\) \? el\.getBoundingClientRect\(\)\.height : 0/.test(rrBody)
+     && /setProperty\('--rr-h'/.test(rrBody)
+     && /new ResizeObserver\(setRouteResultsHeight\)\.observe\(\$\('routeResults'\)\)/.test(codeOnly), rrBody);
 }
 
 console.log(`\n${p} passed, ${f} failed`);

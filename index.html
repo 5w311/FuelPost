@@ -1070,9 +1070,19 @@ button{-webkit-tap-highlight-color:transparent;}
    is height:100% with top:auto in HERE's CSS, so a margin moves nothing
    (measured: the copyright lifted, the zoom and scalebar stayed under the
    bar). !important on .H_imprint for the inline bottom:0 the SDK writes.
-   The #mapwrap.nm-on rules above add the Near Me height on top of this. */
+   The #mapwrap.nm-on rules above add the Near Me height on top of this.
+   --rr-h does the same for the route results card on the Route tab: since
+   v2.1.5 that card is inset, so the copyright box stuck out beside it as a
+   visibly covered strip (and it was covered outright before). Published by
+   a ResizeObserver, 0 whenever the card is hidden — which it always is on
+   the Stops tab, where --nm-h takes over.
+   The attribution (.H_imprint) rides above the card in both states. The
+   controls (.H_ui) only do while it is COLLAPSED: lifted over the open card
+   they float mid-map on top of the route's own delivery pin, so there they
+   stay tucked behind the card, as they always were. */
 #mapwrap .H_ui{bottom:var(--tab-h,0px);}
-#mapwrap .H_imprint{bottom:var(--tab-h,0px) !important;}
+body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px));}
+#mapwrap .H_imprint{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px)) !important;}
 #mapLoading{background:var(--bg);font-size:15px;}
 /* The locate button sits low, 8px above the map's visible edge — the same
    gap the Near Me bubble keeps to the tab bar. That is where HERE's logo was,
@@ -1233,8 +1243,8 @@ button{-webkit-tap-highlight-color:transparent;}
 #routebar .vp-haz-head{font-size:13px;}
 #routebar .vp-haz button{font-size:11.75px;padding:5.5px 9.5px;}
 #planBtn,#confirmBtn{height:41px;border-radius:20.5px;background:var(--accent-fill);font-size:15px;font-weight:600;}
-#shareTripBtn{height:50px;border-radius:25px;background:var(--fill);border:0;color:var(--navy-text);font-size:16px;font-weight:600;}
-#clearTripBtn{text-decoration:none;color:var(--danger-text);font-size:15px;font-weight:600;min-height:44px;}
+#shareTripBtn{height:41px;border-radius:20.5px;background:var(--fill);border:0;color:var(--navy-text);font-size:15px;font-weight:600;margin-top:12px;}
+#clearTripBtn{text-decoration:none;color:var(--danger-text);font-size:13.5px;font-weight:600;min-height:40px;}
 .vp-haz-head{font-size:15px;font-weight:600;}
 .vp-haz{gap:8px;}
 .vp-haz button{font-size:13px;font-weight:600;padding:8px 12px;border-radius:18px;background:var(--fill);border:.5px solid transparent;color:var(--ink);}
@@ -1247,34 +1257,48 @@ button{-webkit-tap-highlight-color:transparent;}
 .gauge-readout{font-size:20px;line-height:26px;margin-top:10px;}
 .gauge-danger-note{font-size:13px;}
 
-/* ---- Route results */
-#routeResults{border-radius:28px 28px 0 0;box-shadow:var(--sheet-shadow);}
-#routeResults > .rb-tab{padding:14px 18px;}
-.rr-body{padding:14px 18px 24px;}
-.rr-head{font-size:20px;line-height:25px;}
-.rr-sub{font-size:14px;margin-bottom:10px;}
-.rr-veh{font-size:13px;}
-.rr-stop{padding:12px 0;border-top:.5px solid var(--line);}
-.rr-mile b{font-size:17px;}
-.rr-mile span{font-size:11px;text-transform:none;letter-spacing:0;}
-.rr-name{font-size:16px;font-weight:600;}
-.rr-meta{font-size:13px;}
-.rr-final,.rr-arrive,.rr-skipped,.rr-note,.rr-avail-none,.rr-avail-head{font-size:14px;}
-.rr-endlabel,.gc-label{font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;}
-.rr-endaddr{font-size:15px;}
-.rr-fix,.gc-edit{text-decoration:none;font-size:14px;color:var(--navy-text);}
-.rr-warn,.geo-error,.vp-errors{background:rgba(255,59,48,.10);border:.5px solid rgba(255,59,48,.35);color:var(--danger-text);border-radius:14px;font-size:14px;}
+/* ---- Route results: the same card as the trip details above it — inset to
+   the same 21.5px, rounded on every corner, and sized on the same scale
+   (text ~0.875 of v2.1.0, like the trip card's). It sits on #mapwrap's
+   bottom edge, just above the tab bar.
+
+   padding-bottom:0 overrides the base rule's env(safe-area-inset-bottom).
+   That inset was for when this panel met the bottom of the screen; with the
+   bar below it, it was a 34pt band of empty panel under the scroll area that
+   content visibly disappeared into while scrolling. */
+#routeResults{left:21.5px;right:21.5px;padding-bottom:0;border-radius:19px;box-shadow:0 8px 30px rgba(0,0,0,.28);}
+#routeResults > .rb-tab{padding:9.5px 15px;}
+/* While the card is collapsed the whole of .H_ui rides above it (--rr-h,
+   with the .H_ui rules above), so the zoom controls no longer need their own
+   extra lift over the collapsed tab — back to HERE's default 16px. */
+body.rr-tab-showing .H_l_bottom.H_l_right{bottom:16px;}
+.rr-body{padding:11px 13px 14px;}
+.rr-head{font-size:17.5px;line-height:22px;}
+.rr-sub{font-size:12.25px;margin-bottom:8.5px;}
+.rr-veh{font-size:11.25px;}
+.rr-stop{padding:10px 0;border-top:.5px solid var(--line);}
+.rr-mile{flex-basis:58px;}
+.rr-mile b{font-size:15px;}
+.rr-mile span{font-size:9.75px;text-transform:none;letter-spacing:0;}
+.rr-name{font-size:14px;font-weight:600;}
+.rr-meta{font-size:11.25px;}
+.rr-final,.rr-arrive,.rr-skipped,.rr-note,.rr-avail-none,.rr-avail-head{font-size:12.25px;}
+.rr-endlabel,.gc-label{font-size:11.25px;font-weight:600;text-transform:none;letter-spacing:0;}
+.rr-endaddr{font-size:13px;}
+.rr-fix,.gc-edit{text-decoration:none;font-size:12.25px;color:var(--navy-text);}
+.rr-warn,.geo-error,.vp-errors{background:rgba(255,59,48,.10);border:.5px solid rgba(255,59,48,.35);color:var(--danger-text);border-radius:12px;font-size:12.25px;}
 .rr-warn a{color:var(--danger-text);}
-.rr-caution,.gc-warn{background:rgba(255,159,10,.12);border:.5px solid rgba(255,159,10,.4);color:var(--warn-text);border-radius:14px;font-size:14px;}
-.rr-avail-intro{background:rgba(52,199,89,.12);border:.5px solid rgba(52,199,89,.35);color:var(--ok-text);border-radius:14px;font-size:14px;}
-.share-note{color:var(--ok-text);font-size:14px;}
-.rr-opt{border-radius:14px;}
-.rr-opt-label{font-size:15px;}
-.rr-opt-meta{font-size:13px;}
-.rr-avail-toggle{font-size:14px;}
-.gc-cand{border-radius:12px;background:var(--fill);border:0;padding:10px 12px;}
-.gc-cand .gc-addr{font-size:15px;}
-.gc-typed{font-size:13px;}
+.rr-caution,.gc-warn{background:rgba(255,159,10,.12);border:.5px solid rgba(255,159,10,.4);color:var(--warn-text);border-radius:12px;font-size:12.25px;}
+.rr-avail-intro{background:rgba(52,199,89,.12);border:.5px solid rgba(52,199,89,.35);color:var(--ok-text);border-radius:12px;font-size:12.25px;}
+.share-note{color:var(--ok-text);font-size:12.25px;}
+.rr-opt{border-radius:12px;}
+.rr-opt-label{font-size:13px;}
+.rr-opt-meta{font-size:11.25px;}
+.rr-avail-toggle{font-size:12.25px;}
+.rr-tip,.rr-near-del{font-size:11.75px;}
+.gc-cand{border-radius:10.5px;background:var(--fill);border:0;padding:8.5px 10.5px;}
+.gc-cand .gc-addr{font-size:13px;}
+.gc-typed{font-size:11.25px;}
 
 /* ---- Reset filters obeys its hidden attribute. The script sets hidden
    whenever no filter is active, but the original #filterCard .reset-filters
@@ -1705,35 +1729,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.1.4"></script>
+<script src="lib/fuelplan.js?v=2.1.5"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.1.4"></script>
+<script src="lib/triptext.js?v=2.1.5"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.1.4"></script>
+<script src="lib/location.js?v=2.1.5"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.1.4"></script>
+<script src="lib/gauge.js?v=2.1.5"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.1.4"></script>
+<script src="lib/corridors.js?v=2.1.5"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.1.4"></script>
+<script src="lib/nearme.js?v=2.1.5"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.1.4"></script>
+<script src="lib/extract-version.js?v=2.1.5"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.1.4"></script>
+<script src="lib/autosuggest.js?v=2.1.5"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.1.4"></script>
+<script src="lib/baselayer.js?v=2.1.5"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.1.4"></script>
+<script src="lib/memocache.js?v=2.1.5"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.1.4"></script>
+<script src="lib/routerank.js?v=2.1.5"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.1.4"></script>
+<script src="lib/vehicleprofile.js?v=2.1.5"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.1.4"></script>
+<script src="lib/escape.js?v=2.1.5"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.1.4"></script>
+<script src="lib/stopfilter.js?v=2.1.5"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.1.4"></script>
+<script src="lib/navlinks.js?v=2.1.5"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1749,7 +1773,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.1.4')
+fetch('lib/fuelplan-adaptive.js?v=2.1.5')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1766,7 +1790,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.1.4')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.1.4')
+fetch('lib/shorttrip.js?v=2.1.5')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1777,7 +1801,7 @@ fetch('lib/shorttrip.js?v=2.1.4')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.1.4"></script>
+<script src="lib/flexible-polyline.js?v=2.1.5"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1949,7 +1973,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.1.4';
+const APP_VERSION = '2.1.5';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -4302,6 +4326,17 @@ if(window.ResizeObserver){
   $('nmTab').addEventListener('click', () => setTimeout(measure, 240));
 }
 $('nmTab').addEventListener('click', () => setNearMeExpanded(!nearMeExpanded));
+
+// The route results card's live height, for the same reason as --nm-h above:
+// HERE's copyright and controls sit above the card rather than under it (see
+// --rr-h in the CSS). 0 whenever the card is hidden, which the observer sees
+// as a size change like any other — including every switch to Stops.
+function setRouteResultsHeight(){
+  const el = $('routeResults');
+  const h = el && el.classList.contains('show') ? el.getBoundingClientRect().height : 0;
+  $('mapwrap').style.setProperty('--rr-h', Math.round(h) + 'px');
+}
+if(window.ResizeObserver) new ResizeObserver(setRouteResultsHeight).observe($('routeResults'));
 
 // Detour tolerance widens only when the tight search would strand the driver.
 // planAdaptive (lib/fuelplan-adaptive.js) tries these in order and stops at
