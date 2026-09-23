@@ -1502,5 +1502,25 @@ console.log('\n=== the list button lights up while the list is open (v2.2.5) ===
 ok('>>> #listToggle takes the active tint while #listview is showing',
    /#app:has\(#listview\.show\) #listToggle\{color:var\(--navy-text\);\}/.test(html));
 
+console.log('\n=== a long press on locate never taps what lands under the finger (v2.2.8) ===');
+{
+  // Turning location off hides Near Me mid-press; the pill drops and the
+  // finger lifts over HERE's layer button. HERE acts on the raw release, not
+  // on click — so the release events themselves are stopped, at WINDOW
+  // capture, which runs before HERE's listeners. A click-only or
+  // document-level swallow did not stop it (measured with a real touch hold).
+  const sw = codeOnly.slice(codeOnly.indexOf('function swallowReleaseAfterHold(){'));
+  const swBody = sw.slice(0, sw.indexOf('\n}\n') + 3);
+  ok('>>> the hold swallows pointerup, touchend, mouseup AND click',
+     /const HOLD_RELEASE_EVENTS = \['pointerup', 'touchend', 'mouseup', 'click'\];/.test(codeOnly));
+  ok('  on window, in the capture phase, ahead of everything else',
+     /window\.addEventListener\(t, swallow, true\)/.test(swBody) && /e\.stopImmediatePropagation\(\)/.test(swBody), swBody);
+  ok('  and it disarms again (after the release, or on a safety timeout)',
+     /window\.removeEventListener\(t, swallow, true\)/.test(swBody) && /setTimeout\(disarm, 400\)/.test(swBody)
+     && /setTimeout\(disarm, 10000\)/.test(swBody));
+  ok('>>> it is armed the moment the hold fires, before location changes',
+     /locateHoldFired = true;\s*swallowReleaseAfterHold\(\);\s*setLocationOff\(!locationOff\);/.test(codeOnly));
+}
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
