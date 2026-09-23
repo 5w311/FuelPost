@@ -1472,5 +1472,19 @@ console.log('\n=== the filter panel is a bubble like the results card (v2.2.2) =
      /#mapwrap:has\(#filterCard\.show\) \.H_ui, #mapwrap:has\(#filterCard\.show\) #locateBtn,\s*#mapwrap:has\(#filterCard\.show\) #locateHint, #mapwrap:has\(#filterCard\.show\) #locateError\{visibility:hidden;\}/.test(html));
 }
 
+console.log('\n=== filter and More dim and blur what is behind them (v2.2.3) ===');
+{
+  ok('>>> the scrim blurs as well as dims', /#scrim\{background:rgba\(0,0,0,\.35\);-webkit-backdrop-filter:blur\(\d+px\);backdrop-filter:blur\(\d+px\);\}/.test(html));
+  ok('>>> the filter bubble shows the scrim while it is open', /#app:has\(#filterCard\.show\) #scrim\{opacity:1;pointer-events:auto;\}/.test(html));
+  // More opens over the stop list too: the list must not hide its sheet, or
+  // the scrim comes up over nothing.
+  ok('>>> the stop list does not hide the More sheet',
+     !/#listview\.show ~ #legendCard/.test(html.replace(/\/\*[\s\S]*?\*\//g, '')
+       .split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n')));
+  // A tap on the scrim must count as outside the bubble, or it would trap it.
+  ok('  and a tap on the scrim closes it: the outside-tap dismiss tests containment, not target ids',
+     /card\.classList\.contains\('show'\) && !card\.contains\(e\.target\)/.test(codeOnly));
+}
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;

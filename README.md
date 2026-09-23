@@ -603,6 +603,11 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.2.3
+Opening the filters or More now blurs and darkens the screen behind them; tap the
+dimmed part to close. More also opens while you're looking at the list of stops,
+where before it only darkened the screen.
+
 ### v2.2.2
 The filter panel is a rounded bubble like the fuel plan card, instead of a sheet
 running edge to edge.
