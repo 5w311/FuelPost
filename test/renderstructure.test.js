@@ -339,9 +339,11 @@ console.log('=== the legend closes on any chrome change (v1.44.0) ===');
        /legendCard'\)\.classList\.remove\('show'\)/.test(clBody)
        && !/classList\.(add|toggle)\('show'\)/.test(clBody), clBody);
   }
+  // Six: the five chrome toggles, plus the More button's own close (v2.1.2),
+  // which goes through closeLegend so the scrim is released in one place.
   ok('>>> there is ONE closeLegend, and the toggles call it rather than repeat it',
      /function closeLegend\(\)\{/.test(codeOnlyL)
-     && (codeOnlyL.match(/closeLegend\(\);/g) || []).length === 5,
+     && (codeOnlyL.match(/closeLegend\(\);/g) || []).length === 6,
      String((codeOnlyL.match(/closeLegend\(\);/g) || []).length));
   // Scoped to setMode's body: it must fire for BOTH directions, so it cannot
   // sit inside the if(route) branch that only runs on the way in.
@@ -1171,8 +1173,15 @@ ok('  and aria-expanded is kept in sync in code',
 // v1.29.1: the footer is FLUSH to the bottom and full width, and nothing is
 // covered because everything above it is lifted instead. Covering HERE's
 // attribution is a terms issue, so the lift rules are what carry that now.
-ok('>>> the footer is flush to the bottom, edge to edge',
+// v2.1.2: anchored to the bottom of the map area as before, but drawn as a
+// slim bubble inset like the tab bar, with no home-indicator padding (the
+// bar below owns that now; here it was a band of empty panel).
+ok('>>> the footer is anchored to the bottom of the map area',
    /#nearMe\{[^}]*left:0;right:0;bottom:0/.test(html), (/#nearMe\{[^}]*\}/.exec(html) || [''])[0]);
+ok('>>> and drawn as a slim inset bubble, with no safe-area band under the text',
+   /#nearMe\{left:16px;right:16px;padding-bottom:0;[^}]*border-radius:22px;/.test(html));
+ok('  its tab row is slim but still a 44px target',
+   /#nearMe \.rb-tab\{min-height:44px;/.test(html));
 ok('>>> the map buttons are lifted by the footer height, not left underneath',
    /#mapwrap\.nm-on #locateBtn\{bottom:calc\(12px \+ var\(--nm-h,0px\)\);\}/.test(html));
 ok('>>> HERE\'s scalebar and layer switcher lift with it (.H_ui)',
@@ -1315,6 +1324,43 @@ console.log('\n=== the layer button can open its menu (v2.1.1) ===');
   ok('  and the single button rounds its own corners, not via :only-child (the menu is its sibling)',
      /#mapwrap \.H_ui \.H_ctl:not\(\.H_zoom\) > \.H_btn\{border-radius:14px;\}/.test(html)
      && !/\.H_btn:only-child/.test(html));
+}
+
+console.log('\n=== More is its own bubble and its own sheet (v2.1.2) ===');
+{
+  ok('>>> the bar is a row of two bubbles, not one capsule',
+     /#tabbar\{position:relative;z-index:500;flex-shrink:0;display:flex;/.test(html)
+     && /#tabbar #modeSeg\{flex:1;min-width:0;display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);/.test(html)
+     && /#tabbar #legendBtn\{flex:0 0 56px;\}/.test(html));
+  ok('  More still sits OUTSIDE #modeSeg, so setMode never treats it as a mode',
+     /<\/div>\s*<button id="legendBtn"/.test(html.slice(html.indexOf('<nav id="tabbar"'))));
+  // Inside #mapwrap it was capped at 80% of the map area — in Route mode, a
+  // strip under the trip card, which hid theme and version off the end.
+  ok('>>> the More sheet is sized by the screen, not the map area',
+     /#legendCard\{position:fixed;max-height:calc\(100% - env\(safe-area-inset-top,0px\) - 12px\);\}/.test(html));
+  ok('  and pads its end by the bar it runs behind',
+     /#legendCard\{padding:8px 20px calc\(16px \+ var\(--tab-h,0px\)\);/.test(html));
+  ok('>>> the bar rides above the sheet while it is open — More is how it closes',
+     /#app:has\(#legendCard\.show\) #tabbar\{z-index:630;\}/.test(html));
+  const cl = codeOnly.slice(codeOnly.indexOf('function closeLegend(){'));
+  const clBody = cl.slice(0, cl.indexOf('\n}\n') + 3);
+  ok('>>> closing More releases the scrim, but never while the station sheet owns it',
+     /if\(!document\.getElementById\('sheet'\)\.classList\.contains\('show'\)\)\s*document\.getElementById\('scrim'\)\.classList\.remove\('show'\);/.test(clBody), clBody);
+  ok('  opening More dims behind it',
+     /const open = document\.getElementById\('legendCard'\)\.classList\.toggle\('show'\);\s*if\(open\) document\.getElementById\('scrim'\)\.classList\.add\('show'\);/.test(codeOnly));
+  ok('  and a tap on the dimmed area closes it',
+     /getElementById\('scrim'\)\.addEventListener\('click', closeLegend\);/.test(codeOnly));
+}
+
+console.log('\n=== the trip card is compact, and never zooms the page (v2.1.2) ===');
+{
+  // iOS Safari zooms the whole page into any focused input under 16px.
+  const inp = /\.rb-field input,\.rb-range-wrap input,\.vp-cell input\{([^}]*)\}/g;
+  const rules = [...html.matchAll(inp)].map(m => m[1]);
+  ok('>>> every trip-card input rule keeps 16px text',
+     rules.length > 0 && rules.every(r => !/font-size/.test(r) || /font-size:16px/.test(r)), JSON.stringify(rules));
+  ok('  the card\'s buttons stay tappable: Plan is 44px',
+     /#planBtn,#confirmBtn\{height:44px;/.test(html));
 }
 
 console.log(`\n${p} passed, ${f} failed`);

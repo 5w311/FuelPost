@@ -167,8 +167,8 @@ the list instead.
 **The locate button** centres on you and zooms out far enough to show the three
 closest stops.
 
-**The bottom bar** answers "where's the nearest fuel" — tap it to see the nearest
-four.
+**The nearest-fuel bubble**, just above the tabs at the bottom, answers "where's
+the nearest fuel" — tap it to see the nearest four.
 
 - Distances are **straight line, not driving miles**, so they're honest about
   what they are. Sixty straight-line miles might be fifty minutes or ninety.
@@ -493,6 +493,14 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   `top:auto`, so a margin moves nothing), and `mapBleed()` goes into the
   viewport's bottom padding so centring and fits ignore the hidden strip.
   `--tab-h` is the bar's height plus both margins; a test adds them up.
+- **Trip-card inputs stay at 16px text.** Everything else in the card was sized
+  down in v2.1.2, but iOS Safari zooms the whole page into any focused input
+  smaller than 16px. A test holds every input rule there to it.
+- **More is `position:fixed`, not a sheet inside `#mapwrap`.** Inside the map
+  area it was capped at 80% of whatever the map had left, which on the Route tab
+  is a strip under the trip card. It shares `#scrim` with the station sheet, so
+  `closeLegend()` releases the scrim only when the station sheet isn't up, and
+  `#tabbar` is raised over both while More is open, since More is how it closes.
 - **Never `overflow:hidden` on the layer button's `.H_ctl`.** Its Map view /
   Satellite menu is a child of that control and opens outside it, so clipping
   the control for its rounded corners clipped the menu away and the button
@@ -558,6 +566,13 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.1.2
+The nearest-fuel strip is now a slim bubble just above the tabs, without the
+empty space under it. The trip details card takes up less of the screen. More has
+its own round button beside Stops and Route, and opens over everything — on the
+Route tab too, where before it was squeezed under the trip card with half of it
+out of reach.
 
 ### v2.1.1
 The map now fills the whole screen, right down behind the bar at the bottom,
