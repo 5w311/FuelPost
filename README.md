@@ -599,6 +599,10 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.1.7
+A new app icon: a fuel gauge. To see it on your home screen, remove the old
+FuelPost icon and add it again from Safari.
+
 ### v2.1.6
 The list of stops is split by state, A to Z by state name, each under its own
 heading.
