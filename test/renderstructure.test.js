@@ -1522,5 +1522,20 @@ console.log('\n=== a long press on locate never taps what lands under the finger
      /locateHoldFired = true;\s*swallowReleaseAfterHold\(\);\s*setLocationOff\(!locationOff\);/.test(codeOnly));
 }
 
+console.log('\n=== the plan card does not repeat its title bar (v2.2.9) ===');
+{
+  // The card used to open with a big headline and a sub-line that repeated
+  // the title bar right above them. The headline and miles are the title; the
+  // range line is the title bar's second line; the card starts with content.
+  ok('>>> a plan passes its range line to the title bar',
+     /showRoutePanel\(h, `\$\{headline\} · \$\{mi\(routeMiles\)\} mi`, planDetail\);/.test(codeOnly));
+  ok('  and the no-range screen does the same',
+     /showRoutePanel\(h, head, '0 mi of range leaving the shipper'\);/.test(codeOnly));
+  ok('>>> neither result card opens with its own headline any more',
+     !/rr-head">\$\{headline\}/.test(codeOnly) && !/rr-head">\$\{head\}/.test(codeOnly));
+  ok('  the title bar\'s second line is text, never markup',
+     /\$\('rrDetail'\)\.textContent = detail \|\| '';/.test(codeOnly) && !/rrDetail'\)\.innerHTML/.test(codeOnly));
+}
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
