@@ -454,8 +454,8 @@
      that beats a normal inline one, and the alternative (writing the offset
      from JS on every resize) would put layout back into script for no gain.
      .H_ui needs no such escape, having no inline bottom of its own. */
-  #mapwrap.nm-on .H_ui{bottom:var(--nm-h,0px);}
-  #mapwrap.nm-on .H_imprint{bottom:var(--nm-h,0px) !important;}
+  #mapwrap.nm-on .H_ui{bottom:calc(var(--tab-h,0px) + var(--nm-h,0px));}
+  #mapwrap.nm-on .H_imprint{bottom:calc(var(--tab-h,0px) + var(--nm-h,0px)) !important;}
 
   /* Live position dot — own H.map.Group so STOPS filter re-renders (which
      rebuild markerGroup) never touch it. Uses --you-are-here, not --ta —
@@ -1005,22 +1005,47 @@ button{-webkit-tap-highlight-color:transparent;}
    floating would cover HERE's copyright line (a terms issue) and the
    bottom edge that the Near Me panel, the results panel and the route-fit
    padding all measure. #modeSeg is display:contents so its two buttons join
-   the capsule's grid while '#modeSeg button' still finds them for setMode. */
+   the capsule's grid while '#modeSeg button' still finds them for setMode.
+
+   The MAP still runs to the bottom of the screen: #mapwrap keeps its edge
+   where the bar starts, and only the map canvas (#map), the list and the
+   loading cover bleed on down behind the bar by --tab-h. So everything that
+   measures #mapwrap's bottom is exactly where it was, and the one thing that
+   used to sit flush on it and now would be covered — HERE's own chrome — is
+   lifted back up by the same amount (see .H_ui/.H_imprint below).
+
+   --tab-h is the bar's WHOLE footprint: height + top margin + bottom margin +
+   the home-indicator inset. Change any of those and change it here too;
+   test/renderstructure.test.js adds the pieces up and fails if they drift. */
+#app{--tab-h:calc(56px + 8px + 8px + env(safe-area-inset-bottom,0px));}
 #tabbar{position:relative;z-index:500;flex-shrink:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
-  height:62px;box-sizing:border-box;padding:4px;margin:8px 16px calc(env(safe-area-inset-bottom,0px) + 8px);
-  border-radius:31px;background:var(--glass);border:.5px solid var(--glass-border);box-shadow:var(--glass-shadow);
+  height:56px;box-sizing:border-box;padding:4px;margin:8px 16px calc(env(safe-area-inset-bottom,0px) + 8px);
+  border-radius:28px;background:var(--glass);border:.5px solid var(--glass-border);box-shadow:var(--glass-shadow);
   -webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%);}
 #tabbar #modeSeg{display:contents;}
 #tabbar button{position:static;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-  width:auto;height:auto;min-width:0;margin:0;padding:0;border:0;border-radius:27px;background:transparent;box-shadow:none;
+  width:auto;height:auto;min-width:0;margin:0;padding:0;border:0;border-radius:24px;background:transparent;box-shadow:none;
   font:inherit;font-size:11px;line-height:13px;font-weight:600;color:var(--sub);}
-#tabbar button svg{width:24px;height:24px;flex-shrink:0;}
+#tabbar button svg{width:22px;height:22px;flex-shrink:0;}
 #tabbar #modeSeg button.active{background:var(--tab-sel);color:var(--navy-text);}
 #app:has(#legendCard.show) #tabbar #modeSeg button.active{background:transparent;color:var(--sub);}
 #app:has(#legendCard.show) #tabbar #legendBtn{background:var(--tab-sel);color:var(--navy-text);}
 
 /* ---- Map chrome */
 #mapwrap{background:var(--bg);}
+/* The bleed under the tab bar (see #tabbar above). The list and the loading
+   cover come along so neither leaves a strip of map showing below it; the
+   list pads its end by the same amount so its last row scrolls clear (the
+   padding-bottom in the #listview rule further down). */
+#map, #listview, #mapLoading{bottom:calc(-1 * var(--tab-h,0px));}
+/* HERE's attribution must never sit behind the bar: covering it is a terms
+   issue. Both containers, because they are siblings; `bottom` because .H_ui
+   is height:100% with top:auto in HERE's CSS, so a margin moves nothing
+   (measured: the copyright lifted, the zoom and scalebar stayed under the
+   bar). !important on .H_imprint for the inline bottom:0 the SDK writes.
+   The #mapwrap.nm-on rules above add the Near Me height on top of this. */
+#mapwrap .H_ui{bottom:var(--tab-h,0px);}
+#mapwrap .H_imprint{bottom:var(--tab-h,0px) !important;}
 #mapLoading{background:var(--bg);font-size:15px;}
 #locateBtn{width:48px;height:48px;left:12px;color:var(--navy-text);
   border:.5px solid var(--glass-border);background:var(--glass);box-shadow:var(--glass-shadow);
@@ -1076,7 +1101,7 @@ button{-webkit-tap-highlight-color:transparent;}
 
 /* ---- All-stops list: full screen under the floating search, which keeps
    working as the list's filter box. */
-#listview{background:var(--bg);padding-top:calc(env(safe-area-inset-top,0px) + 72px);padding-bottom:24px;}
+#listview{background:var(--bg);padding-top:calc(env(safe-area-inset-top,0px) + 72px);padding-bottom:calc(24px + var(--tab-h,0px));}
 .list-item{background:var(--surface);padding:14px 16px;gap:12px;border-bottom:.5px solid var(--line);}
 .list-item .dot{width:36px;height:36px;font-size:14px;margin-top:1px;}
 .list-item .name{font-size:17px;font-weight:600;}
@@ -1202,10 +1227,18 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
 /* ---- HERE's own map controls, glassed to match. Surfaces, radii and icon
    colour only: HERE still positions them and runs the layer picker. Its
    icon fill is a hardcoded dark rgba, invisible on a dark surface. The
-   scalebar is an .H_ctl too and is left alone. */
-#mapwrap .H_ui .H_ctl:not(.H_scalebar){border-radius:14px;overflow:hidden;box-shadow:var(--glass-shadow);background:transparent;}
+   scalebar is an .H_ctl too and is left alone.
+
+   overflow:hidden is on the ZOOM group only. The layer button's .H_ctl also
+   holds the Map view / Satellite menu (.H_overlay), which opens out to the
+   left of the button — clipping that .H_ctl to its 40px square clipped the
+   whole menu away, so the button looked dead (v2.1.0 shipped exactly that).
+   The single button rounds its own corners instead; it cannot use
+   :only-child, because the menu is its sibling. */
+#mapwrap .H_ui .H_ctl:not(.H_scalebar){border-radius:14px;box-shadow:var(--glass-shadow);background:transparent;}
+#mapwrap .H_ui .H_ctl.H_zoom{overflow:hidden;}
 #mapwrap .H_ui .H_btn{background:var(--glass);border-radius:0;-webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);}
-#mapwrap .H_ui .H_ctl > .H_btn:only-child{border-radius:14px;}
+#mapwrap .H_ui .H_ctl:not(.H_zoom) > .H_btn{border-radius:14px;}
 #mapwrap .H_ui .H_btn .H_icon{fill:var(--ink);}
 #mapwrap .H_ui .H_zoom .H_btn + .H_btn{border-top:.5px solid var(--line);}
 #mapwrap .H_ui .H_overlay{background:var(--surface);color:var(--ink);border-radius:16px;border:.5px solid var(--glass-border);box-shadow:0 12px 32px rgba(0,0,0,.3);}
@@ -1609,35 +1642,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.1.0"></script>
+<script src="lib/fuelplan.js?v=2.1.1"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.1.0"></script>
+<script src="lib/triptext.js?v=2.1.1"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.1.0"></script>
+<script src="lib/location.js?v=2.1.1"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.1.0"></script>
+<script src="lib/gauge.js?v=2.1.1"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.1.0"></script>
+<script src="lib/corridors.js?v=2.1.1"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.1.0"></script>
+<script src="lib/nearme.js?v=2.1.1"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.1.0"></script>
+<script src="lib/extract-version.js?v=2.1.1"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.1.0"></script>
+<script src="lib/autosuggest.js?v=2.1.1"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.1.0"></script>
+<script src="lib/baselayer.js?v=2.1.1"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.1.0"></script>
+<script src="lib/memocache.js?v=2.1.1"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.1.0"></script>
+<script src="lib/routerank.js?v=2.1.1"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.1.0"></script>
+<script src="lib/vehicleprofile.js?v=2.1.1"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.1.0"></script>
+<script src="lib/escape.js?v=2.1.1"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.1.0"></script>
+<script src="lib/stopfilter.js?v=2.1.1"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.1.0"></script>
+<script src="lib/navlinks.js?v=2.1.1"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1653,7 +1686,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.1.0')
+fetch('lib/fuelplan-adaptive.js?v=2.1.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1670,7 +1703,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.1.0')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.1.0')
+fetch('lib/shorttrip.js?v=2.1.1')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1681,7 +1714,7 @@ fetch('lib/shorttrip.js?v=2.1.0')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.1.0"></script>
+<script src="lib/flexible-polyline.js?v=2.1.1"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1853,7 +1886,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.1.1';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2410,11 +2443,12 @@ function fitBoundsWithMargin(b){
   if(!mapLive()) return;
   if(!b) return;
   // Symmetric margin so the extreme pins (Seattle, Maine, South Florida,
-  // SoCal) aren't clipped.
-  map.getViewPort().setPadding(MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN);
+  // SoCal) aren't clipped — measured from the map's VISIBLE bottom, which is
+  // the top of the tab bar, not the canvas edge hidden behind it.
+  map.getViewPort().setPadding(MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN + mapBleed(), MAP_FIT_MARGIN);
   map.getViewModel().setLookAtData({ bounds: b });
-  // Padding must go back to its DOM-derived value (all zeros in Stops
-  // mode) — but NOT synchronously. setLookAtData schedules a view change;
+  // Padding must go back to its DOM-derived value (just the tab-bar bleed
+  // in Stops mode) — but NOT synchronously. setLookAtData schedules a view change;
   // changing padding before it has settled CANCELS it, which is precisely
   // why the original of this never moved the camera at all. Measured on the
   // real build: pad -> fit -> pad in one task leaves the constructor's zoom
@@ -2429,11 +2463,23 @@ function fitBoundsWithMargin(b){
   map.addEventListener('mapviewchangeend', restorePadding);
 }
 
+// How far the map canvas runs on below #mapwrap, behind the tab bar (see
+// --tab-h in the CSS). That strip is drawn but covered, so it goes into the
+// viewport's bottom padding: centring, fits and the startup frame all work
+// on the part the driver can actually see. Measured rather than read from
+// the CSS variable, so it is right whatever the bar's size and the
+// home-indicator inset come to.
+function mapBleed(){
+  const m = document.getElementById('map').getBoundingClientRect();
+  const w = document.getElementById('mapwrap').getBoundingClientRect();
+  return Math.max(0, Math.round(m.bottom - w.bottom));
+}
 // The free area a bounds fit actually gets: the map element inset by the
-// current viewport padding.
+// current viewport padding. The map element, not #mapwrap — the padding
+// includes the bleed, and the bleed is part of #map only.
 function mapFreeArea(){
   if(!mapLive()) return { w: 0, h: 0 };
-  const r = document.getElementById('mapwrap').getBoundingClientRect();
+  const r = document.getElementById('map').getBoundingClientRect();
   const p = map.getViewPort().padding || { top:0, right:0, bottom:0, left:0 };
   return { w: Math.round(r.width - p.left - p.right),
            h: Math.round(r.height - p.top - p.bottom) };
@@ -2477,7 +2523,7 @@ function syncMapPadding(){
   const h = (p && p.classList.contains('show'))
     ? Math.round(p.getBoundingClientRect().height) : 0;
   const m = h > 0 ? MAP_FIT_MARGIN : 0;
-  map.getViewPort().setPadding(m, m, h + m, m);
+  map.getViewPort().setPadding(m, m, h + m + mapBleed(), m);
   // Re-fit only while a route is on screen, only in Route mode (switching
   // to Stops must never yank the map to the route's bounds), and only when
   // the area the fit gets has actually moved — measured after the padding

@@ -486,6 +486,17 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   copyright behind, and **covering HERE's attribution is a terms issue**.
   `.H_imprint` needs `!important`; the resize observer must read
   `getBoundingClientRect()`, not `contentRect`.
+- **The map runs under the tab bar; `#mapwrap` does not.** Only `#map`,
+  `#listview` and `#mapLoading` bleed down by `--tab-h`, so everything that
+  measures `#mapwrap`'s bottom edge stays put. HERE's `.H_ui` and `.H_imprint`
+  are lifted by the same `--tab-h`, using `bottom` (`.H_ui` is `height:100%` with
+  `top:auto`, so a margin moves nothing), and `mapBleed()` goes into the
+  viewport's bottom padding so centring and fits ignore the hidden strip.
+  `--tab-h` is the bar's height plus both margins; a test adds them up.
+- **Never `overflow:hidden` on the layer button's `.H_ctl`.** Its Map view /
+  Satellite menu is a child of that control and opens outside it, so clipping
+  the control for its rounded corners clipped the menu away and the button
+  looked dead (v2.1.0). Only `.H_zoom` clips.
 - **The vector satellite layer is inserted at index 1**, never appended, or it
   draws over the pins and route.
 - **A lib's top-level names are GLOBALS, so they must not collide with
@@ -547,6 +558,11 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.1.1
+The map now fills the whole screen, right down behind the bar at the bottom,
+and the bar is a little slimmer. The button under the zoom that switches between
+map and satellite works again — since v2.1.0 its menu opened out of sight.
 
 ### v2.1.0
 A new look, and nothing else. The map runs edge to edge with the search box and
