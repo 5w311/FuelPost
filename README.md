@@ -287,18 +287,25 @@ entry (a test requires one matching `APP_VERSION`, another requires
 scratchpad Playwright harness with the real vendored SDK and HERE intercepted —
 never against the live key.
 
-**Where it is served:** `fuelpost.figari.dev`, GitHub Pages behind a Cloudflare
+**Where it is served:** `fuelpostios.figari.dev`, GitHub Pages behind a Cloudflare
 CNAME (DNS only, grey cloud — proxying it stops GitHub issuing the certificate).
-`CNAME` in the repo root is what points it there. The old
-`5w311.github.io/FuelPost/` redirects, and everything in the app resolves
+`CNAME` in the repo root is what points it there, and
+`5w311.github.io/FuelPost-iOS/` redirects to it. Everything in the app resolves
 relative to `location.href`, so it serves correctly from a subpath or a root.
+`fuelpost.figari.dev` is the separate, original FuelPost repo — not this one.
+
+**Moving it to a new address breaks the map until the key allows it.** HERE
+refuses a referrer that is not on the key's list (see below), so the list, the
+line above and `CNAME` change together. In v2.1.2 `CNAME` moved first and the
+map went blank while everything else kept working.
 
 ### The HERE key
 
 It is in client-side JS (`index.html`, `HERE_API_KEY`) and therefore public.
 Anyone can read it off the served page. What limits it is an **allowed-referrer
-list** on the key in HERE Platform, currently `fuelpost.figari.dev` and
-`5w311.github.io`. Keep the old origin listed while anyone might still be on it.
+list** on the key in HERE Platform, currently `fuelpostios.figari.dev`,
+`fuelpost.figari.dev` and `5w311.github.io`. Keep an old origin listed while
+anyone might still be on it.
 
 **What that does and does not do**, because the difference matters:
 
