@@ -525,6 +525,10 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   only while the card is collapsed.** Same pattern as `--nm-h`. Lifting `.H_ui`
   over the OPEN card floats the zoom buttons mid-map on top of the delivery pin,
   so `body.rr-tab-showing` gates that half.
+- **The filter bubble lifts HERE's attribution too (`--fc-h`).** Inset like the
+  results card, it no longer covers the copyright box completely, so while it is
+  open the imprint rides above it and what it covers anyway (`.H_ui`, the locate
+  button and its hint chips) is hidden rather than peeking out in slivers.
 - **The tab bar's bottom margin is a flat 8px, not the safe-area inset.** It
   sits down in the home-indicator strip on purpose; `--tab-h` has no safe-area
   term to match. A test fails if the inset comes back.
@@ -598,6 +602,10 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.2.2
+The filter panel is a rounded bubble like the fuel plan card, instead of a sheet
+running edge to edge.
 
 ### v2.2.1
 The fuel-gap warnings read as one paragraph again — the mileages in them no
