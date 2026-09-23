@@ -1441,5 +1441,21 @@ console.log('\n=== the stop list is grouped by state (v2.1.6) ===');
      order.indexOf('Arizona') < order.indexOf('Arkansas') && order.indexOf('Mississippi') < order.indexOf('Missouri'));
 }
 
+console.log('\n=== warning boxes and tier badges read as written (v2.2.1) ===');
+{
+  // The base rule blocks EVERY <b> in a warning box; only the title may be.
+  // Without the override, "between mile 516 and mile 1,416" broke into
+  // four lines inside the gap warning.
+  ok('>>> only a warning box\'s first <b> (its title) sits on a line of its own',
+     /\.rr-warn b:not\(:first-child\),\.rr-caution b:not\(:first-child\)\{display:inline;/.test(html));
+  // …and every box that has a title really does lead with it.
+  const boxes = [...codeOnly.matchAll(/class="rr-(?:warn|caution)">([^\n]*)/g)].map(m => m[1].trim());
+  ok('  every titled warning box leads with its <b> title',
+     boxes.length >= 6 && boxes.filter(b => /<b>/.test(b)).every(b => b.startsWith('<b>')), JSON.stringify(boxes));
+  ok('>>> the caution box\'s link has a colour (was the browser default blue on amber)',
+     /\.rr-caution a\{color:var\(--warn-text\);/.test(html));
+  ok('>>> a tier badge never splits across lines', /\.badge-pill\{display:inline-block;white-space:nowrap;\}/.test(html));
+}
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
