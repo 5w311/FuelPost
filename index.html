@@ -1333,6 +1333,11 @@ body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_
    content visibly disappeared into while scrolling. */
 #routeResults{left:12px;right:12px;padding-bottom:0;border-radius:19px;box-shadow:0 8px 30px rgba(0,0,0,.28);}
 #routeResults > .rb-tab{padding:9.5px 15px;}
+/* Title + a second, quieter line (the plan's range leaving the shipper). */
+.rr-tab-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;}
+.rr-tab-text > .rb-tab-label{flex:none;}
+.rr-tab-detail{font-size:12px;line-height:15px;font-weight:500;color:var(--sub);}
+.rr-tab-detail[hidden]{display:none;}
 /* While the card is collapsed the whole of .H_ui rides above it (--rr-h,
    with the .H_ui rules above), so the zoom controls no longer need their own
    extra lift over the collapsed tab — back to HERE's default 16px. */
@@ -1735,7 +1740,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
     <div id="listview"></div>
     <div id="routeResults">
       <button type="button" id="rrTab" class="rb-tab" aria-expanded="true" aria-controls="routeResultsBody" hidden>
-        <span class="rb-tab-label" id="rrSummary"></span>
+        <span class="rr-tab-text"><span class="rb-tab-label" id="rrSummary"></span><span class="rr-tab-detail" id="rrDetail" hidden></span></span>
         <svg class="rb-tab-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
       </button>
       <div class="rr-body-wrap" id="routeResultsBodyWrap"><div class="rr-body" id="routeResultsBody"></div></div>
@@ -1880,35 +1885,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.2.8"></script>
+<script src="lib/fuelplan.js?v=2.2.9"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.2.8"></script>
+<script src="lib/triptext.js?v=2.2.9"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.2.8"></script>
+<script src="lib/location.js?v=2.2.9"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.2.8"></script>
+<script src="lib/gauge.js?v=2.2.9"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.2.8"></script>
+<script src="lib/corridors.js?v=2.2.9"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.2.8"></script>
+<script src="lib/nearme.js?v=2.2.9"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.2.8"></script>
+<script src="lib/extract-version.js?v=2.2.9"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.2.8"></script>
+<script src="lib/autosuggest.js?v=2.2.9"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.2.8"></script>
+<script src="lib/baselayer.js?v=2.2.9"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.2.8"></script>
+<script src="lib/memocache.js?v=2.2.9"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.2.8"></script>
+<script src="lib/routerank.js?v=2.2.9"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.2.8"></script>
+<script src="lib/vehicleprofile.js?v=2.2.9"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.2.8"></script>
+<script src="lib/escape.js?v=2.2.9"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.2.8"></script>
+<script src="lib/stopfilter.js?v=2.2.9"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.2.8"></script>
+<script src="lib/navlinks.js?v=2.2.9"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1924,7 +1929,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.2.8')
+fetch('lib/fuelplan-adaptive.js?v=2.2.9')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1941,7 +1946,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.2.8')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.2.8')
+fetch('lib/shorttrip.js?v=2.2.9')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1952,7 +1957,7 @@ fetch('lib/shorttrip.js?v=2.2.8')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.2.8"></script>
+<script src="lib/flexible-polyline.js?v=2.2.9"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2142,7 +2147,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.2.8';
+const APP_VERSION = '2.2.9';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -5132,12 +5137,17 @@ const navLine = row => `<div class="rr-meta rr-nav">Nav code <b class="mono">${r
 // tab doesn't show where there's nothing worth collapsing. Every call resets
 // to expanded — a fresh result should be seen, not hidden behind whatever
 // collapse state a previous one was left in.
-function showRoutePanel(html, summary){
+// `detail` is the title bar's second line (v2.2.9): what used to be a
+// headline and sub-line at the top of the card, repeating the title bar
+// right above them. Text, never markup.
+function showRoutePanel(html, summary, detail){
   $('routeResultsBody').innerHTML = html;
   $('routeResults').classList.add('show');
   updateClearVisibility();
   $('rrTab').hidden = !summary;
   if(summary) $('rrSummary').textContent = summary;
+  $('rrDetail').hidden = !detail;
+  $('rrDetail').textContent = detail || '';
   setRrCollapsed(false);
 }
 
@@ -5510,9 +5520,13 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
     ? (stops.length === 0 ? "Can't arrive with that much fuel left" : nStops + ', short of your reserve')
     : (stops.length === 0 ? 'No network fuel plan for this load'
                           : nStops + ', then a gap');
-  let h = `<div class="rr-head">${headline}</div>`;
-  h += `<div class="rr-sub">${mi(routeMiles)} mi loaded miles &middot; ${mi(rangeAtPickup)} mi of range leaving the shipper`
-     + `${startBurned > 0 ? ` &middot; ${mi(startBurned)} mi already burned` : ''}</div>`;
+  // The headline and loaded miles ride in the title bar (see the
+  // showRoutePanel call at the end); only the range line is new there, as
+  // its second line. A big headline repeating the bar right above it was
+  // the first thing in the card until v2.2.9.
+  const planDetail = `${mi(rangeAtPickup)} mi of range leaving the shipper`
+     + (startBurned > 0 ? ` \u00b7 ${mi(startBurned)} mi already burned` : '');
+  let h = '';
   // A plan built on the backup reserve is NOT an ordinary plan and must never
   // read as one: the range it used is fuel the app normally refuses to touch.
   // Said once, at the top, before the stops — a driver who reads no further
@@ -5798,7 +5812,7 @@ function renderPlan(result, routeMiles, ranges, pickup, delivery, nearPickup, sh
   // There is a trip worth taking with you now — a plan or a gap, either way.
   h += '<button type="button" id="shareTripBtn">Share / save trip</button>';
 
-  showRoutePanel(h, `${headline} · ${mi(routeMiles)} mi`);
+  showRoutePanel(h, `${headline} · ${mi(routeMiles)} mi`, planDetail);
   $('shareTripBtn').addEventListener('click', shareTrip);
   document.querySelectorAll('.rr-stop').forEach(el =>
     el.addEventListener('click', () => openSheet(planStops[+el.dataset.idx].row)));
@@ -5871,8 +5885,8 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
   // at a quarter-tank floor two different gauge positions arrive here, and
   // "Gauge at 1/8" would be flatly wrong for one of them.
   const head = `Gauge at ${FuelGauge.tickLabel(gaugeTick)} — no plannable range`;
-  let h = `<div class="rr-head">${head}</div>`;
-  h += '<div class="rr-sub">0 mi of range leaving the shipper</div>';
+  // Title bar carries both lines (v2.2.9), as for a plan.
+  let h = '';
 
   h += `<div class="rr-warn"><b>No network stop is reachable at this fill level</b>
     The backup reserve is spent at this reading: the bottom ${FuelGauge.tickLabel(FuelGauge.BACKUP_RESERVE_TICKS)} tank
@@ -5889,7 +5903,7 @@ function renderFloorGap(ranges, pickup, delivery, nearPickup){
 
   h += '<button type="button" id="shareTripBtn">Share / save trip</button>';
 
-  showRoutePanel(h, head);
+  showRoutePanel(h, head, '0 mi of range leaving the shipper');
   $('shareTripBtn').addEventListener('click', shareTrip);
 
   // No route to draw at this fill level — clear anything left from a

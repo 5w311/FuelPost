@@ -615,6 +615,11 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.2.9
+The fuel plan no longer repeats itself at the top: the number of stops and the
+miles stay in the bar at the top of the card, with your range leaving the
+shipper on a small line under them, and the card goes straight to the plan.
+
 ### v2.2.8
 Holding the locate button to turn location off no longer opens the map-style menu
 when you let go.
