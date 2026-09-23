@@ -287,24 +287,28 @@ entry (a test requires one matching `APP_VERSION`, another requires
 scratchpad Playwright harness with the real vendored SDK and HERE intercepted —
 never against the live key.
 
-**Where it is served:** `fuelpostios.figari.dev`, GitHub Pages behind a Cloudflare
+**Where it is served:** `fuelpost.figari.dev`, GitHub Pages behind a Cloudflare
 CNAME (DNS only, grey cloud — proxying it stops GitHub issuing the certificate).
-`CNAME` in the repo root is what points it there, and
-`5w311.github.io/FuelPost-iOS/` redirects to it. Everything in the app resolves
+`CNAME` in the repo root is what points it there. Everything in the app resolves
 relative to `location.href`, so it serves correctly from a subpath or a root.
-`fuelpost.figari.dev` is the separate, original FuelPost repo — not this one.
+This repo is `FuelPost` (renamed from `FuelPost-iOS`); the original FuelPost
+app it replaced is archived, and it gave up this domain to it. The interim
+address, `fuelpostios.figari.dev`, is no longer served by this repo — a GitHub
+Pages site answers on one custom domain.
 
 **Moving it to a new address breaks the map until the key allows it.** HERE
 refuses a referrer that is not on the key's list (see below), so the list, the
 line above and `CNAME` change together. In v2.1.2 `CNAME` moved first and the
-map went blank while everything else kept working.
+map went blank while everything else kept working. **Settings do not move with
+it either:** localStorage is per origin, so a driver's saved theme, vehicle,
+range and location choice stay behind at the old address.
 
 ### The HERE key
 
 It is in client-side JS (`index.html`, `HERE_API_KEY`) and therefore public.
 Anyone can read it off the served page. What limits it is an **allowed-referrer
-list** on the key in HERE Platform, currently `fuelpostios.figari.dev`,
-`fuelpost.figari.dev` and `5w311.github.io`. Keep an old origin listed while
+list** on the key in HERE Platform, currently `fuelpost.figari.dev`,
+`fuelpostios.figari.dev` and `5w311.github.io`. Keep an old origin listed while
 anyone might still be on it.
 
 **What that does and does not do**, because the difference matters:
