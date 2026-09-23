@@ -1138,6 +1138,11 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
    document-level dismiss already handles — so it closes, and the scrim with
    it. (The bubble is z 620, over the scrim's 550.) */
 #app:has(#filterCard.show) #scrim{opacity:1;pointer-events:auto;}
+/* …but the tab bar stays sharp over it, as it does for More: it rides above
+   the scrim while the filter is open. A tap on a tab is still a tap outside
+   the bubble, so the document-level dismiss closes the filter AND the tab
+   does its job — no dead first tap. */
+#app:has(#filterCard.show) #tabbar{z-index:630;}
 #sheet{border-radius:28px 28px 0 0;box-shadow:var(--sheet-shadow);}
 #sheet .grabber{width:36px;height:5px;border-radius:3px;margin:8px auto 4px;background:var(--line);}
 #sheet .sheetBody{padding:8px 20px calc(28px + env(safe-area-inset-bottom,0px));}
@@ -1849,35 +1854,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.2.3"></script>
+<script src="lib/fuelplan.js?v=2.2.4"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.2.3"></script>
+<script src="lib/triptext.js?v=2.2.4"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.2.3"></script>
+<script src="lib/location.js?v=2.2.4"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.2.3"></script>
+<script src="lib/gauge.js?v=2.2.4"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.2.3"></script>
+<script src="lib/corridors.js?v=2.2.4"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.2.3"></script>
+<script src="lib/nearme.js?v=2.2.4"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.2.3"></script>
+<script src="lib/extract-version.js?v=2.2.4"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.2.3"></script>
+<script src="lib/autosuggest.js?v=2.2.4"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.2.3"></script>
+<script src="lib/baselayer.js?v=2.2.4"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.2.3"></script>
+<script src="lib/memocache.js?v=2.2.4"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.2.3"></script>
+<script src="lib/routerank.js?v=2.2.4"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.2.3"></script>
+<script src="lib/vehicleprofile.js?v=2.2.4"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.2.3"></script>
+<script src="lib/escape.js?v=2.2.4"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.2.3"></script>
+<script src="lib/stopfilter.js?v=2.2.4"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.2.3"></script>
+<script src="lib/navlinks.js?v=2.2.4"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1893,7 +1898,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.2.3')
+fetch('lib/fuelplan-adaptive.js?v=2.2.4')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1910,7 +1915,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.2.3')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.2.3')
+fetch('lib/shorttrip.js?v=2.2.4')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1921,7 +1926,7 @@ fetch('lib/shorttrip.js?v=2.2.3')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.2.3"></script>
+<script src="lib/flexible-polyline.js?v=2.2.4"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2111,7 +2116,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.2.3';
+const APP_VERSION = '2.2.4';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.

@@ -1476,6 +1476,8 @@ console.log('\n=== filter and More dim and blur what is behind them (v2.2.3) ===
 {
   ok('>>> the scrim blurs as well as dims', /#scrim\{background:rgba\(0,0,0,\.35\);-webkit-backdrop-filter:blur\(\d+px\);backdrop-filter:blur\(\d+px\);\}/.test(html));
   ok('>>> the filter bubble shows the scrim while it is open', /#app:has\(#filterCard\.show\) #scrim\{opacity:1;pointer-events:auto;\}/.test(html));
+  ok('>>> the tab bar stays sharp above the filter\'s scrim, as for More',
+     /#app:has\(#filterCard\.show\) #tabbar\{z-index:630;\}/.test(html));
   // More opens over the stop list too: the list must not hide its sheet, or
   // the scrim comes up over nothing.
   ok('>>> the stop list does not hide the More sheet',
