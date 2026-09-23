@@ -599,6 +599,12 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.2.1
+The fuel-gap warnings read as one paragraph again — the mileages in them no
+longer break onto lines of their own — and the Fuel Dept number in the amber
+warning is readable. The Exclusive badge stays in one piece beside a long
+station name.
+
 ### v2.2.0
 Route results are cards now. Each fuel stop sits on its own card with a badge
 that matches its pin on the map — gold and numbered for a planned stop, PU and
