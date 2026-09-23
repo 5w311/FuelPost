@@ -417,7 +417,7 @@ ok('it is one-shot', /if\(networkFitDone\) return;/.test(fnBody) && /networkFitD
 // assertions follow it there; there is now ONE site to get right.
 const fbFn = html.slice(html.indexOf('function fitBoundsWithMargin('));
 const fbBody = fbFn.slice(0, fbFn.indexOf('\n}\n') + 3);
-const padIdx = fbBody.indexOf('setPadding(MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN)');
+const padIdx = fbBody.indexOf('setPadding(MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN + mapBleed(), MAP_FIT_MARGIN)');
 const fitIdx = fbBody.indexOf('setLookAtData({ bounds: b })');
 ok('the margin is applied BEFORE the fit', padIdx >= 0 && padIdx < fitIdx,
    JSON.stringify({ padIdx, fitIdx }));
@@ -454,8 +454,15 @@ const smpBody = smpFn.slice(0, smpFn.indexOf('\n}\n') + 3);
 ok('>>> the route re-fit triggers on free-area change, not padding change',
    /mapFreeArea\(\)/.test(smpBody) && /lastFitFree/.test(smpBody)
    && !/prev\s*&&\s*prev\.bottom/.test(smpBody), smpBody.slice(0, 400));
-ok('  free area is measured from the map element minus padding',
-   /getElementById\('mapwrap'\)/.test(html.slice(html.indexOf('function mapFreeArea('))));
+// #map, not #mapwrap: the padding now includes the strip #map runs on
+// behind the tab bar, and that strip is part of #map only. Measuring
+// #mapwrap minus a padding that includes it would under-count by the bleed.
+{
+  const fa = html.slice(html.indexOf('function mapFreeArea('));
+  const faBody = fa.slice(0, fa.indexOf('\n}\n') + 3);
+  ok('  free area is measured from the map element minus padding',
+     /getElementById\('map'\)/.test(faBody) && !/getElementById\('mapwrap'\)/.test(faBody), faBody);
+}
 ok('the constructor keeps its pre-fit fallback center and zoom',
    /center: \{ lat: 39\.5, lng: -98\.35 \}/.test(html) && /zoom: 5,/.test(html));
 ok('the padding machinery is declared BEFORE the startup block that calls it (TDZ guard)',
@@ -1169,11 +1176,11 @@ ok('>>> the footer is flush to the bottom, edge to edge',
 ok('>>> the map buttons are lifted by the footer height, not left underneath',
    /#mapwrap\.nm-on #locateBtn\{bottom:calc\(12px \+ var\(--nm-h,0px\)\);\}/.test(html));
 ok('>>> HERE\'s scalebar and layer switcher lift with it (.H_ui)',
-   /#mapwrap\.nm-on \.H_ui\{bottom:var\(--nm-h,0px\);\}/.test(html));
+   /#mapwrap\.nm-on \.H_ui\{bottom:calc\(var\(--tab-h,0px\) \+ var\(--nm-h,0px\)\);\}/.test(html));
 // !important because the SDK sets bottom inline on .H_imprint, which beats
 // any selector — measured, after the copyright alone failed to lift.
 ok('>>> and HERE\'s COPYRIGHT too — .H_imprint is a sibling of .H_ui, not inside it',
-   /#mapwrap\.nm-on \.H_imprint\{bottom:var\(--nm-h,0px\) !important;\}/.test(html));
+   /#mapwrap\.nm-on \.H_imprint\{bottom:calc\(var\(--tab-h,0px\) \+ var\(--nm-h,0px\)\) !important;\}/.test(html));
 ok('  the height is published live rather than hardcoded per state',
    /new ResizeObserver\(/.test(codeOnly) && /setNearMeHeight\(/.test(codeOnly));
 // contentRect omits the border and the safe-area padding — a one-pixel
@@ -1260,6 +1267,55 @@ ok('>>> the brand is not prefixed onto a name that already carries it',
 ok('lib/nearme.js is loaded with a version stamp and shimmed',
    /<script src="lib\/nearme\.js\?v=[\d.]+"><\/script>/.test(html) &&
    /var NearMe = module\.exports;/.test(html));
+
+console.log('\n=== the map runs under the tab bar (v2.1.1) ===');
+// The bar stays in the layout flow, so #mapwrap's bottom edge (which the
+// Near Me footer, the results panel and the route-fit padding all measure)
+// does not move. Only the canvas and the full-cover overlays bleed down.
+{
+  const tabH = /#app\{--tab-h:calc\((\d+)px \+ (\d+)px \+ (\d+)px \+ env\(safe-area-inset-bottom,0px\)\);\}/.exec(html);
+  const bar = /#tabbar\{[^}]*height:(\d+)px;[^}]*margin:(\d+)px \d+px calc\(env\(safe-area-inset-bottom,0px\) \+ (\d+)px\);/.exec(html);
+  ok('>>> --tab-h is declared as the bar\'s whole footprint', !!tabH, 'no #app{--tab-h:...} rule');
+  ok('>>> and it adds up to the bar\'s real height + margins, so the bleed is exact',
+     tabH && bar && (+tabH[1] + +tabH[2] + +tabH[3]) === (+bar[1] + +bar[2] + +bar[3]),
+     JSON.stringify({ tabH: tabH && tabH.slice(1), bar: bar && bar.slice(1) }));
+  ok('the bar is still in the flow, not floated over the map',
+     /#tabbar\{position:relative;[^}]*flex-shrink:0/.test(html));
+  ok('>>> the map canvas, the list and the loading cover run on behind the bar',
+     /#map, #listview, #mapLoading\{bottom:calc\(-1 \* var\(--tab-h,0px\)\);\}/.test(html));
+  ok('  and the list pads its end by the bar, so the last row scrolls clear',
+     /#listview\{[^}]*padding-bottom:calc\(24px \+ var\(--tab-h,0px\)\);\}/.test(html));
+  // Covering HERE's attribution is a terms issue. `bottom`, not a margin:
+  // .H_ui is height:100%/top:auto in HERE's CSS, so a margin moved nothing —
+  // measured, the copyright lifted and the zoom and scalebar stayed under.
+  ok('>>> HERE\'s controls are lifted clear of the bar (.H_ui, by bottom)',
+     /#mapwrap \.H_ui\{bottom:var\(--tab-h,0px\);\}/.test(html));
+  ok('>>> and so is HERE\'s COPYRIGHT (.H_imprint, !important over the inline bottom)',
+     /#mapwrap \.H_imprint\{bottom:var\(--tab-h,0px\) !important;\}/.test(html));
+  const bleedFn = html.slice(html.indexOf('function mapBleed('));
+  const bleedBody = bleedFn.slice(0, bleedFn.indexOf('\n}\n') + 3);
+  ok('the bleed is MEASURED (#map bottom minus #mapwrap bottom), not a constant',
+     /getElementById\('map'\)/.test(bleedBody) && /getElementById\('mapwrap'\)/.test(bleedBody)
+     && /m\.bottom - w\.bottom/.test(bleedBody), bleedBody);
+  ok('>>> the hidden strip is viewport padding, so centring and fits use what is visible',
+     /setPadding\(m, m, h \+ m \+ mapBleed\(\), m\)/.test(html));
+}
+
+console.log('\n=== the layer button can open its menu (v2.1.1) ===');
+// v2.1.0 put overflow:hidden on every .H_ctl to round the corners. The
+// layer button's .H_ctl also holds its Map view / Satellite menu, which
+// opens outside that 40px square — so the menu was clipped away entirely
+// and the button looked dead.
+{
+  const ctlRule = /#mapwrap \.H_ui \.H_ctl:not\(\.H_scalebar\)\{([^}]*)\}/.exec(html);
+  ok('>>> the shared .H_ctl rule does not clip', ctlRule && !/overflow/.test(ctlRule[1]),
+     ctlRule ? ctlRule[0] : 'rule missing');
+  ok('  only the zoom group clips (its two buttons need the rounded corners)',
+     /#mapwrap \.H_ui \.H_ctl\.H_zoom\{overflow:hidden;\}/.test(html));
+  ok('  and the single button rounds its own corners, not via :only-child (the menu is its sibling)',
+     /#mapwrap \.H_ui \.H_ctl:not\(\.H_zoom\) > \.H_btn\{border-radius:14px;\}/.test(html)
+     && !/\.H_btn:only-child/.test(html));
+}
 
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
