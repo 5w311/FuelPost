@@ -517,6 +517,14 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   button sits 8px above the map's edge, which is where the logo was. The logo's
   margin is inline from the SDK, hence `!important`; a test keeps it clear of
   the button's right edge.
+- **`#routeResults` has `padding-bottom:0`.** The base rule's
+  `env(safe-area-inset-bottom)` was for when the card met the bottom of the
+  screen; above the tab bar it was a 34pt band of empty panel under the scroll
+  area. A test fails if it comes back.
+- **HERE's attribution rides above the results card (`--rr-h`), its controls
+  only while the card is collapsed.** Same pattern as `--nm-h`. Lifting `.H_ui`
+  over the OPEN card floats the zoom buttons mid-map on top of the delivery pin,
+  so `body.rr-tab-showing` gates that half.
 - **The tab bar's bottom margin is a flat 8px, not the safe-area inset.** It
   sits down in the home-indicator strip on purpose; `--tab-h` has no safe-area
   term to match. A test fails if the inset comes back.
@@ -590,6 +598,11 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.1.5
+The fuel plan card matches the trip details card — same width, same size of text —
+and the empty band at its bottom that the list scrolled into is gone. The map's
+credit line now sits just above the card instead of hidden behind it.
 
 ### v2.1.4
 The map fills the whole screen on the Route tab too, right up to the top behind
