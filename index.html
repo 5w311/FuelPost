@@ -1880,35 +1880,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.2.6"></script>
+<script src="lib/fuelplan.js?v=2.2.7"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.2.6"></script>
+<script src="lib/triptext.js?v=2.2.7"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.2.6"></script>
+<script src="lib/location.js?v=2.2.7"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.2.6"></script>
+<script src="lib/gauge.js?v=2.2.7"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.2.6"></script>
+<script src="lib/corridors.js?v=2.2.7"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.2.6"></script>
+<script src="lib/nearme.js?v=2.2.7"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.2.6"></script>
+<script src="lib/extract-version.js?v=2.2.7"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.2.6"></script>
+<script src="lib/autosuggest.js?v=2.2.7"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.2.6"></script>
+<script src="lib/baselayer.js?v=2.2.7"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.2.6"></script>
+<script src="lib/memocache.js?v=2.2.7"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.2.6"></script>
+<script src="lib/routerank.js?v=2.2.7"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.2.6"></script>
+<script src="lib/vehicleprofile.js?v=2.2.7"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.2.6"></script>
+<script src="lib/escape.js?v=2.2.7"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.2.6"></script>
+<script src="lib/stopfilter.js?v=2.2.7"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.2.6"></script>
+<script src="lib/navlinks.js?v=2.2.7"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1924,7 +1924,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.2.6')
+fetch('lib/fuelplan-adaptive.js?v=2.2.7')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1941,7 +1941,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.2.6')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.2.6')
+fetch('lib/shorttrip.js?v=2.2.7')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1952,7 +1952,7 @@ fetch('lib/shorttrip.js?v=2.2.6')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.2.6"></script>
+<script src="lib/flexible-polyline.js?v=2.2.7"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2074,7 +2074,7 @@ const DATA = [
 ["TN5","Petro","Petro Knoxville","722 N. Watt Rd.","Knoxville","TN","37934","I-40/I-75, Exit 369","(865) 693-6542",35.8748,-84.2366,"excl",250,1,13,5,"W,H,T,R","",1,1,"CVENPE312"],
 ["TN6","Covenant","Covenant Logistics HQ","400 Birmingham Hwy","Chattanooga","TN","37419","","(800) 721-5202",35.0083,-85.3906,"term",150,0,30,0,"F","",0,1,""],
 ["TX1","TA","TA Amarillo","7000 E. Interstate 40","Amarillo","TX","79118","I-40, Exit 74","(806) 342-3080",35.1916,-101.7589,"prim",185,1,10,6,"W,T,R","",1,1,"CVENTA055"],
-["TX2","Petro","Petro Amarillo","8500 E I-40 @ Lakeside Drive","Amarillo","TX","79118","I-40, Exit 75","(806) 372-4899",35.1332,-101.7425,"prim",280,1,22,5,"R","",1,1,"CVENPE307"],
+["TX2","Petro","Petro Amarillo","8500 E I-40 @ Lakeside Drive","Amarillo","TX","79118","I-40, Exit 75","(806) 372-4899",35.1920,-101.7431,"prim",280,1,22,5,"R","",1,1,"CVENPE307"],
 ["TX3","TA","TA Baytown","6800 Thompson Road","Baytown","TX","77521","I-10, Exit 789","(281) 424-7772",29.7966,-95.0315,"excl",173,1,10,6,"H,T,R","C,T,P",1,1,"CVENTA017"],
 ["TX4","TA","TA Dallas South","7751 Bonnie View Road","Dallas","TX","75241","I-20, Exit 472","(469) 941-3150",32.6536,-96.7516,"excl",136,1,9,5,"","",1,1,"CVENTA150"],
 ["TX5","Petro","Petro El Paso","1295 Horizon Boulevard","El Paso","TX","79927","I-10, Exit 37","(915) 790-4529",31.6608,-106.2423,"prim",290,1,15,6,"F,B,R","",1,1,"CVENPE301"],
@@ -2142,7 +2142,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.2.6';
+const APP_VERSION = '2.2.7';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.

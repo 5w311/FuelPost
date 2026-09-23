@@ -530,6 +530,12 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   results card, it no longer covers the copyright box completely, so while it is
   open the imprint rides above it and what it covers anyway (`.H_ui`, the locate
   button and its hint chips) is hidden rather than peeking out in slivers.
+- **Petro Amarillo's coordinates are hand-set, not geocoded.** HERE's place
+  database files it as "8500 S Lakeside Dr", four miles south of the station;
+  that is where its pin sat until v2.2.7. The street address, 8500 E I-40,
+  geocodes correctly (35.1920,-101.7431), confirmed by a driver in the lot. A
+  re-run of `tools/geocode.js` could pull the bad point back — a test in
+  `datastops.test.js` fails if it does.
 - **The tab bar's bottom margin is a flat 8px, not the safe-area inset.** It
   sits down in the home-indicator strip on purpose; `--tab-h` has no safe-area
   term to match. A test fails if the inset comes back.
@@ -603,6 +609,11 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.2.7
+Petro Amarillo's pin is where the station is — on I-40 at Lakeside Drive, Exit 75.
+It sat about four miles south, so its distance in the nearest-fuel list and how far
+off route it showed in a plan were both wrong.
 
 ### v2.2.6
 The cards and the bubbles at the bottom are a little wider, with a strip of map

@@ -403,5 +403,23 @@ console.log('\n=== terminals are never planned as fuel ===');
      && !FUEL_STOPS.some(s => s.tier === 'term'));
 }
 
+console.log('\n=== Petro Amarillo sits on I-40, not on HERE\'s wrong listing (v2.2.7) ===');
+{
+  // HERE's place database files this stop as "8500 S Lakeside Dr" at
+  // 35.1332,-101.7425 — four miles south of the station. Its real address,
+  // 8500 E I-40 at Lakeside Drive (Exit 75), geocodes to 35.1920,-101.7431,
+  // and a driver standing in its lot confirmed that is where it is. A
+  // re-geocode by name would pull the wrong point straight back in.
+  const row = DATA.find(r => r[2] === 'Petro Amarillo');
+  const miles = (a, b, c, d) => { const R = 3958.8, t = x => x * Math.PI / 180;
+    const h = Math.sin(t(c - a) / 2) ** 2 + Math.cos(t(a)) * Math.cos(t(c)) * Math.sin(t(d - b) / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h)); };
+  const off = row ? miles(row[9], row[10], 35.1920, -101.7431) : Infinity;
+  ok('>>> Petro Amarillo is within a quarter mile of I-40 at Lakeside Dr',
+     off < 0.25, row && JSON.stringify([row[9], row[10], off.toFixed(2) + ' mi']));
+  ok('  and nowhere near HERE\'s S Lakeside Dr listing',
+     row && miles(row[9], row[10], 35.1332, -101.7425) > 3);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) process.exitCode = 1;
