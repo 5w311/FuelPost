@@ -513,10 +513,11 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   bar below), so everything that measures it is unchanged; `mapBleed()` returns
   the covered strip at the top AND the bottom and both go into the viewport
   padding. The canvas never resizes on a tab switch or a card collapse.
-- **HERE's logo is moved right, to `margin-left:72px`, not covered.** The locate
-  button sits 8px above the map's edge, which is where the logo was. The logo's
-  margin is inline from the SDK, hence `!important`; a test keeps it clear of
-  the button's right edge.
+- **The locate button is the lower half of a pill with HERE's layer button.**
+  On Stops, `.H_l_bottom.H_l_right` rises 40px and `#locateBtn` (40x40, 24px in,
+  24px up — the layer button's own measurements) fills the slot. It moved off
+  the bottom-left corner, so HERE's logo needs no override; don't put the button
+  back there without moving the logo clear of it again.
 - **`#routeResults` has `padding-bottom:0`.** The base rule's
   `env(safe-area-inset-bottom)` was for when the card met the bottom of the
   screen; above the tab bar it was a 34pt band of empty panel under the scroll
@@ -602,6 +603,12 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.2.6
+The cards and the bubbles at the bottom are a little wider, with a strip of map
+still showing down each side. The locate button now sits under the map-style
+button as one piece, with an arrow icon, and HERE's credit line is smaller. On the trip card, "Vehicle" now reads "Vehicle Routing" and
+"Standard" reads "Non-Hazmat".
 
 ### v2.2.5
 The list button at the top right turns blue while the list of stops is open, the

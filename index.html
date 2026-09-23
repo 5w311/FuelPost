@@ -446,7 +446,7 @@
      #locateHint matters here beyond tidiness: it fires on the very tap that
      turns location ON, so it lands on screen at the same moment the first fix
      does. */
-  #mapwrap.nm-on #locateBtn{bottom:calc(8px + var(--nm-h,0px));}
+  #mapwrap.nm-on #locateBtn{bottom:calc(24px + var(--nm-h,0px));}
   #mapwrap.nm-on #locateHint, #mapwrap.nm-on #locateError{bottom:calc(58px + var(--nm-h,0px));}
   /* HERE's own controls. .H_ui carries the scalebar and the layer switcher;
      .H_imprint carries the copyright, and it is a SIBLING of .H_ui rather
@@ -1041,7 +1041,7 @@ button{-webkit-tap-highlight-color:transparent;}
    those numbers come from). */
 #app{--tab-h:calc(52px + 8px + 8px);}
 #tabbar{position:relative;z-index:500;flex-shrink:0;display:flex;gap:9px;
-  height:52px;box-sizing:border-box;margin:8px 29px 8px;}
+  height:52px;box-sizing:border-box;margin:8px 18px 8px;}
 #tabbar #modeSeg, #tabbar #legendBtn{box-sizing:border-box;height:100%;border-radius:26px;
   background:var(--glass);border:.5px solid var(--glass-border);box-shadow:var(--glass-shadow);
   -webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%);}
@@ -1102,17 +1102,34 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
 #mapwrap:has(#filterCard.show) .H_ui, #mapwrap:has(#filterCard.show) #locateBtn,
 #mapwrap:has(#filterCard.show) #locateHint, #mapwrap:has(#filterCard.show) #locateError{visibility:hidden;}
 #mapLoading{background:var(--bg);font-size:15px;}
-/* The locate button sits low, 8px above the map's visible edge — the same
-   gap the Near Me bubble keeps to the tab bar. That is where HERE's logo was,
-   and covering it is a terms issue, so the logo moves right to clear the
-   button instead: 12 + 48 + a 12px gap = 72. !important because the SDK
-   writes the logo's margin inline. Same height as before, still in
-   .H_imprint, so it lifts with the Near Me bubble exactly as it did. */
-#mapwrap .H_imprint .H_logo{margin-left:72px !important;}
-#locateBtn{bottom:8px;width:48px;height:48px;left:12px;color:var(--navy-text);
-  border:.5px solid var(--glass-border);background:var(--glass);box-shadow:var(--glass-shadow);
+/* The locate button is the lower half of one pill with HERE's layer button
+   (v2.2.6). HERE's bottom-right stack rises 40px on the Stops tab, and the
+   locate button — HERE's layer button's own 40x40, in its own column: 24px
+   in from the right, 24px up from the map's edge — fills the slot it left.
+   The facing corners go square and a hairline divides them. Same #locateBtn,
+   same handlers, same long-press; it lifts with the Near Me bubble like
+   everything else in the map's bottom chrome (#mapwrap.nm-on above).
+   Route mode hides it (body.route-mode #locateBtn), so the stack only rises
+   on Stops; without the map SDK there is no layer button, so it rounds all
+   four corners on its own. */
+body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right{bottom:56px;}
+body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_scalebar),
+body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_scalebar) > .H_btn{border-radius:14px 14px 0 0;}
+#locateBtn{bottom:24px;right:24px;left:auto;width:40px;height:40px;border-radius:0 0 14px 14px;color:var(--navy-text);
+  border:0;border-top:.5px solid var(--line);background:var(--glass);box-shadow:var(--glass-shadow);
   -webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);}
-#locateBtn svg{width:22px;height:22px;}
+#mapwrap:not(:has(.H_ui)) #locateBtn{border-radius:14px;border-top:0;}
+#locateBtn svg{width:19px;height:19px;}
+/* The hint and error chips point at the button, so they sit beside it now,
+   to its left, rather than over the bottom-left corner it left. */
+#locateHint{left:auto;right:72px;bottom:24px;}
+#locateError{right:72px;bottom:24px;}
+#mapwrap.nm-on #locateHint, #mapwrap.nm-on #locateError{bottom:calc(24px + var(--nm-h,0px));}
+/* HERE's copyright strip, as small as it stays readable: HERE's terms want it
+   shown, not large. The SDK writes its padding and the link's margins
+   inline, hence !important. */
+#mapwrap .H_copyright{padding:1px 6px !important;font-size:9px !important;line-height:11px;}
+#mapwrap .H_copyright > *{margin:0 3px !important;}
 #locateBtn.locked{background:var(--accent-fill);color:#fff;border-color:transparent;}
 #locateBtn.off{color:var(--sub);}
 .pin{border-width:2.5px;box-shadow:0 3px 8px rgba(0,0,0,.4);}
@@ -1199,6 +1216,10 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
 .suggest-list{border-radius:16px;border:.5px solid var(--glass-border);box-shadow:0 12px 32px rgba(0,0,0,.22);max-height:260px;margin-top:8px;}
 .suggest-item{padding:12px 16px;font-size:15px;border-top:.5px solid var(--line);}
 
+/* Side insets (v2.2.6, widened from 21.5/29): the cards — trip details,
+   results, filter — sit 12px from the edges, in line with the search bar and
+   buttons at the top; the tab bar and Near Me bubble 18px. A strip of map
+   stays visible down both sides. */
 /* ---- Filter and More: bottom sheets. Filter stays inside the map area.
    More is position:fixed so it is sized by the SCREEN, not by #mapwrap: in
    Route mode the trip card leaves the map a strip at the bottom, and a
@@ -1214,7 +1235,7 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
    shadow as the route results card, so the one bottom panel each tab has looks
    the same. It sits on #mapwrap's bottom edge, just above the tab bar. More
    stays a true sheet (see #legendCard above). */
-#filterCard{left:21.5px;right:21.5px;border-radius:19px;box-shadow:0 8px 30px rgba(0,0,0,.28);padding:8px 16px 18px;}
+#filterCard{left:12px;right:12px;border-radius:19px;box-shadow:0 8px 30px rgba(0,0,0,.28);padding:8px 16px 18px;}
 #filterCard .fm{margin-top:10px;}
 #filterCard .fm-toggle{min-height:50px;padding:0 16px;border-radius:14px;background:var(--fill);border:0;font-size:16px;color:var(--ink);}
 #filterCard .fm-caret{font-size:12px;}
@@ -1243,7 +1264,7 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
    here was a band of empty panel under the text. --nm-h is still measured
    off this box, so HERE's chrome and the locate button lift exactly clear
    of it. */
-#nearMe{left:29px;right:29px;padding-bottom:0;border:.5px solid var(--glass-border);border-radius:22px;
+#nearMe{left:18px;right:18px;padding-bottom:0;border:.5px solid var(--glass-border);border-radius:22px;
   background:var(--glass);box-shadow:var(--glass-shadow);
   -webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%);}
 #nearMe .rb-tab{min-height:44px;padding:0 16px;}
@@ -1266,7 +1287,7 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
    text, which would make iOS Safari zoom the page on focus — except the
    viewport meta sets maximum-scale=1.0, which switches that zoom off (a test
    holds the two together). */
-#routebar{margin:calc(env(safe-area-inset-top,0px) + 6px) 21.5px 6px;border:0;border-radius:19px;background:var(--surface);box-shadow:0 8px 30px rgba(0,0,0,.16);}
+#routebar{margin:calc(env(safe-area-inset-top,0px) + 6px) 12px 6px;border:0;border-radius:19px;background:var(--surface);box-shadow:0 8px 30px rgba(0,0,0,.16);}
 #routebar > .rb-tab{padding:9.5px 15px;}
 .rb-tab-label{font-size:14px;font-weight:600;color:var(--ink);}
 .rb-tab-chev{width:15px;height:15px;}
@@ -1302,7 +1323,7 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
 .gauge-danger-note{font-size:13px;}
 
 /* ---- Route results: the same card as the trip details above it — inset to
-   the same 21.5px, rounded on every corner, and sized on the same scale
+   the same 12px, rounded on every corner, and sized on the same scale
    (text ~0.875 of v2.1.0, like the trip card's). It sits on #mapwrap's
    bottom edge, just above the tab bar.
 
@@ -1310,7 +1331,7 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
    That inset was for when this panel met the bottom of the screen; with the
    bar below it, it was a 34pt band of empty panel under the scroll area that
    content visibly disappeared into while scrolling. */
-#routeResults{left:21.5px;right:21.5px;padding-bottom:0;border-radius:19px;box-shadow:0 8px 30px rgba(0,0,0,.28);}
+#routeResults{left:12px;right:12px;padding-bottom:0;border-radius:19px;box-shadow:0 8px 30px rgba(0,0,0,.28);}
 #routeResults > .rb-tab{padding:9.5px 15px;}
 /* While the card is collapsed the whole of .H_ui rides above it (--rr-h,
    with the .H_ui rules above), so the zoom controls no longer need their own
@@ -1605,9 +1626,9 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
          and nothing dimensional. Standard is the default and must behave like
          a driver expects without ever opening this. -->
     <div class="rb-field">
-      <label id="vehLabel">Vehicle</label>
+      <label id="vehLabel">Vehicle Routing</label>
       <div class="seg vp-seg" id="vehicleSeg" role="group" aria-labelledby="vehLabel">
-        <button type="button" data-vp="standard" class="active">Standard</button>
+        <button type="button" data-vp="standard" class="active">Non-Hazmat</button>
         <button type="button" data-vp="hazmat">Hazmat</button>
         <button type="button" data-vp="custom">Custom</button>
       </div>
@@ -1734,7 +1755,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
     </div>
     <div id="noMatch" class="stops-only" hidden>No network stops match these filters.<button type="button" id="clearFiltersBtn">Clear filters</button></div>
     <button id="locateBtn" class="stops-only" title="Show my location" aria-label="Show my location">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><path d="M12 1.5v3.2M12 19.3v3.2M1.5 12h3.2M19.3 12h3.2"/></svg>
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M20.6 3.4a.9.9 0 0 0-1-.2L3.9 10.1a.9.9 0 0 0 .1 1.7l6.6 1.6 1.6 6.6a.9.9 0 0 0 1.7.1l6.9-15.7a.9.9 0 0 0-.2-1z"/></svg>
     </button>
     <div id="legendCard">
       <h3 class="ios-sheet-title">Map legend</h3>
@@ -1859,35 +1880,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.2.5"></script>
+<script src="lib/fuelplan.js?v=2.2.6"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.2.5"></script>
+<script src="lib/triptext.js?v=2.2.6"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.2.5"></script>
+<script src="lib/location.js?v=2.2.6"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.2.5"></script>
+<script src="lib/gauge.js?v=2.2.6"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.2.5"></script>
+<script src="lib/corridors.js?v=2.2.6"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.2.5"></script>
+<script src="lib/nearme.js?v=2.2.6"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.2.5"></script>
+<script src="lib/extract-version.js?v=2.2.6"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.2.5"></script>
+<script src="lib/autosuggest.js?v=2.2.6"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.2.5"></script>
+<script src="lib/baselayer.js?v=2.2.6"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.2.5"></script>
+<script src="lib/memocache.js?v=2.2.6"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.2.5"></script>
+<script src="lib/routerank.js?v=2.2.6"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.2.5"></script>
+<script src="lib/vehicleprofile.js?v=2.2.6"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.2.5"></script>
+<script src="lib/escape.js?v=2.2.6"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.2.5"></script>
+<script src="lib/stopfilter.js?v=2.2.6"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.2.5"></script>
+<script src="lib/navlinks.js?v=2.2.6"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1903,7 +1924,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.2.5')
+fetch('lib/fuelplan-adaptive.js?v=2.2.6')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1920,7 +1941,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.2.5')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.2.5')
+fetch('lib/shorttrip.js?v=2.2.6')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1931,7 +1952,7 @@ fetch('lib/shorttrip.js?v=2.2.5')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.2.5"></script>
+<script src="lib/flexible-polyline.js?v=2.2.6"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2121,7 +2142,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.2.5';
+const APP_VERSION = '2.2.6';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -6709,8 +6730,8 @@ async function startPlan(){
     setRoutebarOpen(true);
     renderVehicle();   // surface the messages inline on the fields themselves
     showRoutePanel(`<div class="rr-note"><b>Check the vehicle dimensions.</b><br>${
-      vErrs.join('<br>')}<br><br>Fix them under <b>Vehicle → Custom</b>, or switch back to
-      <b>Standard</b>. Nothing was routed — a route planned on a wrong height is worse than no route.</div>`);
+      vErrs.join('<br>')}<br><br>Fix them under <b>Vehicle Routing → Custom</b>, or switch back to
+      <b>Non-Hazmat</b>. Nothing was routed — a route planned on a wrong height is worse than no route.</div>`);
     return;
   }
   if(!navigator.onLine){ setRoutebarOpen(true); showRoutePanel(offlineNote('No signal.')); return; }
