@@ -530,6 +530,11 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   results card, it no longer covers the copyright box completely, so while it is
   open the imprint rides above it and what it covers anyway (`.H_ui`, the locate
   button and its hint chips) is hidden rather than peeking out in slivers.
+- **A long press on locate swallows its own release at `window` capture.**
+  Turning location off hides Near Me mid-press, the pill drops, and the finger
+  lifts over HERE's layer button. HERE acts on the raw pointerup/touchend, not
+  on click, so swallowing only the click (or listening on `document`) still
+  opened the map-style menu — reproduced with a real CDP touch hold.
 - **Petro Amarillo's coordinates are hand-set, not geocoded.** HERE's place
   database files it as "8500 S Lakeside Dr", four miles south of the station;
   that is where its pin sat until v2.2.7. The street address, 8500 E I-40,
@@ -609,6 +614,10 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.2.8
+Holding the locate button to turn location off no longer opens the map-style menu
+when you let go.
 
 ### v2.2.7
 Petro Amarillo's pin is where the station is — on I-40 at Lakeside Drive, Exit 75.
