@@ -615,6 +615,10 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.2.10
+The locate button only turns blue while your location is actually on. When you
+open the app it's plain, like the button above it, until you tap it.
+
 ### v2.2.9
 The fuel plan no longer repeats itself at the top: the number of stops and the
 miles stay in the bar at the top of the card, with your range leaving the

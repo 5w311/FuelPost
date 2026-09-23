@@ -1537,5 +1537,12 @@ console.log('\n=== the plan card does not repeat its title bar (v2.2.9) ===');
      /\$\('rrDetail'\)\.textContent = detail \|\| '';/.test(codeOnly) && !/rrDetail'\)\.innerHTML/.test(codeOnly));
 }
 
+console.log('\n=== the locate button is blue only while location runs (v2.2.10) ===');
+ok('>>> idle (every fresh launch) is plain ink, not blue',
+   /#locateBtn\{bottom:24px;[^}]*color:var\(--ink\);/.test(html));
+ok('  finding a fix is blue, a live fix fills blue',
+   /#locateBtn\.locating\{color:var\(--navy-text\);\}/.test(html)
+   && /#locateBtn\.locked\{background:var\(--accent-fill\);color:#fff;/.test(html));
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
