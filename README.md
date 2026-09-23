@@ -605,7 +605,8 @@ this list does not.
 
 ### v2.2.6
 The cards and the bubbles at the bottom are a little wider, with a strip of map
-still showing down each side.
+still showing down each side. On the trip card, "Vehicle" now reads "Vehicle Routing" and
+"Standard" reads "Non-Hazmat".
 
 ### v2.2.5
 The list button at the top right turns blue while the list of stops is open, the

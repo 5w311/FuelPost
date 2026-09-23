@@ -1609,9 +1609,9 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
          and nothing dimensional. Standard is the default and must behave like
          a driver expects without ever opening this. -->
     <div class="rb-field">
-      <label id="vehLabel">Vehicle</label>
+      <label id="vehLabel">Vehicle Routing</label>
       <div class="seg vp-seg" id="vehicleSeg" role="group" aria-labelledby="vehLabel">
-        <button type="button" data-vp="standard" class="active">Standard</button>
+        <button type="button" data-vp="standard" class="active">Non-Hazmat</button>
         <button type="button" data-vp="hazmat">Hazmat</button>
         <button type="button" data-vp="custom">Custom</button>
       </div>
@@ -6713,8 +6713,8 @@ async function startPlan(){
     setRoutebarOpen(true);
     renderVehicle();   // surface the messages inline on the fields themselves
     showRoutePanel(`<div class="rr-note"><b>Check the vehicle dimensions.</b><br>${
-      vErrs.join('<br>')}<br><br>Fix them under <b>Vehicle → Custom</b>, or switch back to
-      <b>Standard</b>. Nothing was routed — a route planned on a wrong height is worse than no route.</div>`);
+      vErrs.join('<br>')}<br><br>Fix them under <b>Vehicle Routing → Custom</b>, or switch back to
+      <b>Non-Hazmat</b>. Nothing was routed — a route planned on a wrong height is worse than no route.</div>`);
     return;
   }
   if(!navigator.onLine){ setRoutebarOpen(true); showRoutePanel(offlineNote('No signal.')); return; }
