@@ -1041,7 +1041,7 @@ button{-webkit-tap-highlight-color:transparent;}
    those numbers come from). */
 #app{--tab-h:calc(52px + 8px + 8px);}
 #tabbar{position:relative;z-index:500;flex-shrink:0;display:flex;gap:9px;
-  height:52px;box-sizing:border-box;margin:8px 29px 8px;}
+  height:52px;box-sizing:border-box;margin:8px 18px 8px;}
 #tabbar #modeSeg, #tabbar #legendBtn{box-sizing:border-box;height:100%;border-radius:26px;
   background:var(--glass);border:.5px solid var(--glass-border);box-shadow:var(--glass-shadow);
   -webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%);}
@@ -1199,6 +1199,10 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
 .suggest-list{border-radius:16px;border:.5px solid var(--glass-border);box-shadow:0 12px 32px rgba(0,0,0,.22);max-height:260px;margin-top:8px;}
 .suggest-item{padding:12px 16px;font-size:15px;border-top:.5px solid var(--line);}
 
+/* Side insets (v2.2.6, widened from 21.5/29): the cards — trip details,
+   results, filter — sit 12px from the edges, in line with the search bar and
+   buttons at the top; the tab bar and Near Me bubble 18px. A strip of map
+   stays visible down both sides. */
 /* ---- Filter and More: bottom sheets. Filter stays inside the map area.
    More is position:fixed so it is sized by the SCREEN, not by #mapwrap: in
    Route mode the trip card leaves the map a strip at the bottom, and a
@@ -1214,7 +1218,7 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
    shadow as the route results card, so the one bottom panel each tab has looks
    the same. It sits on #mapwrap's bottom edge, just above the tab bar. More
    stays a true sheet (see #legendCard above). */
-#filterCard{left:21.5px;right:21.5px;border-radius:19px;box-shadow:0 8px 30px rgba(0,0,0,.28);padding:8px 16px 18px;}
+#filterCard{left:12px;right:12px;border-radius:19px;box-shadow:0 8px 30px rgba(0,0,0,.28);padding:8px 16px 18px;}
 #filterCard .fm{margin-top:10px;}
 #filterCard .fm-toggle{min-height:50px;padding:0 16px;border-radius:14px;background:var(--fill);border:0;font-size:16px;color:var(--ink);}
 #filterCard .fm-caret{font-size:12px;}
@@ -1243,7 +1247,7 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
    here was a band of empty panel under the text. --nm-h is still measured
    off this box, so HERE's chrome and the locate button lift exactly clear
    of it. */
-#nearMe{left:29px;right:29px;padding-bottom:0;border:.5px solid var(--glass-border);border-radius:22px;
+#nearMe{left:18px;right:18px;padding-bottom:0;border:.5px solid var(--glass-border);border-radius:22px;
   background:var(--glass);box-shadow:var(--glass-shadow);
   -webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%);}
 #nearMe .rb-tab{min-height:44px;padding:0 16px;}
@@ -1266,7 +1270,7 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
    text, which would make iOS Safari zoom the page on focus — except the
    viewport meta sets maximum-scale=1.0, which switches that zoom off (a test
    holds the two together). */
-#routebar{margin:calc(env(safe-area-inset-top,0px) + 6px) 21.5px 6px;border:0;border-radius:19px;background:var(--surface);box-shadow:0 8px 30px rgba(0,0,0,.16);}
+#routebar{margin:calc(env(safe-area-inset-top,0px) + 6px) 12px 6px;border:0;border-radius:19px;background:var(--surface);box-shadow:0 8px 30px rgba(0,0,0,.16);}
 #routebar > .rb-tab{padding:9.5px 15px;}
 .rb-tab-label{font-size:14px;font-weight:600;color:var(--ink);}
 .rb-tab-chev{width:15px;height:15px;}
@@ -1302,7 +1306,7 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
 .gauge-danger-note{font-size:13px;}
 
 /* ---- Route results: the same card as the trip details above it — inset to
-   the same 21.5px, rounded on every corner, and sized on the same scale
+   the same 12px, rounded on every corner, and sized on the same scale
    (text ~0.875 of v2.1.0, like the trip card's). It sits on #mapwrap's
    bottom edge, just above the tab bar.
 
@@ -1310,7 +1314,7 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
    That inset was for when this panel met the bottom of the screen; with the
    bar below it, it was a 34pt band of empty panel under the scroll area that
    content visibly disappeared into while scrolling. */
-#routeResults{left:21.5px;right:21.5px;padding-bottom:0;border-radius:19px;box-shadow:0 8px 30px rgba(0,0,0,.28);}
+#routeResults{left:12px;right:12px;padding-bottom:0;border-radius:19px;box-shadow:0 8px 30px rgba(0,0,0,.28);}
 #routeResults > .rb-tab{padding:9.5px 15px;}
 /* While the card is collapsed the whole of .H_ui rides above it (--rr-h,
    with the .H_ui rules above), so the zoom controls no longer need their own
@@ -1859,35 +1863,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.2.5"></script>
+<script src="lib/fuelplan.js?v=2.2.6"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.2.5"></script>
+<script src="lib/triptext.js?v=2.2.6"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.2.5"></script>
+<script src="lib/location.js?v=2.2.6"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.2.5"></script>
+<script src="lib/gauge.js?v=2.2.6"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.2.5"></script>
+<script src="lib/corridors.js?v=2.2.6"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.2.5"></script>
+<script src="lib/nearme.js?v=2.2.6"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.2.5"></script>
+<script src="lib/extract-version.js?v=2.2.6"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.2.5"></script>
+<script src="lib/autosuggest.js?v=2.2.6"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.2.5"></script>
+<script src="lib/baselayer.js?v=2.2.6"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.2.5"></script>
+<script src="lib/memocache.js?v=2.2.6"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.2.5"></script>
+<script src="lib/routerank.js?v=2.2.6"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.2.5"></script>
+<script src="lib/vehicleprofile.js?v=2.2.6"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.2.5"></script>
+<script src="lib/escape.js?v=2.2.6"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.2.5"></script>
+<script src="lib/stopfilter.js?v=2.2.6"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.2.5"></script>
+<script src="lib/navlinks.js?v=2.2.6"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1903,7 +1907,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.2.5')
+fetch('lib/fuelplan-adaptive.js?v=2.2.6')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1920,7 +1924,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.2.5')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.2.5')
+fetch('lib/shorttrip.js?v=2.2.6')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1931,7 +1935,7 @@ fetch('lib/shorttrip.js?v=2.2.5')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.2.5"></script>
+<script src="lib/flexible-polyline.js?v=2.2.6"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2121,7 +2125,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.2.5';
+const APP_VERSION = '2.2.6';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.

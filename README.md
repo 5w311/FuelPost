@@ -603,6 +603,10 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.2.6
+The cards and the bubbles at the bottom are a little wider, with a strip of map
+still showing down each side.
+
 ### v2.2.5
 The list button at the top right turns blue while the list of stops is open, the
 same way the tabs do.

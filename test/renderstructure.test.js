@@ -1397,9 +1397,9 @@ console.log('\n=== the route results card: inset, no home-indicator band, HERE r
   // met the bottom of the screen. Above the tab bar that was a 34pt band of
   // empty panel that scrolled content vanished into.
   ok('>>> the results card has no home-indicator padding under its scroll area',
-     /#routeResults\{left:21\.5px;right:21\.5px;padding-bottom:0;/.test(html));
+     /#routeResults\{left:12px;right:12px;padding-bottom:0;/.test(html));
   ok('  and is inset exactly like the trip card above it',
-     /#routebar\{margin:calc\(env\(safe-area-inset-top,0px\) \+ 6px\) 21\.5px /.test(html));
+     /#routebar\{margin:calc\(env\(safe-area-inset-top,0px\) \+ 6px\) 12px /.test(html));
   const rr = codeOnly.slice(codeOnly.indexOf('function setRouteResultsHeight(){'));
   const rrBody = rr.slice(0, rr.indexOf('\n}\n') + 3);
   ok('>>> its height is published live as --rr-h, and is 0 while it is hidden',
