@@ -446,7 +446,7 @@
      #locateHint matters here beyond tidiness: it fires on the very tap that
      turns location ON, so it lands on screen at the same moment the first fix
      does. */
-  #mapwrap.nm-on #locateBtn{bottom:calc(8px + var(--nm-h,0px));}
+  #mapwrap.nm-on #locateBtn{bottom:calc(24px + var(--nm-h,0px));}
   #mapwrap.nm-on #locateHint, #mapwrap.nm-on #locateError{bottom:calc(58px + var(--nm-h,0px));}
   /* HERE's own controls. .H_ui carries the scalebar and the layer switcher;
      .H_imprint carries the copyright, and it is a SIBLING of .H_ui rather
@@ -1102,17 +1102,34 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
 #mapwrap:has(#filterCard.show) .H_ui, #mapwrap:has(#filterCard.show) #locateBtn,
 #mapwrap:has(#filterCard.show) #locateHint, #mapwrap:has(#filterCard.show) #locateError{visibility:hidden;}
 #mapLoading{background:var(--bg);font-size:15px;}
-/* The locate button sits low, 8px above the map's visible edge — the same
-   gap the Near Me bubble keeps to the tab bar. That is where HERE's logo was,
-   and covering it is a terms issue, so the logo moves right to clear the
-   button instead: 12 + 48 + a 12px gap = 72. !important because the SDK
-   writes the logo's margin inline. Same height as before, still in
-   .H_imprint, so it lifts with the Near Me bubble exactly as it did. */
-#mapwrap .H_imprint .H_logo{margin-left:72px !important;}
-#locateBtn{bottom:8px;width:48px;height:48px;left:12px;color:var(--navy-text);
-  border:.5px solid var(--glass-border);background:var(--glass);box-shadow:var(--glass-shadow);
+/* The locate button is the lower half of one pill with HERE's layer button
+   (v2.2.6). HERE's bottom-right stack rises 40px on the Stops tab, and the
+   locate button — HERE's layer button's own 40x40, in its own column: 24px
+   in from the right, 24px up from the map's edge — fills the slot it left.
+   The facing corners go square and a hairline divides them. Same #locateBtn,
+   same handlers, same long-press; it lifts with the Near Me bubble like
+   everything else in the map's bottom chrome (#mapwrap.nm-on above).
+   Route mode hides it (body.route-mode #locateBtn), so the stack only rises
+   on Stops; without the map SDK there is no layer button, so it rounds all
+   four corners on its own. */
+body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right{bottom:56px;}
+body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_scalebar),
+body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_scalebar) > .H_btn{border-radius:14px 14px 0 0;}
+#locateBtn{bottom:24px;right:24px;left:auto;width:40px;height:40px;border-radius:0 0 14px 14px;color:var(--navy-text);
+  border:0;border-top:.5px solid var(--line);background:var(--glass);box-shadow:var(--glass-shadow);
   -webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);}
-#locateBtn svg{width:22px;height:22px;}
+#mapwrap:not(:has(.H_ui)) #locateBtn{border-radius:14px;border-top:0;}
+#locateBtn svg{width:19px;height:19px;}
+/* The hint and error chips point at the button, so they sit beside it now,
+   to its left, rather than over the bottom-left corner it left. */
+#locateHint{left:auto;right:72px;bottom:24px;}
+#locateError{right:72px;bottom:24px;}
+#mapwrap.nm-on #locateHint, #mapwrap.nm-on #locateError{bottom:calc(24px + var(--nm-h,0px));}
+/* HERE's copyright strip, as small as it stays readable: HERE's terms want it
+   shown, not large. The SDK writes its padding and the link's margins
+   inline, hence !important. */
+#mapwrap .H_copyright{padding:1px 6px !important;font-size:9px !important;line-height:11px;}
+#mapwrap .H_copyright > *{margin:0 3px !important;}
 #locateBtn.locked{background:var(--accent-fill);color:#fff;border-color:transparent;}
 #locateBtn.off{color:var(--sub);}
 .pin{border-width:2.5px;box-shadow:0 3px 8px rgba(0,0,0,.4);}
@@ -1738,7 +1755,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
     </div>
     <div id="noMatch" class="stops-only" hidden>No network stops match these filters.<button type="button" id="clearFiltersBtn">Clear filters</button></div>
     <button id="locateBtn" class="stops-only" title="Show my location" aria-label="Show my location">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><path d="M12 1.5v3.2M12 19.3v3.2M1.5 12h3.2M19.3 12h3.2"/></svg>
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M20.6 3.4a.9.9 0 0 0-1-.2L3.9 10.1a.9.9 0 0 0 .1 1.7l6.6 1.6 1.6 6.6a.9.9 0 0 0 1.7.1l6.9-15.7a.9.9 0 0 0-.2-1z"/></svg>
     </button>
     <div id="legendCard">
       <h3 class="ios-sheet-title">Map legend</h3>

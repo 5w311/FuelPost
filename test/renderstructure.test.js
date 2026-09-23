@@ -1188,7 +1188,7 @@ ok('>>> and drawn as a slim inset bubble, with no safe-area band under the text'
 ok('  its tab row is slim but still a 44px target',
    /#nearMe \.rb-tab\{min-height:44px;/.test(html));
 ok('>>> the map buttons are lifted by the footer height, not left underneath',
-   /#mapwrap\.nm-on #locateBtn\{bottom:calc\(8px \+ var\(--nm-h,0px\)\);\}/.test(html));
+   /#mapwrap\.nm-on #locateBtn\{bottom:calc\(24px \+ var\(--nm-h,0px\)\);\}/.test(html));
 ok('>>> HERE\'s scalebar and layer switcher lift with it (.H_ui)',
    /#mapwrap\.nm-on \.H_ui\{bottom:calc\(var\(--tab-h,0px\) \+ var\(--nm-h,0px\)\);\}/.test(html));
 // !important because the SDK sets bottom inline on .H_imprint, which beats
@@ -1380,15 +1380,25 @@ console.log('\n=== the trip card is compact, and never zooms the page (v2.1.2) =
      plan && +plan[1] >= 40, plan && plan[1]);
 }
 
-console.log('\n=== the locate button sits low, and HERE\'s logo moves to clear it (v2.1.4) ===');
+console.log('\n=== the locate button is the lower half of a pill with the layer button (v2.2.6) ===');
 {
-  const lb = /#locateBtn\{bottom:(\d+)px;width:(\d+)px;height:\d+px;left:(\d+)px;/.exec(html);
-  const logo = /#mapwrap \.H_imprint \.H_logo\{margin-left:(\d+)px !important;\}/.exec(html);
-  ok('>>> the locate button sits 8px above the map\'s visible edge', lb && lb[1] === '8', lb && lb[0]);
-  // Covering HERE's logo is a terms issue. The button now sits where the logo
-  // was, so the logo must start to the RIGHT of the button's right edge.
-  ok('>>> HERE\'s logo starts clear of the button, not underneath it',
-     lb && logo && +logo[1] > +lb[3] + +lb[2], JSON.stringify({ button: lb && [lb[3], lb[2]], logo: logo && logo[1] }));
+  // HERE's layer button: 40x40, 24px in from the right and 24px up (measured).
+  // The stack rises 40px and the locate button takes the slot exactly.
+  ok('>>> on Stops, HERE\'s bottom-right stack rises by one 40px button',
+     /body:not\(\.route-mode\) #mapwrap \.H_l_bottom\.H_l_right\{bottom:56px;\}/.test(html));
+  const lb = /#locateBtn\{bottom:(\d+)px;right:(\d+)px;left:auto;width:(\d+)px;height:(\d+)px;border-radius:0 0 14px 14px;/.exec(html);
+  ok('>>> the locate button fills that slot: 40x40, 24px in, 24px up, square on top',
+     lb && lb.slice(1).join() === '24,24,40,40', lb && lb[0]);
+  ok('  and the layer button squares its bottom to meet it',
+     /\.H_ctl:not\(\.H_zoom\):not\(\.H_scalebar\) > \.H_btn\{border-radius:14px 14px 0 0;\}/.test(html));
+  // The button left the bottom-left corner, so HERE's logo needs no escape.
+  ok('  HERE\'s logo is back in its own place — no override moving it',
+     !/\.H_logo\{margin-left/.test(html));
+  ok('  the button has the navigation-arrow icon, filled',
+     /id="locateBtn"[^>]*>\s*<svg viewBox="0 0 24 24" fill="currentColor"/.test(html));
+  ok('  and the copyright strip is shrunk, still shown',
+     /#mapwrap \.H_copyright\{padding:1px 6px !important;font-size:9px !important;/.test(html)
+     && !/\.H_copyright\{[^}]*display:none/.test(html));
 }
 
 console.log('\n=== the route results card: inset, no home-indicator band, HERE rides above it (v2.1.5) ===');
