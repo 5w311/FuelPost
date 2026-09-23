@@ -177,7 +177,8 @@ console.log('\n=== the other search fields are untouched ===');
 
 console.log('\n=== the list row ===');
 {
-  const lf = code.slice(code.indexOf('function renderList('));
+  // The row is built by listRow() since the list was grouped by state (v2.1.6).
+  const lf = code.slice(code.indexOf('function listRow('));
   const lb = lf.slice(0, lf.indexOf('\n}\n') + 3);
   ok('>>> the code rides on the EXIT line, not a fourth line',
      /<div class="meta mono">\$\{row\[7\]\|\|'Terminal'\}\$\{row\[20\]\?' &middot; '\+row\[20\]:''\}<\/div>/.test(lb),

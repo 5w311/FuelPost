@@ -1408,5 +1408,38 @@ console.log('\n=== the route results card: inset, no home-indicator band, HERE r
      && /new ResizeObserver\(setRouteResultsHeight\)\.observe\(\$\('routeResults'\)\)/.test(codeOnly), rrBody);
 }
 
+console.log('\n=== the stop list is grouped by state (v2.1.6) ===');
+{
+  const rl = codeOnly.slice(codeOnly.indexOf('function renderList('));
+  const rlBody = rl.slice(0, rl.indexOf('\n}\n') + 3);
+  ok('>>> rows are grouped on the state code, row[5]',
+     /sections\.has\(row\[5\]\)/.test(rlBody) && /sections\.get\(row\[5\]\)\.push\(row\)/.test(rlBody), rlBody.slice(0, 600));
+  ok('>>> each section is a heading with the full name, then one card of rows',
+     /head\.className = 'list-section';/.test(rlBody) && /head\.textContent = stateLabel\(code\);/.test(rlBody)
+     && /card\.className = 'list-card';/.test(rlBody) && /card\.appendChild\(listRow\(row\)\)/.test(rlBody));
+  // The heading is textContent, never innerHTML: it is data, not markup.
+  ok('  the heading is set as text, not markup', !/head\.innerHTML/.test(rlBody));
+  // Sorted by the NAME: by code, AR (Arkansas) comes before AZ (Arizona) and
+  // MO (Missouri) before MS (Mississippi), which reads as out of order.
+  ok('>>> sections run alphabetically by the name the driver reads, not the code',
+     /\.sort\(\(a, b\) => stateLabel\(a\)\.localeCompare\(stateLabel\(b\)\)\)/.test(rlBody));
+  ok('  an unknown code falls back to itself rather than a blank heading',
+     /const stateLabel = code => STATE_NAMES\[code\] \|\| code;/.test(rlBody));
+  ok('  the empty-result message survives the grouping',
+     /No network stops match these filters\./.test(rlBody));
+
+  // Every state the network actually covers has a real name.
+  const { splitDataBlock, parseRowLine } = require('../tools/geocode.js');
+  const DATA = splitDataBlock(html).rowLines.map(parseRowLine);
+  const names = eval('(' + /const STATE_NAMES = (\{[\s\S]*?\});/.exec(html)[1] + ')');
+  const codes = [...new Set(DATA.map(r => r[5]))];
+  const missing = codes.filter(c => !names[c]);
+  ok('>>> every state in the data has a full name', missing.length === 0, JSON.stringify(missing));
+  ok('  and the table covers all 50 states and DC', Object.keys(names).length === 51, String(Object.keys(names).length));
+  const order = codes.map(c => names[c]).sort((a, b) => a.localeCompare(b));
+  ok('  Arizona comes before Arkansas, Mississippi before Missouri',
+     order.indexOf('Arizona') < order.indexOf('Arkansas') && order.indexOf('Mississippi') < order.indexOf('Missouri'));
+}
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
