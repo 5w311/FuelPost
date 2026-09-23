@@ -599,6 +599,10 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.1.6
+The list of stops is split by state, A to Z by state name, each under its own
+heading.
+
 ### v2.1.5
 The fuel plan card matches the trip details card — same width, same size of text —
 and the empty band at its bottom that the list scrolled into is gone. The map's

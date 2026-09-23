@@ -1154,6 +1154,15 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
 .list-item .tag{font-size:11px;font-weight:700;text-transform:none;letter-spacing:0;padding:2px 8px;border-radius:7px;background:rgba(255,159,10,.18);color:var(--warn-text);vertical-align:2px;}
 .list-item .tag-closed{background:rgba(255,59,48,.14);color:var(--danger-text);}
 .list-empty{font-size:15px;}
+/* State sections, iOS inset-grouped: a muted heading, then the state's rows in
+   one rounded card inset from the edges. Rows lose their own full-width rule;
+   the card draws an inset hairline BETWEEN rows instead, starting at the text
+   (16px padding + 36px dot + 12px gap = 64px), the way iOS lists do. */
+.list-section{margin:18px 32px 6px;font-size:15px;line-height:20px;font-weight:600;color:var(--sub);}
+.list-section:first-child{margin-top:4px;}
+.list-card{margin:0 16px;border-radius:14px;overflow:hidden;background:var(--surface);}
+.list-card .list-item{border-bottom:0;position:relative;}
+.list-card .list-item + .list-item::before{content:'';position:absolute;top:0;left:64px;right:0;border-top:.5px solid var(--line);}
 
 /* ---- Suggestion dropdowns */
 .suggest-list{border-radius:16px;border:.5px solid var(--glass-border);box-shadow:0 12px 32px rgba(0,0,0,.22);max-height:260px;margin-top:8px;}
@@ -1729,35 +1738,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.1.5"></script>
+<script src="lib/fuelplan.js?v=2.1.6"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.1.5"></script>
+<script src="lib/triptext.js?v=2.1.6"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.1.5"></script>
+<script src="lib/location.js?v=2.1.6"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.1.5"></script>
+<script src="lib/gauge.js?v=2.1.6"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.1.5"></script>
+<script src="lib/corridors.js?v=2.1.6"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.1.5"></script>
+<script src="lib/nearme.js?v=2.1.6"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.1.5"></script>
+<script src="lib/extract-version.js?v=2.1.6"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.1.5"></script>
+<script src="lib/autosuggest.js?v=2.1.6"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.1.5"></script>
+<script src="lib/baselayer.js?v=2.1.6"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.1.5"></script>
+<script src="lib/memocache.js?v=2.1.6"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.1.5"></script>
+<script src="lib/routerank.js?v=2.1.6"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.1.5"></script>
+<script src="lib/vehicleprofile.js?v=2.1.6"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.1.5"></script>
+<script src="lib/escape.js?v=2.1.6"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.1.5"></script>
+<script src="lib/stopfilter.js?v=2.1.6"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.1.5"></script>
+<script src="lib/navlinks.js?v=2.1.6"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1773,7 +1782,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.1.5')
+fetch('lib/fuelplan-adaptive.js?v=2.1.6')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1790,7 +1799,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.1.5')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.1.5')
+fetch('lib/shorttrip.js?v=2.1.6')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1801,7 +1810,7 @@ fetch('lib/shorttrip.js?v=2.1.5')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.1.5"></script>
+<script src="lib/flexible-polyline.js?v=2.1.6"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1953,6 +1962,24 @@ const DATA = [
 ["WY1","TA","TA Cheyenne","4000 I-80 Service Road","Burns","WY","82053","I-80, Exit 377","(307) 365-6670",41.1602,-104.5205,"prim",140,1,12,3,"F,W,R","",1,1,"CVENTA187"],
 ];
 
+// Full names for the list's state headings. DATA carries the two-letter code
+// (row[5]) and nothing else does; every state and DC is listed, not just the
+// 40 the network covers today, so a station joining in a new state gets its
+// real heading rather than falling back to the bare code.
+const STATE_NAMES = {
+  AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas', CA:'California',
+  CO:'Colorado', CT:'Connecticut', DE:'Delaware', DC:'District of Columbia',
+  FL:'Florida', GA:'Georgia', HI:'Hawaii', ID:'Idaho', IL:'Illinois',
+  IN:'Indiana', IA:'Iowa', KS:'Kansas', KY:'Kentucky', LA:'Louisiana',
+  ME:'Maine', MD:'Maryland', MA:'Massachusetts', MI:'Michigan', MN:'Minnesota',
+  MS:'Mississippi', MO:'Missouri', MT:'Montana', NE:'Nebraska', NV:'Nevada',
+  NH:'New Hampshire', NJ:'New Jersey', NM:'New Mexico', NY:'New York',
+  NC:'North Carolina', ND:'North Dakota', OH:'Ohio', OK:'Oklahoma', OR:'Oregon',
+  PA:'Pennsylvania', RI:'Rhode Island', SC:'South Carolina', SD:'South Dakota',
+  TN:'Tennessee', TX:'Texas', UT:'Utah', VT:'Vermont', VA:'Virginia',
+  WA:'Washington', WV:'West Virginia', WI:'Wisconsin', WY:'Wyoming'
+};
+
 // Two different questions, deliberately two different constants.
 // APP_VERSION is the code: bumped for every shipped change, see README.md.
 // FUEL_BOOK_REV is the station data: which edition of the Covenant fuel book
@@ -1973,7 +2000,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.1.5';
+const APP_VERSION = '2.1.6';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -3325,6 +3352,42 @@ function renderList(filtered){
   // touch the live document; this touches it a single time. replaceChildren
   // also subsumes the old innerHTML='' clear.
   const frag = document.createDocumentFragment();
+  // GROUPED BY STATE, iOS inset-grouped: a heading with the state's full name,
+  // then that state's rows together in one rounded card. Sections run
+  // alphabetically by the NAME the driver reads — render() sorts by the code,
+  // which would put Arkansas (AR) before Arizona (AZ) and Missouri before
+  // Mississippi. Inside a section the rows keep render()'s city order.
+  const sections = new Map();
+  filtered.forEach(row => {
+    if(!sections.has(row[5])) sections.set(row[5], []);
+    sections.get(row[5]).push(row);
+  });
+  const stateLabel = code => STATE_NAMES[code] || code;
+  const sectionOrder = [...sections.keys()].sort((a, b) => stateLabel(a).localeCompare(stateLabel(b)));
+  sectionOrder.forEach(code => {
+    const head = document.createElement('h3');
+    head.className = 'list-section';
+    head.textContent = stateLabel(code);
+    const card = document.createElement('div');
+    card.className = 'list-card';
+    frag.append(head, card);
+    sections.get(code).forEach(row => card.appendChild(listRow(row)));
+  });
+  // Zero matches is a real answer, not a blank screen — say it on both
+  // surfaces, since the map and the list are each a full view on their own.
+  if(!filtered.length){
+    const empty = document.createElement('div');
+    empty.className = 'list-empty';
+    empty.textContent = 'No network stops match these filters.';
+    frag.appendChild(empty);
+  }
+  listEl.replaceChildren(frag);
+  listDirty = false;
+}
+
+// One stop's row in the list. Split out of renderList when the list was
+// grouped by state; the row itself is unchanged.
+function listRow(row){
   // The third line carries the exit AND the nav code, separated by a middot.
   // ONE line, not two — deliberately unlike the route result cards, whose
   // navLine puts the code on its own line (see the comment there). Those cards
@@ -3342,37 +3405,25 @@ function renderList(filtered){
   // "Terminal", so the separator is conditional — a dangling middot after
   // "Terminal" would read as missing data rather than as data that does not
   // exist.
-  filtered.forEach(row=>{
-    const dotColor = row[1]==='TA' ? 'var(--ta)' : (row[1]==='Petro' ? 'var(--petro)' : 'var(--navy)');
-    const item = document.createElement('div');
-    item.className='list-item';
-    item.innerHTML = `<div class="dot" style="background:${dotColor}">${row[1]==='TA'?'T':(row[1]==='Petro'?'P':'HQ')}</div>
-      <div class="info">
-        <div class="name">${row[2]}${row[11]==='excl'?'<span class="tag">Exclusive</span>':''}${
-          CLOSED_STOP_IDS.has(row[0])?`<span class="tag tag-closed">${CLOSED_STOP_INFO[row[0]].tag}</span>`:''}</div>
-        <div class="addr">${row[3]}, ${row[4]}, ${row[5]} ${row[6]}</div>
-        <div class="meta mono">${row[7]||'Terminal'}${row[20]?' &middot; '+row[20]:''}</div>
-      </div>`;
-    item.addEventListener('click', ()=>{
-      document.getElementById('listview').classList.remove('show');
-      if(mapLive()){
-        map.setCenter({lat:row[9], lng:row[10]});
-        map.setZoom(12);
-      }
-      openSheet(row);
-    });
-    frag.appendChild(item);
+  const dotColor = row[1]==='TA' ? 'var(--ta)' : (row[1]==='Petro' ? 'var(--petro)' : 'var(--navy)');
+  const item = document.createElement('div');
+  item.className='list-item';
+  item.innerHTML = `<div class="dot" style="background:${dotColor}">${row[1]==='TA'?'T':(row[1]==='Petro'?'P':'HQ')}</div>
+    <div class="info">
+      <div class="name">${row[2]}${row[11]==='excl'?'<span class="tag">Exclusive</span>':''}${
+        CLOSED_STOP_IDS.has(row[0])?`<span class="tag tag-closed">${CLOSED_STOP_INFO[row[0]].tag}</span>`:''}</div>
+      <div class="addr">${row[3]}, ${row[4]}, ${row[5]} ${row[6]}</div>
+      <div class="meta mono">${row[7]||'Terminal'}${row[20]?' &middot; '+row[20]:''}</div>
+    </div>`;
+  item.addEventListener('click', ()=>{
+    document.getElementById('listview').classList.remove('show');
+    if(mapLive()){
+      map.setCenter({lat:row[9], lng:row[10]});
+      map.setZoom(12);
+    }
+    openSheet(row);
   });
-  // Zero matches is a real answer, not a blank screen — say it on both
-  // surfaces, since the map and the list are each a full view on their own.
-  if(!filtered.length){
-    const empty = document.createElement('div');
-    empty.className = 'list-empty';
-    empty.textContent = 'No network stops match these filters.';
-    frag.appendChild(empty);
-  }
-  listEl.replaceChildren(frag);
-  listDirty = false;
+  return item;
 }
 
 function render(){
