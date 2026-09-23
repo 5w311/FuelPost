@@ -1675,35 +1675,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.1.2"></script>
+<script src="lib/fuelplan.js?v=2.1.3"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.1.2"></script>
+<script src="lib/triptext.js?v=2.1.3"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.1.2"></script>
+<script src="lib/location.js?v=2.1.3"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.1.2"></script>
+<script src="lib/gauge.js?v=2.1.3"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.1.2"></script>
+<script src="lib/corridors.js?v=2.1.3"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.1.2"></script>
+<script src="lib/nearme.js?v=2.1.3"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.1.2"></script>
+<script src="lib/extract-version.js?v=2.1.3"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.1.2"></script>
+<script src="lib/autosuggest.js?v=2.1.3"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.1.2"></script>
+<script src="lib/baselayer.js?v=2.1.3"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.1.2"></script>
+<script src="lib/memocache.js?v=2.1.3"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.1.2"></script>
+<script src="lib/routerank.js?v=2.1.3"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.1.2"></script>
+<script src="lib/vehicleprofile.js?v=2.1.3"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.1.2"></script>
+<script src="lib/escape.js?v=2.1.3"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.1.2"></script>
+<script src="lib/stopfilter.js?v=2.1.3"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.1.2"></script>
+<script src="lib/navlinks.js?v=2.1.3"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1719,7 +1719,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.1.2')
+fetch('lib/fuelplan-adaptive.js?v=2.1.3')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1736,7 +1736,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.1.2')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.1.2')
+fetch('lib/shorttrip.js?v=2.1.3')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1747,7 +1747,7 @@ fetch('lib/shorttrip.js?v=2.1.2')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.1.2"></script>
+<script src="lib/flexible-polyline.js?v=2.1.3"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -1919,7 +1919,7 @@ const DATA = [
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.1.2';
+const APP_VERSION = '2.1.3';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2106,7 +2106,7 @@ const CORRIDOR_ITEMS = CORRIDOR_INDEX.map(({corridor, count}) =>
   ({ value: corridor, label: `${corridor} (${count})` }));
 
 // Map init — HERE Maps JS API
-const HERE_API_KEY = 'C7r-EHfOixmC3imxi1ATMEUnt_Fx9P7Cc1-0_UsJ0Uo';
+const HERE_API_KEY = 'qw5SbRTawhv8u1ZvQ18uhH5jIpNgADcrD1EOgixbES4';
 
 // Session-only memo for repeat HERE lookups — re-planning the same load,
 // retyping the same address, or the autosuggest debounce landing on the
