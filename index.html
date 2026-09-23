@@ -1084,6 +1084,14 @@ button{-webkit-tap-highlight-color:transparent;}
 #mapwrap .H_ui{bottom:var(--tab-h,0px);}
 body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px));}
 #mapwrap .H_imprint{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px)) !important;}
+/* The filter bubble (v2.2.2) is inset too, and on the Stops tab it opens over
+   the Near Me bubble. While it is open HERE's attribution rides above IT —
+   --fc-h, published like --rr-h — and the controls it covers anyway (HERE's
+   zoom and layers, the locate button and its hint chips) step out of the way instead of peeking
+   out in slivers beside it. The :has() selector outranks the .nm-on rule. */
+#mapwrap:has(#filterCard.show) .H_imprint{bottom:calc(var(--tab-h,0px) + var(--fc-h,0px)) !important;}
+#mapwrap:has(#filterCard.show) .H_ui, #mapwrap:has(#filterCard.show) #locateBtn,
+#mapwrap:has(#filterCard.show) #locateHint, #mapwrap:has(#filterCard.show) #locateError{visibility:hidden;}
 #mapLoading{background:var(--bg);font-size:15px;}
 /* The locate button sits low, 8px above the map's visible edge — the same
    gap the Near Me bubble keeps to the tab bar. That is where HERE's logo was,
@@ -1180,7 +1188,11 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
   box-shadow:var(--sheet-shadow);max-height:80%;overflow-y:auto;z-index:620;}
 #legendCard{position:fixed;max-height:calc(100% - env(safe-area-inset-top,0px) - 12px);}
 #filterCard::before,#legendCard::before{content:'';display:block;width:36px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px;}
-#filterCard{padding:8px 16px 18px;}
+/* Filter is a bubble, not an edge-to-edge sheet: the same inset, corners and
+   shadow as the route results card, so the one bottom panel each tab has looks
+   the same. It sits on #mapwrap's bottom edge, just above the tab bar. More
+   stays a true sheet (see #legendCard above). */
+#filterCard{left:21.5px;right:21.5px;border-radius:19px;box-shadow:0 8px 30px rgba(0,0,0,.28);padding:8px 16px 18px;}
 #filterCard .fm{margin-top:10px;}
 #filterCard .fm-toggle{min-height:50px;padding:0 16px;border-radius:14px;background:var(--fill);border:0;font-size:16px;color:var(--ink);}
 #filterCard .fm-caret{font-size:12px;}
@@ -1825,35 +1837,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.2.1"></script>
+<script src="lib/fuelplan.js?v=2.2.2"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.2.1"></script>
+<script src="lib/triptext.js?v=2.2.2"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.2.1"></script>
+<script src="lib/location.js?v=2.2.2"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.2.1"></script>
+<script src="lib/gauge.js?v=2.2.2"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.2.1"></script>
+<script src="lib/corridors.js?v=2.2.2"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.2.1"></script>
+<script src="lib/nearme.js?v=2.2.2"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.2.1"></script>
+<script src="lib/extract-version.js?v=2.2.2"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.2.1"></script>
+<script src="lib/autosuggest.js?v=2.2.2"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.2.1"></script>
+<script src="lib/baselayer.js?v=2.2.2"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.2.1"></script>
+<script src="lib/memocache.js?v=2.2.2"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.2.1"></script>
+<script src="lib/routerank.js?v=2.2.2"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.2.1"></script>
+<script src="lib/vehicleprofile.js?v=2.2.2"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.2.1"></script>
+<script src="lib/escape.js?v=2.2.2"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.2.1"></script>
+<script src="lib/stopfilter.js?v=2.2.2"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.2.1"></script>
+<script src="lib/navlinks.js?v=2.2.2"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1869,7 +1881,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.2.1')
+fetch('lib/fuelplan-adaptive.js?v=2.2.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1886,7 +1898,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.2.1')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.2.1')
+fetch('lib/shorttrip.js?v=2.2.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1897,7 +1909,7 @@ fetch('lib/shorttrip.js?v=2.2.1')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.2.1"></script>
+<script src="lib/flexible-polyline.js?v=2.2.2"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2087,7 +2099,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.2.1';
+const APP_VERSION = '2.2.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -4475,6 +4487,13 @@ function setRouteResultsHeight(){
   $('mapwrap').style.setProperty('--rr-h', Math.round(h) + 'px');
 }
 if(window.ResizeObserver) new ResizeObserver(setRouteResultsHeight).observe($('routeResults'));
+// The same for the filter bubble, while it is open (see --fc-h in the CSS).
+function setFilterCardHeight(){
+  const el = $('filterCard');
+  const h = el && el.classList.contains('show') ? el.getBoundingClientRect().height : 0;
+  $('mapwrap').style.setProperty('--fc-h', Math.round(h) + 'px');
+}
+if(window.ResizeObserver) new ResizeObserver(setFilterCardHeight).observe($('filterCard'));
 
 // Detour tolerance widens only when the tight search would strand the driver.
 // planAdaptive (lib/fuelplan-adaptive.js) tries these in order and stops at

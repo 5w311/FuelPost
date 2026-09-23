@@ -1457,5 +1457,20 @@ console.log('\n=== warning boxes and tier badges read as written (v2.2.1) ===');
   ok('>>> a tier badge never splits across lines', /\.badge-pill\{display:inline-block;white-space:nowrap;\}/.test(html));
 }
 
+console.log('\n=== the filter panel is a bubble like the results card (v2.2.2) ===');
+{
+  const fc = /#filterCard\{left:([\d.]+)px;right:([\d.]+)px;border-radius:(\d+)px;/.exec(html);
+  const rr = /#routeResults\{left:([\d.]+)px;right:([\d.]+)px;padding-bottom:0;border-radius:(\d+)px;/.exec(html);
+  ok('>>> the filter panel is inset and rounded on every corner, exactly like the results card',
+     fc && rr && fc[1] === rr[1] && fc[2] === rr[2] && fc[3] === rr[3], JSON.stringify({ fc: fc && fc.slice(1), rr: rr && rr.slice(1) }));
+  // Inset, it no longer covers HERE's copyright box completely: the attribution
+  // rides above it instead, and what it covers anyway steps aside.
+  ok('>>> HERE\'s attribution rides above the open filter bubble',
+     /#mapwrap:has\(#filterCard\.show\) \.H_imprint\{bottom:calc\(var\(--tab-h,0px\) \+ var\(--fc-h,0px\)\) !important;\}/.test(html)
+     && /new ResizeObserver\(setFilterCardHeight\)\.observe\(\$\('filterCard'\)\)/.test(codeOnly));
+  ok('  and the controls it covers hide rather than peek out beside it',
+     /#mapwrap:has\(#filterCard\.show\) \.H_ui, #mapwrap:has\(#filterCard\.show\) #locateBtn,\s*#mapwrap:has\(#filterCard\.show\) #locateHint, #mapwrap:has\(#filterCard\.show\) #locateError\{visibility:hidden;\}/.test(html));
+}
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
