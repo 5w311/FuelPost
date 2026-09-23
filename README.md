@@ -599,6 +599,14 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.2.0
+Route results are cards now. Each fuel stop sits on its own card with a badge
+that matches its pin on the map — gold and numbered for a planned stop, PU and
+DEL for pickup and delivery — and the mile it falls at on the right. How much
+fuel you pull in with gets its own green card, red when it runs short. The
+station nearest your delivery is a card too. Every number is worked out
+exactly as before.
+
 ### v2.1.7
 A new app icon: a fuel gauge. To see it on your home screen, remove the old
 FuelPost icon and add it again from Safari.
