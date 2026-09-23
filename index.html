@@ -177,7 +177,11 @@
      like the buttons — and they must disappear with the same chrome. Without
      this they float over the list overlay, and in ROUTE mode they hang over
      the plan panel pointing at a locate button that isn't even shown. */
-  #listview.show ~ #legendBtn, #listview.show ~ #locateBtn, #listview.show ~ #legendCard,
+  /* NOT #legendCard (v2.2.3): More became a full-screen sheet opened from the
+     tab bar, and it belongs over the list as much as over the map. Hidden
+     here, tapping More with the list up dimmed the screen over an empty
+     space — the scrim showed, the sheet did not. */
+  #listview.show ~ #legendBtn, #listview.show ~ #locateBtn,
   #listview.show ~ #locateError, #listview.show ~ #locateHint,
   #listview.show ~ #nearMe{display:none;}
   .list-item{display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);align-items:flex-start;}
@@ -1125,7 +1129,15 @@ body.rr-tab-showing #mapwrap .H_ui{bottom:calc(var(--tab-h,0px) + var(--rr-h,0px
 
 /* ---- Station sheet: presents OVER the tab bar, as iOS sheets do. It and
    #scrim are children of #app, not #mapwrap, so they already cover it. */
-#scrim{background:rgba(0,0,0,.35);}
+/* Dimmed AND blurred behind whatever presents over the page — the station
+   sheet, More, and the filter bubble. The blur sits under opacity, so it
+   fades in and out with the dim rather than snapping. */
+#scrim{background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+/* The filter bubble takes the scrim too, with no script: it shows exactly
+   while the bubble does. A tap on it is a tap outside the bubble, which the
+   document-level dismiss already handles — so it closes, and the scrim with
+   it. (The bubble is z 620, over the scrim's 550.) */
+#app:has(#filterCard.show) #scrim{opacity:1;pointer-events:auto;}
 #sheet{border-radius:28px 28px 0 0;box-shadow:var(--sheet-shadow);}
 #sheet .grabber{width:36px;height:5px;border-radius:3px;margin:8px auto 4px;background:var(--line);}
 #sheet .sheetBody{padding:8px 20px calc(28px + env(safe-area-inset-bottom,0px));}
@@ -1837,35 +1849,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.2.2"></script>
+<script src="lib/fuelplan.js?v=2.2.3"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.2.2"></script>
+<script src="lib/triptext.js?v=2.2.3"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.2.2"></script>
+<script src="lib/location.js?v=2.2.3"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.2.2"></script>
+<script src="lib/gauge.js?v=2.2.3"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.2.2"></script>
+<script src="lib/corridors.js?v=2.2.3"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.2.2"></script>
+<script src="lib/nearme.js?v=2.2.3"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.2.2"></script>
+<script src="lib/extract-version.js?v=2.2.3"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.2.2"></script>
+<script src="lib/autosuggest.js?v=2.2.3"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.2.2"></script>
+<script src="lib/baselayer.js?v=2.2.3"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.2.2"></script>
+<script src="lib/memocache.js?v=2.2.3"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.2.2"></script>
+<script src="lib/routerank.js?v=2.2.3"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.2.2"></script>
+<script src="lib/vehicleprofile.js?v=2.2.3"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.2.2"></script>
+<script src="lib/escape.js?v=2.2.3"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.2.2"></script>
+<script src="lib/stopfilter.js?v=2.2.3"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.2.2"></script>
+<script src="lib/navlinks.js?v=2.2.3"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1881,7 +1893,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.2.2')
+fetch('lib/fuelplan-adaptive.js?v=2.2.3')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1898,7 +1910,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.2.2')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.2.2')
+fetch('lib/shorttrip.js?v=2.2.3')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1909,7 +1921,7 @@ fetch('lib/shorttrip.js?v=2.2.2')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.2.2"></script>
+<script src="lib/flexible-polyline.js?v=2.2.3"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2099,7 +2111,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.2.2';
+const APP_VERSION = '2.2.3';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
