@@ -500,9 +500,26 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   `top:auto`, so a margin moves nothing), and `mapBleed()` goes into the
   viewport's bottom padding so centring and fits ignore the hidden strip.
   `--tab-h` is the bar's height plus both margins; a test adds them up.
-- **Trip-card inputs stay at 16px text.** Everything else in the card was sized
-  down in v2.1.2, but iOS Safari zooms the whole page into any focused input
-  smaller than 16px. A test holds every input rule there to it.
+- **Trip-card inputs under 16px need the viewport's `maximum-scale=1.0`.** iOS
+  Safari zooms the whole page into any focused input smaller than 16px unless
+  the scale is capped. v2.1.4 took them to 15px on the strength of that cap; a
+  test fails if the inputs shrink while the cap is gone.
+- **The trip card and tab bar are sized to a reference, x 0.936.** v2.1.4
+  matched them to a screenshot shown at 93.6% inside a 14pt border, so each
+  size is the v2.1.2 value x 0.936 and each side margin is 14 + old x 0.936.
+  Resize them together, not one value at a time.
+- **`#map` is `position:fixed; inset:0` — the whole screen, on every tab.**
+  `#mapwrap` keeps its real edges (the trip card above it on the Route tab, the
+  bar below), so everything that measures it is unchanged; `mapBleed()` returns
+  the covered strip at the top AND the bottom and both go into the viewport
+  padding. The canvas never resizes on a tab switch or a card collapse.
+- **HERE's logo is moved right, to `margin-left:72px`, not covered.** The locate
+  button sits 8px above the map's edge, which is where the logo was. The logo's
+  margin is inline from the SDK, hence `!important`; a test keeps it clear of
+  the button's right edge.
+- **The tab bar's bottom margin is a flat 8px, not the safe-area inset.** It
+  sits down in the home-indicator strip on purpose; `--tab-h` has no safe-area
+  term to match. A test fails if the inset comes back.
 - **More is `position:fixed`, not a sheet inside `#mapwrap`.** Inside the map
   area it was capped at 80% of whatever the map had left, which on the Route tab
   is a strip under the trip card. It shares `#scrim` with the station sheet, so
@@ -573,6 +590,12 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.1.4
+The map fills the whole screen on the Route tab too, right up to the top behind
+the trip details card. That card and the tabs at the bottom are a touch smaller
+and narrower, the tabs sit as low on the screen as they can go, and the locate
+button sits just above them.
 
 ### v2.1.3
 A new map key. Nothing else changes.

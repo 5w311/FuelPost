@@ -419,7 +419,7 @@ ok('it is one-shot', /if\(networkFitDone\) return;/.test(fnBody) && /networkFitD
 // assertions follow it there; there is now ONE site to get right.
 const fbFn = html.slice(html.indexOf('function fitBoundsWithMargin('));
 const fbBody = fbFn.slice(0, fbFn.indexOf('\n}\n') + 3);
-const padIdx = fbBody.indexOf('setPadding(MAP_FIT_MARGIN, MAP_FIT_MARGIN, MAP_FIT_MARGIN + mapBleed(), MAP_FIT_MARGIN)');
+const padIdx = fbBody.indexOf('setPadding(MAP_FIT_MARGIN + bleed.top, MAP_FIT_MARGIN, MAP_FIT_MARGIN + bleed.bottom, MAP_FIT_MARGIN)');
 const fitIdx = fbBody.indexOf('setLookAtData({ bounds: b })');
 ok('the margin is applied BEFORE the fit', padIdx >= 0 && padIdx < fitIdx,
    JSON.stringify({ padIdx, fitIdx }));
@@ -1179,11 +1179,16 @@ ok('  and aria-expanded is kept in sync in code',
 ok('>>> the footer is anchored to the bottom of the map area',
    /#nearMe\{[^}]*left:0;right:0;bottom:0/.test(html), (/#nearMe\{[^}]*\}/.exec(html) || [''])[0]);
 ok('>>> and drawn as a slim inset bubble, with no safe-area band under the text',
-   /#nearMe\{left:16px;right:16px;padding-bottom:0;[^}]*border-radius:22px;/.test(html));
+   /#nearMe\{left:(\d+)px;right:\1px;padding-bottom:0;[^}]*border-radius:22px;/.test(html));
+// It lines up with the tab bar's side margin, whatever that is.
+{
+  const nm = /#nearMe\{left:(\d+)px;/.exec(html), tb = /#tabbar\{[^}]*margin:\d+px (\d+)px /.exec(html);
+  ok('  and inset exactly as far as the tab bar', nm && tb && nm[1] === tb[1], JSON.stringify([nm && nm[1], tb && tb[1]]));
+}
 ok('  its tab row is slim but still a 44px target',
    /#nearMe \.rb-tab\{min-height:44px;/.test(html));
 ok('>>> the map buttons are lifted by the footer height, not left underneath',
-   /#mapwrap\.nm-on #locateBtn\{bottom:calc\(12px \+ var\(--nm-h,0px\)\);\}/.test(html));
+   /#mapwrap\.nm-on #locateBtn\{bottom:calc\(8px \+ var\(--nm-h,0px\)\);\}/.test(html));
 ok('>>> HERE\'s scalebar and layer switcher lift with it (.H_ui)',
    /#mapwrap\.nm-on \.H_ui\{bottom:calc\(var\(--tab-h,0px\) \+ var\(--nm-h,0px\)\);\}/.test(html));
 // !important because the SDK sets bottom inline on .H_imprint, which beats
@@ -1282,16 +1287,21 @@ console.log('\n=== the map runs under the tab bar (v2.1.1) ===');
 // Near Me footer, the results panel and the route-fit padding all measure)
 // does not move. Only the canvas and the full-cover overlays bleed down.
 {
-  const tabH = /#app\{--tab-h:calc\((\d+)px \+ (\d+)px \+ (\d+)px \+ env\(safe-area-inset-bottom,0px\)\);\}/.exec(html);
-  const bar = /#tabbar\{[^}]*height:(\d+)px;[^}]*margin:(\d+)px \d+px calc\(env\(safe-area-inset-bottom,0px\) \+ (\d+)px\);/.exec(html);
+  const tabH = /#app\{--tab-h:calc\((\d+)px \+ (\d+)px \+ (\d+)px\);\}/.exec(html);
+  const bar = /#tabbar\{[^}]*height:(\d+)px;[^}]*margin:(\d+)px \d+px (\d+)px;\}/.exec(html);
   ok('>>> --tab-h is declared as the bar\'s whole footprint', !!tabH, 'no #app{--tab-h:...} rule');
   ok('>>> and it adds up to the bar\'s real height + margins, so the bleed is exact',
      tabH && bar && (+tabH[1] + +tabH[2] + +tabH[3]) === (+bar[1] + +bar[2] + +bar[3]),
      JSON.stringify({ tabH: tabH && tabH.slice(1), bar: bar && bar.slice(1) }));
+  // v2.1.4: as low as it can sit — a flat margin down into the home-indicator
+  // strip, not stacked on top of the safe-area inset.
+  ok('>>> the bar sits as low as it can: no safe-area inset under it',
+     !/#tabbar\{[^}]*safe-area-inset-bottom/.test(html) && !/--tab-h:[^;]*safe-area/.test(html));
   ok('the bar is still in the flow, not floated over the map',
      /#tabbar\{position:relative;[^}]*flex-shrink:0/.test(html));
-  ok('>>> the map canvas, the list and the loading cover run on behind the bar',
-     /#map, #listview, #mapLoading\{bottom:calc\(-1 \* var\(--tab-h,0px\)\);\}/.test(html));
+  ok('>>> the map canvas covers the whole screen; the list and loading cover run on behind the bar',
+     /#map\{position:fixed;inset:0;\}/.test(html)
+     && /#listview, #mapLoading\{bottom:calc\(-1 \* var\(--tab-h,0px\)\);\}/.test(html));
   ok('  and the list pads its end by the bar, so the last row scrolls clear',
      /#listview\{[^}]*padding-bottom:calc\(24px \+ var\(--tab-h,0px\)\);\}/.test(html));
   // Covering HERE's attribution is a terms issue. `bottom`, not a margin:
@@ -1305,9 +1315,9 @@ console.log('\n=== the map runs under the tab bar (v2.1.1) ===');
   const bleedBody = bleedFn.slice(0, bleedFn.indexOf('\n}\n') + 3);
   ok('the bleed is MEASURED (#map bottom minus #mapwrap bottom), not a constant',
      /getElementById\('map'\)/.test(bleedBody) && /getElementById\('mapwrap'\)/.test(bleedBody)
-     && /m\.bottom - w\.bottom/.test(bleedBody), bleedBody);
+     && /m\.bottom - w\.bottom/.test(bleedBody) && /w\.top - m\.top/.test(bleedBody), bleedBody);
   ok('>>> the hidden strip is viewport padding, so centring and fits use what is visible',
-     /setPadding\(m, m, h \+ m \+ mapBleed\(\), m\)/.test(html));
+     /setPadding\(m \+ bleed\.top, m, h \+ m \+ bleed\.bottom, m\)/.test(html));
 }
 
 console.log('\n=== the layer button can open its menu (v2.1.1) ===');
@@ -1331,7 +1341,8 @@ console.log('\n=== More is its own bubble and its own sheet (v2.1.2) ===');
   ok('>>> the bar is a row of two bubbles, not one capsule',
      /#tabbar\{position:relative;z-index:500;flex-shrink:0;display:flex;/.test(html)
      && /#tabbar #modeSeg\{flex:1;min-width:0;display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);/.test(html)
-     && /#tabbar #legendBtn\{flex:0 0 56px;\}/.test(html));
+     && /#tabbar #legendBtn\{flex:0 0 (\d+)px;\}/.test(html)
+     && /#tabbar #legendBtn\{flex:0 0 (\d+)px;\}/.exec(html)[1] === /#tabbar\{[^}]*height:(\d+)px;/.exec(html)[1]);
   ok('  More still sits OUTSIDE #modeSeg, so setMode never treats it as a mode',
      /<\/div>\s*<button id="legendBtn"/.test(html.slice(html.indexOf('<nav id="tabbar"'))));
   // Inside #mapwrap it was capped at 80% of the map area — in Route mode, a
@@ -1354,13 +1365,29 @@ console.log('\n=== More is its own bubble and its own sheet (v2.1.2) ===');
 
 console.log('\n=== the trip card is compact, and never zooms the page (v2.1.2) ===');
 {
-  // iOS Safari zooms the whole page into any focused input under 16px.
+  // iOS Safari zooms the whole page into any focused input under 16px —
+  // unless the viewport caps the scale at 1, which switches that zoom off.
+  // v2.1.4 took the trip-card inputs to 15px on the strength of the cap, so
+  // the two are held together: shrink the inputs, keep the cap.
   const inp = /\.rb-field input,\.rb-range-wrap input,\.vp-cell input\{([^}]*)\}/g;
-  const rules = [...html.matchAll(inp)].map(m => m[1]);
-  ok('>>> every trip-card input rule keeps 16px text',
-     rules.length > 0 && rules.every(r => !/font-size/.test(r) || /font-size:16px/.test(r)), JSON.stringify(rules));
-  ok('  the card\'s buttons stay tappable: Plan is 44px',
-     /#planBtn,#confirmBtn\{height:44px;/.test(html));
+  const sizes = [...html.matchAll(inp)].map(m => (/font-size:([\d.]+)px/.exec(m[1]) || [])[1]).filter(Boolean).map(Number);
+  const capped = /<meta name="viewport" content="[^"]*maximum-scale=1\.0/.test(html);
+  ok('>>> trip-card inputs under 16px only while the viewport caps zoom at 1',
+     sizes.length > 0 && (capped || sizes.every(n => n >= 16)), JSON.stringify({ sizes, capped }));
+  const plan = /#planBtn,#confirmBtn\{height:([\d.]+)px;/.exec(html);
+  ok('  the card\'s buttons stay tappable: Plan is at least 40px',
+     plan && +plan[1] >= 40, plan && plan[1]);
+}
+
+console.log('\n=== the locate button sits low, and HERE\'s logo moves to clear it (v2.1.4) ===');
+{
+  const lb = /#locateBtn\{bottom:(\d+)px;width:(\d+)px;height:\d+px;left:(\d+)px;/.exec(html);
+  const logo = /#mapwrap \.H_imprint \.H_logo\{margin-left:(\d+)px !important;\}/.exec(html);
+  ok('>>> the locate button sits 8px above the map\'s visible edge', lb && lb[1] === '8', lb && lb[0]);
+  // Covering HERE's logo is a terms issue. The button now sits where the logo
+  // was, so the logo must start to the RIGHT of the button's right edge.
+  ok('>>> HERE\'s logo starts clear of the button, not underneath it',
+     lb && logo && +logo[1] > +lb[3] + +lb[2], JSON.stringify({ button: lb && [lb[3], lb[2]], logo: logo && logo[1] }));
 }
 
 console.log(`\n${p} passed, ${f} failed`);
