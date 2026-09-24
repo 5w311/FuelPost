@@ -574,6 +574,15 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   rendered as a normal plan.
 - **Don't chase satellite resolution** — already `size=512`, capped at z20, no
   native detail past z17; USGS 404s above z16 and measures softer.
+- **Don't let anything in HERE's imprint refuse to shrink or wrap.** It is a
+  wrapping flex row (logo, scale bar, copyright). v2.2.12 made the copyright
+  `flex-shrink:0` in a row that could not wrap, and zoomed out, where HERE adds
+  boundary credits, the copyright ran off the right edge — a terms problem, not
+  a cosmetic one.
+- **Keep `apple-mobile-web-app-status-bar-style` at `black-translucent`.**
+  Anything else gives a home-screen launch an opaque status bar, and the map
+  stops under a black strip. The status text is then always white, which is
+  what `#statusShade` is for in light mode.
 
 ### Updating this README
 
@@ -615,6 +624,12 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.2.18
+The map runs all the way up under the time and battery, with no black strip.
+To get this, remove FuelPost from your home screen and add it again from
+Safari. HERE's copyright line no longer runs off the edge when zoomed out:
+it gets a line of its own, and the distance scale moves beside the logo.
 
 ### v2.2.17
 The map-style menu's "Map view" is now called "Default". In More, the Fuel Dept

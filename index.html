@@ -3,6 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- The map runs up under the status bar (v2.2.18). A home-screen web app
+     gets an OPAQUE black status bar unless it asks for black-translucent, so
+     the map stopped short of the top under a black strip even though #map
+     already covers the whole screen. black-translucent always draws the
+     status text white; #statusShade below keeps it readable in light mode.
+     iOS reads this when the app is added to the home screen, so a driver
+     re-adds FuelPost once to pick it up. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>FuelPost</title>
 <!-- Truck, pump and road on a navy tile (v2.2.11). 180 and 1024 are full-bleed
      opaque squares: iOS applies its own rounded mask to home-screen icons,
@@ -1077,6 +1087,15 @@ button{-webkit-tap-highlight-color:transparent;}
    amount so its last row scrolls clear (the padding-bottom in the #listview
    rule further down). */
 #map{position:fixed;inset:0;}
+/* White status text over a light map or list needs something under it:
+   black-translucent (see the meta tags) cannot draw it dark. A soft fade,
+   light theme only — the dark map and dark sheets already carry white text.
+   Sized off the safe area, so it is zero tall wherever there is no status
+   bar to cover (Safari's own tab, a desktop browser). Over everything, never
+   in the way of a tap. */
+#statusShade{position:fixed;top:0;left:0;right:0;height:calc(env(safe-area-inset-top,0px) * 1.35);
+  z-index:900;pointer-events:none;background:linear-gradient(rgba(0,0,0,.38),rgba(0,0,0,.24) 55%,rgba(0,0,0,0));}
+html[data-theme="dark"] #statusShade{display:none;}
 #listview, #mapLoading{bottom:calc(-1 * var(--tab-h,0px));}
 /* HERE's attribution must never sit behind the bar: covering it is a terms
    issue. Both containers, because they are siblings; `bottom` because .H_ui
@@ -1150,10 +1169,22 @@ body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_
    .H_imprint rules above give it. The copyright's inline position:absolute
    is what !important overrides; the imprint is pointer-events:none, so the
    bar asks for its tap (miles/km) back. */
-#mapwrap .H_imprint{display:flex;align-items:flex-end;}
-#mapwrap .H_imprint > .H_logo, #mapwrap .H_imprint > .H_copyright{flex-shrink:0;}
-#mapwrap .H_imprint > .H_copyright{position:static !important;}
-#mapwrap .H_imprint > .H_scalebar{margin:0 8px 1px auto;font-size:10px;pointer-events:auto;}
+/* The copyright is never cut off (v2.2.18): zoomed out, HERE adds boundary
+   credits and the row no longer fits beside the scale bar — with nothing
+   allowed to shrink, the copyright ran off the right edge. The row wraps
+   instead: the copyright takes a line of its own at the right, and the
+   scale bar stays just above it. justify-content:flex-end packs both to the
+   right, and the logo's auto right margin keeps it left; the SDK writes the
+   logo's margins inline, hence !important. A copyright wider than the
+   screen wraps its own text inside its box. Once it has wrapped, the scale
+   bar moves to the left beside the logo (.sb-stacked, set by
+   stackScalebar()), clear of the layer/locate pill above the right corner. */
+#mapwrap .H_imprint{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:flex-end;}
+#mapwrap .H_imprint > .H_logo{flex-shrink:0;margin-right:auto !important;}
+#mapwrap .H_imprint > .H_copyright{position:static !important;max-width:100%;box-sizing:border-box;}
+#mapwrap .H_imprint > .H_scalebar{flex-shrink:0;white-space:nowrap;margin:0 8px 1px 0;font-size:10px;pointer-events:auto;}
+#mapwrap .H_imprint.sb-stacked > .H_logo{margin-right:0 !important;}
+#mapwrap .H_imprint.sb-stacked > .H_scalebar{margin:0 auto 1px 8px;}
 /* Blue means location is RUNNING, and nothing else does (v2.2.10): idle —
    not started yet, which is every fresh launch, since the fix is never
    persisted — is plain ink like the other map buttons. Finding a fix is the
@@ -1535,6 +1566,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
 </head>
 <body>
 <div id="app">
+  <div id="statusShade" aria-hidden="true"></div>
 
   <header>
     <!-- The app-icon gauge, inlined (~600 bytes) rather than <img src>: no
@@ -1927,35 +1959,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.2.17"></script>
+<script src="lib/fuelplan.js?v=2.2.18"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.2.17"></script>
+<script src="lib/triptext.js?v=2.2.18"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.2.17"></script>
+<script src="lib/location.js?v=2.2.18"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.2.17"></script>
+<script src="lib/gauge.js?v=2.2.18"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.2.17"></script>
+<script src="lib/corridors.js?v=2.2.18"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.2.17"></script>
+<script src="lib/nearme.js?v=2.2.18"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.2.17"></script>
+<script src="lib/extract-version.js?v=2.2.18"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.2.17"></script>
+<script src="lib/autosuggest.js?v=2.2.18"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.2.17"></script>
+<script src="lib/baselayer.js?v=2.2.18"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.2.17"></script>
+<script src="lib/memocache.js?v=2.2.18"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.2.17"></script>
+<script src="lib/routerank.js?v=2.2.18"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.2.17"></script>
+<script src="lib/vehicleprofile.js?v=2.2.18"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.2.17"></script>
+<script src="lib/escape.js?v=2.2.18"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.2.17"></script>
+<script src="lib/stopfilter.js?v=2.2.18"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.2.17"></script>
+<script src="lib/navlinks.js?v=2.2.18"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1971,7 +2003,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.2.17')
+fetch('lib/fuelplan-adaptive.js?v=2.2.18')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1988,7 +2020,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.2.17')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.2.17')
+fetch('lib/shorttrip.js?v=2.2.18')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1999,7 +2031,7 @@ fetch('lib/shorttrip.js?v=2.2.17')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.2.17"></script>
+<script src="lib/flexible-polyline.js?v=2.2.18"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2189,7 +2221,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.2.17';
+const APP_VERSION = '2.2.18';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2944,6 +2976,28 @@ function dockScalebar(){
   const bar = document.querySelector('#mapwrap .H_scalebar');
   const copy = document.querySelector('#mapwrap .H_imprint > .H_copyright');
   if(bar && copy && bar.nextElementSibling !== copy) copy.parentNode.insertBefore(bar, copy);
+  if(copy && !imprintObserver && typeof ResizeObserver === 'function'){
+    imprintObserver = new ResizeObserver(stackScalebar);
+    imprintObserver.observe(copy.parentNode);
+    imprintObserver.observe(copy);
+  }
+  stackScalebar();
+}
+// When the copyright has wrapped onto a line of its own (see the
+// .H_imprint CSS), the scale bar left behind on the line above would sit at
+// the right, under the layer/locate pill. .sb-stacked moves it left instead,
+// beside the logo (v2.2.18). The wrap itself is decided by the CSS; this
+// only reads it. Toggling the class moves nothing's size and cannot change
+// the wrap (the bar's 8px just changes sides), so it cannot loop the
+// observer: the copyright's text changing (it grows zoomed out) or the
+// scale's label changing width is what re-runs it.
+let imprintObserver = null;
+function stackScalebar(){
+  const im = document.querySelector('#mapwrap .H_imprint');
+  const bar = im && im.querySelector(':scope > .H_scalebar');
+  const copy = im && im.querySelector(':scope > .H_copyright');
+  if(!bar || !copy) return;
+  im.classList.toggle('sb-stacked', copy.getBoundingClientRect().top >= bar.getBoundingClientRect().bottom);
 }
 if(MAP_SDK) installMapSettings(initialTheme);
 
