@@ -1544,5 +1544,28 @@ ok('  finding a fix is blue, a live fix fills blue',
    /#locateBtn\.locating\{color:var\(--navy-text\);\}/.test(html)
    && /#locateBtn\.locked\{background:var\(--accent-fill\);color:#fff;/.test(html));
 
+console.log('\n=== the scale bar sits beside the copyright; the layer menu rounds evenly (v2.2.12) ===');
+{
+  // The scale bar stood in open map beside the layer button, under its menu.
+  // It now rides in the copyright's strip, so every imprint lift carries it.
+  const im = html.slice(html.indexOf('function installMapSettings('));
+  const imBody = im.slice(0, im.indexOf('\n}\n') + 3);
+  ok('>>> every layer-switcher rebuild re-docks it (addControl puts it back in the anchor)',
+     /ui\.addControl\('scalebar', scalebar\);\s*dockScalebar\(\);/.test(imBody), imBody);
+  ok('  it goes into the imprint, just before the copyright',
+     /copy\.parentNode\.insertBefore\(bar, copy\)/.test(codeOnly)
+     && /querySelector\('#mapwrap \.H_imprint > \.H_copyright'\)/.test(codeOnly));
+  ok('>>> the imprint is a row, and the copyright gives up its inline absolute position',
+     /#mapwrap \.H_imprint\{display:flex;align-items:flex-end;\}/.test(html)
+     && /#mapwrap \.H_imprint > \.H_copyright\{position:static !important;\}/.test(html));
+  ok('  the bar takes back its tap from the pointer-events:none imprint',
+     /#mapwrap \.H_imprint > \.H_scalebar\{[^}]*pointer-events:auto;/.test(html));
+  ok('>>> the menu title rounds with the menu (16px), not HERE\'s 5px',
+     /#mapwrap \.H_ui \.H_rdo_title\{[^}]*border-radius:16px 16px 0 0;/.test(html));
+  const os = codeOnly.slice(codeOnly.indexOf('function openSheet(row){'));
+  ok('>>> the station sheet has no ULSD row (every stop has it)',
+     !/>ULSD</.test(os.slice(0, os.indexOf('\n}\n'))));
+}
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;

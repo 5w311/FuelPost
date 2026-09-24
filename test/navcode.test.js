@@ -234,7 +234,7 @@ console.log('\n=== the code appears in all FOUR places (v1.34.0) ===');
   const ob = of_.slice(0, of_.indexOf('\n}\n') + 3);
   ok('>>> 1. the station sheet renders a Nav code row again',
      /if\(nav\) html \+= `<div class="row"><div class="k">Nav code<\/div><div class="v mono">\$\{nav\}<\/div><\/div>`;/.test(ob),
-     ob.slice(ob.indexOf('ULSD'), ob.indexOf('ULSD') + 400));
+     ob.slice(ob.indexOf('CAT scale'), ob.indexOf('CAT scale') + 400));
   ok('  reading it from the destructured column, like every other row does',
      /,scale,ulsd,nav\] = row;/.test(code));
   ok('  mono, matching the phone number and every other code in the app',
@@ -246,8 +246,9 @@ console.log('\n=== the code appears in all FOUR places (v1.34.0) ===');
   ok('  and exactly one row in DATA would hit that branch',
      DATA.filter(r => !r[20]).length === 1
      && DATA.filter(r => !r[20])[0][0] === 'TN6');
-  ok('  it sits between ULSD and the amenities, where it always did',
-     ob.indexOf('>ULSD<') < ob.indexOf('>Nav code<')
+  // The ULSD row that used to sit above it went in v2.2.12.
+  ok('  it sits between the CAT scale row and the amenities, where it always did',
+     ob.indexOf('>CAT scale<') > -1 && ob.indexOf('>CAT scale<') < ob.indexOf('>Nav code<')
      && ob.indexOf('>Nav code<') < ob.indexOf('class="amenities"'));
   // What was checked before deleting, and is recorded here so the next reader
   // does not have to check again: the navblock is the hand-off to the driver's
