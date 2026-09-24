@@ -448,7 +448,8 @@
      does. */
   #mapwrap.nm-on #locateBtn{bottom:calc(24px + var(--nm-h,0px));}
   #mapwrap.nm-on #locateHint, #mapwrap.nm-on #locateError{bottom:calc(58px + var(--nm-h,0px));}
-  /* HERE's own controls. .H_ui carries the scalebar and the layer switcher;
+  /* HERE's own controls. .H_ui carries the layer switcher and zoom (the
+     scalebar moved into .H_imprint beside the copyright in v2.2.12);
      .H_imprint carries the copyright, and it is a SIBLING of .H_ui rather
      than inside it, so it needs its own rule.
 
@@ -1130,6 +1131,18 @@ body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_
    inline, hence !important. */
 #mapwrap .H_copyright{padding:1px 6px !important;font-size:9px !important;line-height:11px;}
 #mapwrap .H_copyright > *{margin:0 3px !important;}
+/* The scale bar sits in the copyright's own strip, just left of it (v2.2.12):
+   dockScalebar() moves it out of HERE's bottom-right anchor, where it stood
+   in open map beside the layer button and under that button's menu. The
+   strip becomes a flex row — logo, scale bar, copyright — so the bar follows
+   the copyright's width (Satellite adds ", Maxar") and every lift the
+   .H_imprint rules above give it. The copyright's inline position:absolute
+   is what !important overrides; the imprint is pointer-events:none, so the
+   bar asks for its tap (miles/km) back. */
+#mapwrap .H_imprint{display:flex;align-items:flex-end;}
+#mapwrap .H_imprint > .H_logo, #mapwrap .H_imprint > .H_copyright{flex-shrink:0;}
+#mapwrap .H_imprint > .H_copyright{position:static !important;}
+#mapwrap .H_imprint > .H_scalebar{margin:0 8px 1px auto;font-size:10px;pointer-events:auto;}
 /* Blue means location is RUNNING, and nothing else does (v2.2.10): idle —
    not started yet, which is every fresh launch, since the fix is never
    persisted — is plain ink like the other map buttons. Finding a fix is the
@@ -1407,7 +1420,14 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
 #mapwrap .H_ui .H_zoom .H_btn + .H_btn{border-top:.5px solid var(--line);}
 #mapwrap .H_ui .H_overlay{background:var(--surface);color:var(--ink);border-radius:16px;border:.5px solid var(--glass-border);box-shadow:0 12px 32px rgba(0,0,0,.3);}
 #mapwrap .H_ui .H_overlay .H_btn{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;color:var(--ink);}
-#mapwrap .H_ui .H_rdo_title{color:var(--sub);}
+#mapwrap .H_ui .H_rdo_title{color:var(--sub);border-radius:16px 16px 0 0;}
+/* The menu's corners all match (v2.2.12): the grey title runs flush to the
+   top, and HERE's 5px on it squared off the 16px menu's upper corners. The
+   pointer beside the menu is HERE's hardcoded white (title grey when the
+   menu opens downward, left alone); it takes the menu's
+   surface so it doesn't glow against the dark one. */
+#mapwrap .H_ui .H_overlay.H_left:not(.H_top)::after{border-right-color:var(--surface);}
+#mapwrap .H_ui .H_overlay.H_right:not(.H_top)::after{border-left-color:var(--surface);}
 #mapwrap .H_ui .H_rdo_buttons .H_btn.H_active{color:var(--navy-text);}
 
 /* ==== Results as cards (v2.2.0) ======================================
@@ -1892,35 +1912,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.2.11"></script>
+<script src="lib/fuelplan.js?v=2.2.12"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.2.11"></script>
+<script src="lib/triptext.js?v=2.2.12"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.2.11"></script>
+<script src="lib/location.js?v=2.2.12"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.2.11"></script>
+<script src="lib/gauge.js?v=2.2.12"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.2.11"></script>
+<script src="lib/corridors.js?v=2.2.12"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.2.11"></script>
+<script src="lib/nearme.js?v=2.2.12"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.2.11"></script>
+<script src="lib/extract-version.js?v=2.2.12"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.2.11"></script>
+<script src="lib/autosuggest.js?v=2.2.12"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.2.11"></script>
+<script src="lib/baselayer.js?v=2.2.12"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.2.11"></script>
+<script src="lib/memocache.js?v=2.2.12"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.2.11"></script>
+<script src="lib/routerank.js?v=2.2.12"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.2.11"></script>
+<script src="lib/vehicleprofile.js?v=2.2.12"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.2.11"></script>
+<script src="lib/escape.js?v=2.2.12"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.2.11"></script>
+<script src="lib/stopfilter.js?v=2.2.12"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.2.11"></script>
+<script src="lib/navlinks.js?v=2.2.12"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1936,7 +1956,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.2.11')
+fetch('lib/fuelplan-adaptive.js?v=2.2.12')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1953,7 +1973,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.2.11')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.2.11')
+fetch('lib/shorttrip.js?v=2.2.12')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1964,7 +1984,7 @@ fetch('lib/shorttrip.js?v=2.2.11')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.2.11"></script>
+<script src="lib/flexible-polyline.js?v=2.2.12"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2154,7 +2174,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.2.11';
+const APP_VERSION = '2.2.12';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2893,6 +2913,19 @@ function installMapSettings(theme){
   ui.addControl('mapsettings', buildMapSettings(theme));
   const scalebar = ui.removeControl('scalebar');
   if(scalebar) ui.addControl('scalebar', scalebar);
+  dockScalebar();
+}
+// Moves the scale bar out of that anchor into HERE's imprint, just before
+// the copyright, where the .H_imprint > .H_scalebar CSS lays it out beside
+// it (v2.2.12). Every addControl puts it back in the anchor, so this runs at
+// the end of each rebuild above. The SDK builds the imprint once and only
+// rewrites the copyright's text afterwards, so the move sticks; the control
+// keeps its element and goes on updating it wherever it sits. Without an
+// imprint it stays where HERE put it, which is where it always was.
+function dockScalebar(){
+  const bar = document.querySelector('#mapwrap .H_scalebar');
+  const copy = document.querySelector('#mapwrap .H_imprint > .H_copyright');
+  if(bar && copy && bar.nextElementSibling !== copy) copy.parentNode.insertBefore(bar, copy);
 }
 if(MAP_SDK) installMapSettings(initialTheme);
 
@@ -3193,7 +3226,8 @@ function openSheet(row){
   if(showers) html += `<div class="row"><div class="k">Private showers</div><div class="v">${showers}</div></div>`;
   if(bays) html += `<div class="row"><div class="k">Truck service bays</div><div class="v">${bays}</div></div>`;
   if(scale) html += `<div class="row"><div class="k">CAT scale</div><div class="v">Yes</div></div>`;
-  if(ulsd) html += `<div class="row"><div class="k">ULSD</div><div class="v">Yes</div></div>`;
+  // No ULSD row (v2.2.12): every stop in DATA has ulsd set, so "ULSD: Yes" on
+  // every sheet told a driver nothing. The column stays in DATA; nothing reads it.
   // The nav code. Removed from this sheet in v1.33.0 on the reasoning that the
   // list row and the result cards already carried it — and put back in v1.33.1,
   // because the sheet is where a driver goes for everything ELSE about a stop

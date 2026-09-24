@@ -616,6 +616,11 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.2.12
+The map's distance scale sits next to HERE's "Terms of use" line instead of
+out in the map. The Map view / Satellite menu is equally round on all
+corners. Stop cards no longer show a ULSD line, since every stop has it.
+
 ### v2.2.11
 A new app icon: a truck, a fuel pump and the road. To see it on your home
 screen, remove the old FuelPost icon and add it again from Safari.
