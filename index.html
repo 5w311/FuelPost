@@ -27,42 +27,46 @@
 })();
 </script>
 <script>
-// STATUS-BAR TEST CHANNEL (v2.2.20). OFF unless the address carries
-// ?statusbar=translucent, so the FuelPost every driver has is untouched.
+// STATUS-BAR TEST CHANNEL. OFF unless the address carries ?statusbar=…, so
+// the FuelPost every driver has is untouched. A second home-screen icon added
+// from one of these addresses ("FuelPost Test") is the test app; iOS does
+// honour these metas when a script adds them (v2.2.20, on device).
 //
-// v2.2.18 put black-translucent in the page for everyone, so the map ran up
-// under the status bar, and in the home-screen app it misbehaved: one launch
-// drew the tab bar blank, another left a black band across the bottom — the
-// page laid out one status bar SHORTER than the screen. v2.2.19 took it out.
-// This lets it be tried again from a second home-screen icon ("FuelPost
-// Test", added from the ?statusbar=translucent address) without touching the
-// first. Whether iOS honours a meta added by script rather than written in
-// the file is itself the first thing that icon answers.
-//
-// In the home-screen app only (navigator.standalone), --sb-full-h sizes
-// #app and #map to the full screen instead of the layout viewport, the usual
-// workaround for the short page; see the html.sb-translucent CSS.
+//   ?statusbar=translucent  black-translucent: the map runs up under the
+//     status bar. On iOS 26 this leaves a status-bar-tall strip at the BOTTOM
+//     that the page is never drawn into (WebKit bug 301108): measured on
+//     device, it is outside the web view, so no CSS reaches it — v2.2.20's
+//     full-screen sizing only pushed the tab bar into it and is gone (v2.2.21).
+//     Kept to re-check after an iOS update.
+//   ?statusbar=themed  (v2.2.21) the status bar stays opaque — no bottom
+//     strip — but theme-color asks iOS to paint it in the map's own edge
+//     colour, instead of black, following the app's theme.
 (function(){
-  if(!/[?&]statusbar=translucent(?:&|$)/.test(location.search)) return;
+  var m = /[?&]statusbar=(translucent|themed)(?:&|$)/.exec(location.search);
+  if(!m) return;
   var add = function(name, content){
-    var m = document.createElement('meta'); m.name = name; m.content = content;
-    document.head.appendChild(m);
+    var el = document.createElement('meta'); el.name = name; el.content = content;
+    document.head.appendChild(el); return el;
   };
   add('apple-mobile-web-app-capable', 'yes');
-  add('apple-mobile-web-app-status-bar-style', 'black-translucent');
   add('apple-mobile-web-app-title', 'FuelPost Test');
   document.title = 'FuelPost Test';
   var root = document.documentElement;
-  root.classList.add('sb-translucent');
-  if(window.navigator.standalone !== true) return;
-  var fit = function(){
-    var portrait = !window.matchMedia || window.matchMedia('(orientation: portrait)').matches;
-    var screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
-    root.style.setProperty('--sb-full-h', Math.max(window.innerHeight, screenH) + 'px');
+  if(m[1] === 'translucent'){
+    add('apple-mobile-web-app-status-bar-style', 'black-translucent');
+    root.classList.add('sb-translucent');
+    return;
+  }
+  add('apple-mobile-web-app-status-bar-style', 'default');
+  // The map's colour along its top edge, sampled from device screenshots.
+  // Follows data-theme, which the theme script above set and switchTheme()
+  // changes later.
+  var tint = add('theme-color', '');
+  var paint = function(){
+    tint.content = root.getAttribute('data-theme') === 'dark' ? '#1F2D3B' : '#F7F9FA';
   };
-  fit();
-  window.addEventListener('resize', fit);
-  window.addEventListener('orientationchange', fit);
+  paint();
+  if(window.MutationObserver) new MutationObserver(paint).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
 })();
 </script>
 <!-- Everything this page needs beyond its own HTML comes from
@@ -1116,18 +1120,14 @@ button{-webkit-tap-highlight-color:transparent;}
    amount so its last row scrolls clear (the padding-bottom in the #listview
    rule further down). */
 #map{position:fixed;inset:0;}
-/* The status-bar test channel (see the head script). With black-translucent
-   the status text is always white, so a soft fade keeps it readable over the
-   light theme; it is sized off the safe area and never takes a tap. In the
-   home-screen app #app and #map take --sb-full-h, the full screen height,
-   instead of the layout viewport, which launched one status bar short. Off
-   the channel none of this applies: the shade is display:none and the var's
-   fallback is the 100% that inset:0 gave anyway. */
+/* The status-bar test channel's translucent mode (see the head script).
+   black-translucent always draws the status text white, so a soft fade keeps
+   it readable over the light theme; sized off the safe area, never takes a
+   tap, display:none off the channel. */
 #statusShade{display:none;}
 html.sb-translucent:not([data-theme="dark"]) #statusShade{display:block;position:fixed;top:0;left:0;right:0;
   height:calc(env(safe-area-inset-top,0px) * 1.35);z-index:900;pointer-events:none;
   background:linear-gradient(rgba(0,0,0,.38),rgba(0,0,0,.24) 55%,rgba(0,0,0,0));}
-html.sb-translucent #app, html.sb-translucent #map{bottom:auto;height:var(--sb-full-h,100%);}
 #listview, #mapLoading{bottom:calc(-1 * var(--tab-h,0px));}
 /* HERE's attribution must never sit behind the bar: covering it is a terms
    issue. Both containers, because they are siblings; `bottom` because .H_ui
@@ -1993,35 +1993,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.2.20"></script>
+<script src="lib/fuelplan.js?v=2.2.21"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.2.20"></script>
+<script src="lib/triptext.js?v=2.2.21"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.2.20"></script>
+<script src="lib/location.js?v=2.2.21"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.2.20"></script>
+<script src="lib/gauge.js?v=2.2.21"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.2.20"></script>
+<script src="lib/corridors.js?v=2.2.21"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.2.20"></script>
+<script src="lib/nearme.js?v=2.2.21"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.2.20"></script>
+<script src="lib/extract-version.js?v=2.2.21"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.2.20"></script>
+<script src="lib/autosuggest.js?v=2.2.21"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.2.20"></script>
+<script src="lib/baselayer.js?v=2.2.21"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.2.20"></script>
+<script src="lib/memocache.js?v=2.2.21"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.2.20"></script>
+<script src="lib/routerank.js?v=2.2.21"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.2.20"></script>
+<script src="lib/vehicleprofile.js?v=2.2.21"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.2.20"></script>
+<script src="lib/escape.js?v=2.2.21"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.2.20"></script>
+<script src="lib/stopfilter.js?v=2.2.21"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.2.20"></script>
+<script src="lib/navlinks.js?v=2.2.21"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -2037,7 +2037,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.2.20')
+fetch('lib/fuelplan-adaptive.js?v=2.2.21')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2054,7 +2054,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.2.20')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.2.20')
+fetch('lib/shorttrip.js?v=2.2.21')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2065,7 +2065,7 @@ fetch('lib/shorttrip.js?v=2.2.20')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.2.20"></script>
+<script src="lib/flexible-polyline.js?v=2.2.21"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2255,7 +2255,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.2.20';
+const APP_VERSION = '2.2.21';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2368,7 +2368,7 @@ appVerBtn.addEventListener('click', () => {
     // detecting a new version, since a driver could be mid-plan with typed
     // pickup/delivery text an unprompted reload would wipe with no warning.
     // The rest of the query rides along (v2.2.20): the status-bar test icon
-    // launches with ?statusbar=translucent, and dropping it here would take
+    // launches with ?statusbar=…, and dropping it here would take
     // that icon off the test channel on its first update.
     const q = new URLSearchParams(location.search);
     q.set('_cb', Date.now());
