@@ -1571,5 +1571,9 @@ console.log('\n=== the Call button is a size smaller, still a full tap target (v
 ok('>>> 15px text in a 44px button (12 + 20 + 12)',
    /#sheet \.callbtn\{[^}]*font-size:15px;line-height:20px;[^}]*padding:12px;/.test(html));
 
+console.log('\n=== the map buttons match the Call button (v2.2.14) ===');
+ok('>>> Apple Maps / Google Maps: 44px, 15px on a 20px line, 12px corners',
+   /#sheet \.navbtn\{[^}]*border-radius:12px;[^}]*font-size:15px;line-height:20px;[^}]*min-height:44px;padding:12px 8px;/.test(html));
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
