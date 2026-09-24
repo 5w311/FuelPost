@@ -550,7 +550,7 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   is a strip under the trip card. It shares `#scrim` with the station sheet, so
   `closeLegend()` releases the scrim only when the station sheet isn't up, and
   `#tabbar` is raised over both while More is open, since More is how it closes.
-- **Never `overflow:hidden` on the layer button's `.H_ctl`.** Its Map view /
+- **Never `overflow:hidden` on the layer button's `.H_ctl`.** Its Default /
   Satellite menu is a child of that control and opens outside it, so clipping
   the control for its rounded corners clipped the menu away and the button
   looked dead (v2.1.0). Only `.H_zoom` clips.
@@ -615,6 +615,10 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.2.17
+The map-style menu's "Map view" is now called "Default". In More, the Fuel Dept
+number sits on one line: "Out-of-network Fuel: Call Fuel Dept 423-463-3680".
 
 ### v2.2.16
 Tapping a stop in the list opens its card over the list, and closing the card
