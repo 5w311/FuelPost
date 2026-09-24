@@ -1612,18 +1612,14 @@ console.log('\n=== the copyright is never cut off (v2.2.18); status bar opaque u
      && !/<meta name="apple-mobile-web-app-capable"/.test(html));
   const sb = head.slice(head.indexOf('// STATUS-BAR TEST CHANNEL'));
   const sbBody = sb.slice(0, sb.indexOf('</script>'));
-  ok('  the test channel adds anything only for ?statusbar=translucent|themed, returning first otherwise',
-     /var m = \/\[\?&\]statusbar=\(translucent\|themed\)\(\?:&\|\$\)\/\.exec\(location\.search\);\s*if\(!m\) return;/.test(sbBody)
-     && sbBody.indexOf('if(!m) return;') < sbBody.indexOf("add('apple-mobile-web-app-capable'"),
+  ok('  the test channel adds anything only for ?statusbar=translucent, returning first otherwise',
+     /^\s*if\(!\/\[\?&\]statusbar=translucent\(\?:&\|\$\)\/\.test\(location\.search\)\) return;/m.test(sbBody)
+     && sbBody.indexOf('statusbar=translucent') < sbBody.indexOf("add('apple-mobile-web-app-capable'"),
      sbBody.slice(0, 400));
   ok('  and names that icon "FuelPost Test", so the two cannot be mixed up',
      /add\('apple-mobile-web-app-title', 'FuelPost Test'\);/.test(sbBody) && /document\.title = 'FuelPost Test';/.test(sbBody));
-  ok('>>> translucent: no full-screen sizing any more (the iOS 26 strip is outside the web view)',
-     !/sb-full-h/.test(html) && /add\('apple-mobile-web-app-status-bar-style', 'black-translucent'\);/.test(sbBody));
-  ok('>>> themed: opaque status bar, theme-color follows data-theme',
-     /add\('apple-mobile-web-app-status-bar-style', 'default'\);/.test(sbBody)
-     && /var tint = add\('theme-color', ''\);/.test(sbBody)
-     && /attributeFilter: \['data-theme'\]/.test(sbBody));
+  ok('  no full-screen sizing (the iOS 26 strip is outside the web view) and no themed mode (iOS kept it black)',
+     !/sb-full-h/.test(html) && !/themed|theme-color/.test(sbBody.replace(/\/\/[^\n]*/g, '')));
   ok('>>> off the channel the shade is hidden and #map keeps inset:0',
      /#statusShade\{display:none;\}/.test(html) && /#map\{position:fixed;inset:0;\}/.test(html));
   ok('>>> the update reload keeps the query, so the test icon stays on the channel',
@@ -1639,6 +1635,10 @@ ok('>>> once wrapped, the scale bar moves left by the logo (clear of the layer/l
    && /im\.classList\.toggle\('sb-stacked', copy\.getBoundingClientRect\(\)\.top >= bar\.getBoundingClientRect\(\)\.bottom\);/.test(codeOnly));
 ok('  re-checked whenever the copyright or the strip changes size',
    /imprintObserver\.observe\(copy\.parentNode\);\s*imprintObserver\.observe\(copy\);/.test(codeOnly));
+
+console.log('\n=== the map\'s top corners round under the black status bar (v2.2.22) ===');
+ok('>>> home-screen app only, over black, map and loading cover alike',
+   /@media \(display-mode: standalone\)\{\s*html:not\(\.sb-translucent\) #mapwrap\{background:#000;\}\s*html:not\(\.sb-translucent\) #map, html:not\(\.sb-translucent\) #mapLoading\{border-radius:22px 22px 0 0;overflow:hidden;\}\s*\}/.test(html));
 
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;

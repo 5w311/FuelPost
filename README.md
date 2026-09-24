@@ -589,18 +589,21 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   browser harness here reproduces a home-screen launch, so it is tried again
   only through the opt-in test channel below.
 - **The status-bar test channel is opt-in by address, and must stay that way.**
-  A head script adds status-bar metas (with `apple-mobile-web-app-capable` and
-  the title "FuelPost Test") only for `?statusbar=translucent` or
-  `?statusbar=themed`; a second icon added from that address is the test app,
-  and the plain address, and every driver's icon, is untouched. iOS does honour
-  the script-added metas (v2.2.20, on device). *translucent* runs the map under
-  the status bar but, on iOS 26, leaves a status-bar-tall strip at the bottom
-  outside the web view (WebKit bug 301108) that no CSS reaches; v2.2.20's
-  full-screen sizing only hid the tab bar in it and was removed. *themed* keeps
-  the bar opaque and asks for the map's edge colour through `theme-color`. The
-  update button keeps the query when it reloads, or the test icon would drop
-  off the channel on its first update. A test pins the static page free of
-  the metas.
+  A head script adds the status-bar metas (with `apple-mobile-web-app-capable`
+  and the title "FuelPost Test") only for `?statusbar=translucent`; a second
+  icon added from that address is the test app, and the plain address, and
+  every driver's icon, is untouched. iOS does honour the script-added metas
+  (v2.2.20, on device). It runs the map under the status bar but, on iOS 26,
+  leaves a status-bar-tall strip at the bottom outside the web view (WebKit
+  bug 301108) that no CSS reaches; v2.2.20's full-screen sizing only hid the
+  tab bar in it. v2.2.21's `?statusbar=themed` (an opaque bar coloured by
+  `theme-color`) stayed black on device and was removed. The update button
+  keeps the query when it reloads, or the test icon would drop off the
+  channel on its first update. A test pins the static page free of the metas.
+- **The map's rounded top corners are for the home-screen app only**
+  (`display-mode: standalone`), over black to match iOS's opaque status bar.
+  In Safari the page sits under Safari's toolbar, where black corners would
+  look like a rendering fault.
 
 ### Updating this README
 
@@ -642,6 +645,11 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.2.22
+In the app on your home screen, the map's top corners are rounded under the
+black bar behind the time and battery, so the bar looks like part of the app
+rather than a gap.
 
 ### v2.2.21
 No change to the app you use. The test version gets a second try: the bar
