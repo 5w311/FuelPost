@@ -616,6 +616,10 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.2.15
+When the app opens, the locate button waits for the map like the other map
+buttons, instead of showing on its own over "Loading map…".
+
 ### v2.2.14
 The Apple Maps and Google Maps buttons on a stop's card are a little smaller,
 to match the Call button.
