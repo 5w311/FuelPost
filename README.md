@@ -579,10 +579,11 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   `flex-shrink:0` in a row that could not wrap, and zoomed out, where HERE adds
   boundary credits, the copyright ran off the right edge — a terms problem, not
   a cosmetic one.
-- **Keep `apple-mobile-web-app-status-bar-style` at `black-translucent`.**
-  Anything else gives a home-screen launch an opaque status bar, and the map
-  stops under a black strip. The status text is then always white, which is
-  what `#statusShade` is for in light mode.
+- **Don't add `apple-mobile-web-app-status-bar-style: black-translucent`**
+  without testing it in the home-screen app on a phone. v2.2.18 added it (with
+  `apple-mobile-web-app-capable`) so the map would run up under the status bar,
+  and in the home-screen app the tab bar came up as blank blue shapes. v2.2.19
+  took it out. No browser harness here reproduces a home-screen launch.
 
 ### Updating this README
 
@@ -624,6 +625,12 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.2.19
+Undoes the status-bar change from v2.2.18: it broke the tab bar at the bottom
+of the home-screen app. The black strip behind the time and battery is back
+for now. Remove FuelPost from your home screen and add it again from Safari.
+The fix for HERE's copyright line stays.
 
 ### v2.2.18
 The map runs all the way up under the time and battery, with no black strip.
