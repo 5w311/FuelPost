@@ -1636,9 +1636,16 @@ ok('>>> once wrapped, the scale bar moves left by the logo (clear of the layer/l
 ok('  re-checked whenever the copyright or the strip changes size',
    /imprintObserver\.observe\(copy\.parentNode\);\s*imprintObserver\.observe\(copy\);/.test(codeOnly));
 
-console.log('\n=== the map\'s top corners round under the black status bar (v2.2.22) ===');
-ok('>>> home-screen app only, over black, map and loading cover alike',
-   /@media \(display-mode: standalone\)\{\s*html:not\(\.sb-translucent\) #mapwrap\{background:#000;\}\s*html:not\(\.sb-translucent\) #map, html:not\(\.sb-translucent\) #mapLoading\{border-radius:22px 22px 0 0;overflow:hidden;\}\s*\}/.test(html));
+console.log('\n=== the map\'s top corners round under the black status bar (v2.2.22, v2.2.23) ===');
+ok('>>> drawn as black corner pieces over the map, not by clipping the WebGL canvas',
+   /<div id="map"><\/div>\s*<div id="mapCorners" aria-hidden="true"><\/div>/.test(html)
+   && /#mapCorners::before\{left:0;background:radial-gradient\(circle at 100% 100%, transparent 21\.5px, #000 22px\);\}/.test(html)
+   && /#mapCorners::after\{right:0;background:radial-gradient\(circle at 0 100%, transparent 21\.5px, #000 22px\);\}/.test(html)
+   && !/#map, html:not\(\.sb-translucent\) #mapLoading\{border-radius/.test(html));
+ok('  home-screen app only, keyed on navigator.standalone (the display-mode query alone left them square)',
+   /html\.home-app:not\(\.sb-translucent\) #mapCorners\{display:block;[^}]*z-index:320;pointer-events:none;\}/.test(html)
+   && /#mapCorners\{display:none;\}/.test(html)
+   && /window\.navigator\.standalone === true[\s\S]{0,300}classList\.add\('home-app'\)/.test(html));
 
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
