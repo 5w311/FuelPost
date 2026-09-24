@@ -1556,8 +1556,8 @@ console.log('\n=== the scale bar sits beside the copyright; the layer menu round
      /copy\.parentNode\.insertBefore\(bar, copy\)/.test(codeOnly)
      && /querySelector\('#mapwrap \.H_imprint > \.H_copyright'\)/.test(codeOnly));
   ok('>>> the imprint is a row, and the copyright gives up its inline absolute position',
-     /#mapwrap \.H_imprint\{display:flex;align-items:flex-end;\}/.test(html)
-     && /#mapwrap \.H_imprint > \.H_copyright\{position:static !important;\}/.test(html));
+     /#mapwrap \.H_imprint\{display:flex;[^}]*align-items:flex-end;\}/.test(html)
+     && /#mapwrap \.H_imprint > \.H_copyright\{position:static !important;/.test(html));
   ok('  the bar takes back its tap from the pointer-events:none imprint',
      /#mapwrap \.H_imprint > \.H_scalebar\{[^}]*pointer-events:auto;/.test(html));
   ok('>>> the menu title rounds with the menu (16px), not HERE\'s 5px',
@@ -1598,6 +1598,25 @@ ok('>>> More\'s note: the number shares the Fuel Dept line, with the approved wo
    /Fuel only at network stops\.<br>Out-of-network Fuel: Call Fuel Dept <a href="tel:\$\{DRIVER_SUPPORT/.test(codeOnly));
 ok('  and the number never splits at its hyphens',
    /#legendSupportNote a\{[^}]*white-space:nowrap;\}/.test(html));
+
+console.log('\n=== the map runs under the status bar; the copyright is never cut off (v2.2.18) ===');
+ok('>>> a home-screen launch draws under a translucent status bar',
+   /<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">/.test(html)
+   && /<meta name="apple-mobile-web-app-capable" content="yes">/.test(html));
+ok('  a fade keeps the (always white) status text readable in light mode only, sized off the safe area',
+   /<div id="statusShade" aria-hidden="true"><\/div>/.test(html)
+   && /#statusShade\{[^}]*height:calc\(env\(safe-area-inset-top,0px\) \* 1\.35\);[^}]*pointer-events:none;/.test(html)
+   && /html\[data-theme="dark"\] #statusShade\{display:none;\}/.test(html));
+ok('>>> the imprint WRAPS, so a long copyright takes its own line instead of running off the edge',
+   /#mapwrap \.H_imprint\{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:flex-end;\}/.test(html)
+   && /#mapwrap \.H_imprint > \.H_copyright\{position:static !important;max-width:100%;box-sizing:border-box;\}/.test(html));
+ok('  nothing lets the copyright be pushed out: it is not flex-shrink:0 any more',
+   !/\.H_copyright\{flex-shrink:0;\}/.test(html) && !/> \.H_copyright\{flex-shrink:0/.test(html));
+ok('>>> once wrapped, the scale bar moves left by the logo (clear of the layer/locate pill)',
+   /#mapwrap \.H_imprint\.sb-stacked > \.H_scalebar\{margin:0 auto 1px 8px;\}/.test(html)
+   && /im\.classList\.toggle\('sb-stacked', copy\.getBoundingClientRect\(\)\.top >= bar\.getBoundingClientRect\(\)\.bottom\);/.test(codeOnly));
+ok('  re-checked whenever the copyright or the strip changes size',
+   /imprintObserver\.observe\(copy\.parentNode\);\s*imprintObserver\.observe\(copy\);/.test(codeOnly));
 
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
