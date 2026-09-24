@@ -600,10 +600,13 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   `theme-color`) stayed black on device and was removed. The update button
   keeps the query when it reloads, or the test icon would drop off the
   channel on its first update. A test pins the static page free of the metas.
-- **The map's rounded top corners are for the home-screen app only**
-  (`display-mode: standalone`), over black to match iOS's opaque status bar.
-  In Safari the page sits under Safari's toolbar, where black corners would
-  look like a rendering fault.
+- **The map's rounded top corners are drawn, not clipped, and only in the
+  home-screen app.** `#mapCorners` lays two black inverse-corner pieces over the
+  map, shown under `html.home-app`, which a head script sets from
+  `navigator.standalone`. v2.2.22 rounded `#map` itself (border-radius and
+  overflow:hidden) under `@media (display-mode: standalone)`, and on device the
+  corners stayed square. In Safari the page sits under Safari's toolbar, where
+  black corners would look like a rendering fault.
 
 ### Updating this README
 
@@ -645,6 +648,10 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.2.23
+The rounded top corners from v2.2.22 now actually show in the app on your
+home screen.
 
 ### v2.2.22
 In the app on your home screen, the map's top corners are rounded under the
