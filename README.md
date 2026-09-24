@@ -575,15 +575,28 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
 - **Don't chase satellite resolution** — already `size=512`, capped at z20, no
   native detail past z17; USGS 404s above z16 and measures softer.
 - **Don't let anything in HERE's imprint refuse to shrink or wrap.** It is a
-  wrapping flex row (logo, scale bar, copyright). v2.2.12 made the copyright
-  `flex-shrink:0` in a row that could not wrap, and zoomed out, where HERE adds
-  boundary credits, the copyright ran off the right edge — a terms problem, not
-  a cosmetic one.
+  wrapping flex row (logo, scale bar, copyright), so a copyright too long for
+  the space beside the scale bar takes a line of its own instead of running
+  off the right edge, which would be a terms problem, not a cosmetic one.
+  v2.2.18 made it wrap in answer to a misread screenshot (the "BO" after
+  "© 2026 HERE" was the map's BOLIVIA label seen through the translucent box),
+  but the no-wrap row it replaced really could have cut the copyright off.
 - **Don't add `apple-mobile-web-app-status-bar-style: black-translucent`**
   without testing it in the home-screen app on a phone. v2.2.18 added it (with
   `apple-mobile-web-app-capable`) so the map would run up under the status bar,
-  and in the home-screen app the tab bar came up as blank blue shapes. v2.2.19
-  took it out. No browser harness here reproduces a home-screen launch.
+  and in the home-screen app one launch drew the tab bar as blank blue shapes
+  and another left a black band across the bottom. v2.2.19 took it out. No
+  browser harness here reproduces a home-screen launch, so it is tried again
+  only through the opt-in test channel below.
+- **The status-bar test channel is opt-in by address, and must stay that way.**
+  From v2.2.20, a head script adds the status-bar meta (with
+  `apple-mobile-web-app-capable` and the title "FuelPost Test") only when the
+  address carries `?statusbar=translucent`; in the home-screen app it also sizes
+  `#app` and `#map` to the full screen (`--sb-full-h`). A second icon added from
+  that address is the test app; the plain address, and every driver's icon, is
+  untouched. The update button keeps the query when it reloads, or the test
+  icon would drop off the channel on its first update. A test pins the static
+  page free of the meta.
 
 ### Updating this README
 
@@ -626,17 +639,22 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.2.20
+No change to the app you use. Behind the scenes there is a separate test
+version for drawing the map under the time and battery, opened from its own
+address, so it can be tried without touching your FuelPost icon.
+
 ### v2.2.19
 Undoes the status-bar change from v2.2.18: it broke the tab bar at the bottom
 of the home-screen app. The black strip behind the time and battery is back
 for now. Remove FuelPost from your home screen and add it again from Safari.
-The fix for HERE's copyright line stays.
+The change to HERE's copyright line stays.
 
 ### v2.2.18
 The map runs all the way up under the time and battery, with no black strip.
 To get this, remove FuelPost from your home screen and add it again from
-Safari. HERE's copyright line no longer runs off the edge when zoomed out:
-it gets a line of its own, and the distance scale moves beside the logo.
+Safari. If HERE's copyright line is ever too long to fit beside the distance
+scale, it gets a line of its own and the scale moves beside the logo.
 
 ### v2.2.17
 The map-style menu's "Map view" is now called "Default". In More, the Fuel Dept
