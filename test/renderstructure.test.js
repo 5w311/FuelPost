@@ -1591,5 +1591,13 @@ console.log('\n=== a list row opens its sheet OVER the list (v2.2.16) ===');
      /#sheet\{[^}]*z-index:600;/.test(html) && /#scrim\{[^}]*z-index:550;/.test(html) && /#listview\{[^}]*z-index:350;/.test(html));
 }
 
+console.log('\n=== "Default" map style; the Fuel Dept line is one line (v2.2.17) ===');
+ok('>>> the road layer\'s menu entry is "Default", not "Map view"',
+   /\{ label: 'Default',\s+layer: theme === 'dark' \? ROAD_LAYERS\.dark/.test(codeOnly) && !/label: 'Map view'/.test(codeOnly));
+ok('>>> More\'s note: the number shares the Fuel Dept line, with the approved wording',
+   /Fuel only at network stops\.<br>Out-of-network Fuel: Call Fuel Dept <a href="tel:\$\{DRIVER_SUPPORT/.test(codeOnly));
+ok('  and the number never splits at its hyphens',
+   /#legendSupportNote a\{[^}]*white-space:nowrap;\}/.test(html));
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;

@@ -490,7 +490,9 @@
      icon+label row, and the inherited display:flex/gap was inserting a
      phantom blank line between "Fuel Dept" and the phone number. */
   #legendCard #legendSupportNote{display:block;}
-  #legendSupportNote a{color:var(--navy-text);font-weight:700;}
+  /* The number shares the Fuel Dept line (v2.2.17) and never splits at its
+     hyphens: on a phone too narrow for the line, it moves down whole. */
+  #legendSupportNote a{color:var(--navy-text);font-weight:700;white-space:nowrap;}
   /* Theme toggle row — overrides the flat icon-row rule above (higher
      specificity: id + class beats id + type), stacking label over the
      segmented control instead of laying them out side by side. */
@@ -1420,7 +1422,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
    scalebar is an .H_ctl too and is left alone.
 
    overflow:hidden is on the ZOOM group only. The layer button's .H_ctl also
-   holds the Map view / Satellite menu (.H_overlay), which opens out to the
+   holds the Default / Satellite menu (.H_overlay), which opens out to the
    left of the button — clipping that .H_ctl to its 40px square clipped the
    whole menu away, so the button looked dead (v2.1.0 shipped exactly that).
    The single button rounds its own corners instead; it cannot use
@@ -1925,35 +1927,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.2.16"></script>
+<script src="lib/fuelplan.js?v=2.2.17"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.2.16"></script>
+<script src="lib/triptext.js?v=2.2.17"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.2.16"></script>
+<script src="lib/location.js?v=2.2.17"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.2.16"></script>
+<script src="lib/gauge.js?v=2.2.17"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.2.16"></script>
+<script src="lib/corridors.js?v=2.2.17"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.2.16"></script>
+<script src="lib/nearme.js?v=2.2.17"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.2.16"></script>
+<script src="lib/extract-version.js?v=2.2.17"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.2.16"></script>
+<script src="lib/autosuggest.js?v=2.2.17"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.2.16"></script>
+<script src="lib/baselayer.js?v=2.2.17"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.2.16"></script>
+<script src="lib/memocache.js?v=2.2.17"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.2.16"></script>
+<script src="lib/routerank.js?v=2.2.17"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.2.16"></script>
+<script src="lib/vehicleprofile.js?v=2.2.17"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.2.16"></script>
+<script src="lib/escape.js?v=2.2.17"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.2.16"></script>
+<script src="lib/stopfilter.js?v=2.2.17"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.2.16"></script>
+<script src="lib/navlinks.js?v=2.2.17"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -1969,7 +1971,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.2.16')
+fetch('lib/fuelplan-adaptive.js?v=2.2.17')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1986,7 +1988,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.2.16')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.2.16')
+fetch('lib/shorttrip.js?v=2.2.17')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -1997,7 +1999,7 @@ fetch('lib/shorttrip.js?v=2.2.16')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.2.16"></script>
+<script src="lib/flexible-polyline.js?v=2.2.17"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2187,7 +2189,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.2.16';
+const APP_VERSION = '2.2.17';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2898,9 +2900,12 @@ if(MAP_SDK) ui.setUnitSystem(H.ui.UnitSystem.IMPERIAL);
 // would trade a real race fix for a cosmetic one.
 function buildMapSettings(theme){
   if(!mapLive()) return null;
+  // "Default" since v2.2.17 — HERE's own name for it, and this app's until
+  // then, was "Map view". The comments above keep the old name where they
+  // describe what HERE's control did.
   return new H.ui.MapSettingsControl({
     baseLayers: [
-      { label: 'Map view',  layer: theme === 'dark' ? ROAD_LAYERS.dark   : ROAD_LAYERS.light },
+      { label: 'Default',   layer: theme === 'dark' ? ROAD_LAYERS.dark   : ROAD_LAYERS.light },
       { label: 'Satellite', layer: theme === 'dark' ? HYBRID_LAYERS.dark : HYBRID_LAYERS.light }
     ],
     alignment: H.ui.LayoutAlignment.BOTTOM_RIGHT
@@ -3049,7 +3054,7 @@ function switchTheme(theme){
 // above the base imagery and below everything this app draws, which is where
 // an overlay belongs.
 //
-// Returning to Map view leaves nothing behind: hybridOverlayFor returns null
+// Returning to Default leaves nothing behind: hybridOverlayFor returns null
 // for the road layers, so the same three lines that mount the overlay
 // unmount it.
 let hybridOverlay = null;
@@ -4717,7 +4722,7 @@ const DRIVER_SUPPORT = '423-463-3680';
 // a tel: link like every other Driver Support mention instead of the one
 // remaining plain-text phone number in the app.
 document.getElementById('legendSupportNote').innerHTML =
-  `Fuel only at network stops. <br>Out-of-network fuel: call Fuel Dept<br><a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>`;
+  `Fuel only at network stops.<br>Out-of-network Fuel: Call Fuel Dept <a href="tel:${DRIVER_SUPPORT.replace(/[^0-9]/g,'')}">${DRIVER_SUPPORT}</a>`;
 
 let routeGroup = null;
 if(MAP_SDK){
