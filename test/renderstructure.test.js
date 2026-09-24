@@ -1575,5 +1575,11 @@ console.log('\n=== the map buttons match the Call button (v2.2.14) ===');
 ok('>>> Apple Maps / Google Maps: 44px, 15px on a 20px line, 12px corners',
    /#sheet \.navbtn\{[^}]*border-radius:12px;[^}]*font-size:15px;line-height:20px;[^}]*min-height:44px;padding:12px 8px;/.test(html));
 
+console.log('\n=== locate waits for the map with HERE\'s buttons (v2.2.15) ===');
+ok('>>> hidden while the loading SPINNER is up (not the cover: a failed map keeps the cover)',
+   /#mapwrap:has\(#mapLoading \.mapLoadingSpin\) #locateBtn\{visibility:hidden;\}/.test(html));
+ok('  and both ways the spinner goes still end it: the cover removed, or the spinner removed',
+   /if\(el\) el\.remove\(\);/.test(html) && /if\(spin\) spin\.remove\(\);/.test(html) && /if \(s\) s\.remove\(\);/.test(html));
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
