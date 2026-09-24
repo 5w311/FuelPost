@@ -1581,5 +1581,15 @@ ok('>>> hidden while the loading SPINNER is up (not the cover: a failed map keep
 ok('  and both ways the spinner goes still end it: the cover removed, or the spinner removed',
    /if\(el\) el\.remove\(\);/.test(html) && /if\(spin\) spin\.remove\(\);/.test(html) && /if \(s\) s\.remove\(\);/.test(html));
 
+console.log('\n=== a list row opens its sheet OVER the list (v2.2.16) ===');
+{
+  const rl = codeOnly.slice(codeOnly.indexOf("item.addEventListener('click', ()=>{"));
+  const click = rl.slice(0, rl.indexOf('\n  });') + 6);
+  ok('>>> the row\'s tap no longer closes the list, so closing the sheet lands back on it',
+     click.length > 40 && !/listview'\)\.classList\.remove\('show'\)/.test(click) && /openSheet\(row\);/.test(click), click);
+  ok('  the sheet and its scrim sit over the list (600 / 550 over 350)',
+     /#sheet\{[^}]*z-index:600;/.test(html) && /#scrim\{[^}]*z-index:550;/.test(html) && /#listview\{[^}]*z-index:350;/.test(html));
+}
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
