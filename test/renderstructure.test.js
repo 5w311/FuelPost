@@ -1599,32 +1599,17 @@ ok('>>> More\'s note: the number shares the Fuel Dept line, with the approved wo
 ok('  and the number never splits at its hyphens',
    /#legendSupportNote a\{[^}]*white-space:nowrap;\}/.test(html));
 
-console.log('\n=== the copyright is never cut off (v2.2.18); status bar opaque unless opted in (v2.2.19/20) ===');
+console.log('\n=== the copyright is never cut off (v2.2.18); status bar stays opaque (v2.2.19, v2.2.24) ===');
 // v2.2.18 asked iOS for a translucent status bar so the map ran up under
 // it. In the home-screen app it blanked the tab bar on one launch and left a
-// black band at the bottom on another (driver's screenshots); v2.2.19 rolled
-// it back. v2.2.20 brings it back ONLY behind ?statusbar=translucent, for a
-// second test icon; see README, Things not to undo.
-{
-  const head = html.slice(0, html.indexOf('</head>'));
-  ok('>>> no status-bar meta written in the page: every driver\'s app stays opaque',
-     !/<meta name="apple-mobile-web-app-status-bar-style"/.test(html)
-     && !/<meta name="apple-mobile-web-app-capable"/.test(html));
-  const sb = head.slice(head.indexOf('// STATUS-BAR TEST CHANNEL'));
-  const sbBody = sb.slice(0, sb.indexOf('</script>'));
-  ok('  the test channel adds anything only for ?statusbar=translucent, returning first otherwise',
-     /^\s*if\(!\/\[\?&\]statusbar=translucent\(\?:&\|\$\)\/\.test\(location\.search\)\) return;/m.test(sbBody)
-     && sbBody.indexOf('statusbar=translucent') < sbBody.indexOf("add('apple-mobile-web-app-capable'"),
-     sbBody.slice(0, 400));
-  ok('  and names that icon "FuelPost Test", so the two cannot be mixed up',
-     /add\('apple-mobile-web-app-title', 'FuelPost Test'\);/.test(sbBody) && /document\.title = 'FuelPost Test';/.test(sbBody));
-  ok('  no full-screen sizing (the iOS 26 strip is outside the web view) and no themed mode (iOS kept it black)',
-     !/sb-full-h/.test(html) && !/themed|theme-color/.test(sbBody.replace(/\/\/[^\n]*/g, '')));
-  ok('>>> off the channel the shade is hidden and #map keeps inset:0',
-     /#statusShade\{display:none;\}/.test(html) && /#map\{position:fixed;inset:0;\}/.test(html));
-  ok('>>> the update reload keeps the query, so the test icon stays on the channel',
-     /const q = new URLSearchParams\(location\.search\);\s*q\.set\('_cb', Date\.now\(\)\);\s*location\.href = location\.pathname \+ '\?' \+ q;/.test(codeOnly));
-}
+// black band at the bottom on another (iOS 26, WebKit bug 301108); v2.2.19
+// rolled it back, v2.2.20-23 tried it behind a test address, and v2.2.24
+// removed that too. See README, Things not to undo.
+ok('>>> no status-bar meta, and no test channel that could add one',
+   !/apple-mobile-web-app-status-bar-style/.test(html) && !/apple-mobile-web-app-capable/.test(html)
+   && !/statusbar=/.test(html) && !/sb-translucent|statusShade|STATUS-BAR TEST CHANNEL/.test(html));
+ok('  the update reload is a plain cache-busted reload again',
+   /location\.href = location\.pathname \+ '\?_cb=' \+ Date\.now\(\);/.test(codeOnly));
 ok('>>> the imprint WRAPS, so a long copyright takes its own line instead of running off the edge',
    /#mapwrap \.H_imprint\{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:flex-end;\}/.test(html)
    && /#mapwrap \.H_imprint > \.H_copyright\{position:static !important;max-width:100%;box-sizing:border-box;\}/.test(html));
@@ -1641,9 +1626,9 @@ ok('>>> drawn as black corner pieces over the map, not by clipping the WebGL can
    /<div id="map"><\/div>\s*<div id="mapCorners" aria-hidden="true"><\/div>/.test(html)
    && /#mapCorners::before\{left:0;background:radial-gradient\(circle at 100% 100%, transparent 21\.5px, #000 22px\);\}/.test(html)
    && /#mapCorners::after\{right:0;background:radial-gradient\(circle at 0 100%, transparent 21\.5px, #000 22px\);\}/.test(html)
-   && !/#map, html:not\(\.sb-translucent\) #mapLoading\{border-radius/.test(html));
+   && !/#mapLoading\{border-radius/.test(html));
 ok('  home-screen app only, keyed on navigator.standalone (the display-mode query alone left them square)',
-   /html\.home-app:not\(\.sb-translucent\) #mapCorners\{display:block;[^}]*z-index:320;pointer-events:none;\}/.test(html)
+   /html\.home-app #mapCorners\{display:block;[^}]*z-index:320;pointer-events:none;\}/.test(html)
    && /#mapCorners\{display:none;\}/.test(html)
    && /window\.navigator\.standalone === true[\s\S]{0,300}classList\.add\('home-app'\)/.test(html));
 

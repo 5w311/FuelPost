@@ -582,24 +582,16 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   "© 2026 HERE" was the map's BOLIVIA label seen through the translucent box),
   but the no-wrap row it replaced really could have cut the copyright off.
 - **Don't add `apple-mobile-web-app-status-bar-style: black-translucent`**
-  without testing it in the home-screen app on a phone. v2.2.18 added it (with
-  `apple-mobile-web-app-capable`) so the map would run up under the status bar,
-  and in the home-screen app one launch drew the tab bar as blank blue shapes
-  and another left a black band across the bottom. v2.2.19 took it out. No
-  browser harness here reproduces a home-screen launch, so it is tried again
-  only through the opt-in test channel below.
-- **The status-bar test channel is opt-in by address, and must stay that way.**
-  A head script adds the status-bar metas (with `apple-mobile-web-app-capable`
-  and the title "FuelPost Test") only for `?statusbar=translucent`; a second
-  icon added from that address is the test app, and the plain address, and
-  every driver's icon, is untouched. iOS does honour the script-added metas
-  (v2.2.20, on device). It runs the map under the status bar but, on iOS 26,
-  leaves a status-bar-tall strip at the bottom outside the web view (WebKit
-  bug 301108) that no CSS reaches; v2.2.20's full-screen sizing only hid the
-  tab bar in it. v2.2.21's `?statusbar=themed` (an opaque bar coloured by
-  `theme-color`) stayed black on device and was removed. The update button
-  keeps the query when it reloads, or the test icon would drop off the
-  channel on its first update. A test pins the static page free of the metas.
+  expecting the map to run under the status bar. v2.2.18 added it, and in the
+  home-screen app one launch drew the tab bar as blank blue shapes and another
+  left a black band across the bottom. It is an iOS 26 bug (WebKit 301108): the
+  page is drawn from the top of the screen but a status-bar-tall strip at the
+  bottom is outside the web view, and no CSS reaches it — sizing the page to
+  the full screen (v2.2.20) only hid the tab bar in the strip. `theme-color`
+  on the opaque bar (v2.2.21) stayed black on device. All of it was tried
+  behind a `?statusbar=` test address and removed in v2.2.24; the answer was
+  the rounded corners below. No browser harness here reproduces a
+  home-screen launch.
 - **The map's rounded top corners are drawn, not clipped, and only in the
   home-screen app.** `#mapCorners` lays two black inverse-corner pieces over the
   map, shown under `html.home-app`, which a head script sets from
@@ -648,6 +640,10 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.2.24
+Removes the test addresses used while working on the bar behind the time and
+battery. If you still have a "FuelPost Test" icon, delete it.
 
 ### v2.2.23
 The rounded top corners from v2.2.22 now actually show in the app on your
