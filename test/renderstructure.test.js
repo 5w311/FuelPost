@@ -1612,18 +1612,20 @@ console.log('\n=== the copyright is never cut off (v2.2.18); status bar opaque u
      && !/<meta name="apple-mobile-web-app-capable"/.test(html));
   const sb = head.slice(head.indexOf('// STATUS-BAR TEST CHANNEL'));
   const sbBody = sb.slice(0, sb.indexOf('</script>'));
-  ok('  the test channel adds it only for ?statusbar=translucent, returning first otherwise',
-     /^\s*if\(!\/\[\?&\]statusbar=translucent\(\?:&\|\$\)\/\.test\(location\.search\)\) return;/m.test(sbBody)
-     && sbBody.indexOf("statusbar=translucent") < sbBody.indexOf("add('apple-mobile-web-app-status-bar-style', 'black-translucent')"),
+  ok('  the test channel adds anything only for ?statusbar=translucent|themed, returning first otherwise',
+     /var m = \/\[\?&\]statusbar=\(translucent\|themed\)\(\?:&\|\$\)\/\.exec\(location\.search\);\s*if\(!m\) return;/.test(sbBody)
+     && sbBody.indexOf('if(!m) return;') < sbBody.indexOf("add('apple-mobile-web-app-capable'"),
      sbBody.slice(0, 400));
   ok('  and names that icon "FuelPost Test", so the two cannot be mixed up',
      /add\('apple-mobile-web-app-title', 'FuelPost Test'\);/.test(sbBody) && /document\.title = 'FuelPost Test';/.test(sbBody));
-  ok('  full-screen sizing only in the home-screen app',
-     /if\(window\.navigator\.standalone !== true\) return;[\s\S]*--sb-full-h/.test(sbBody));
-  ok('>>> off the channel the shade is hidden and #app/#map keep inset:0',
-     /#statusShade\{display:none;\}/.test(html)
-     && /html\.sb-translucent #app, html\.sb-translucent #map\{bottom:auto;height:var\(--sb-full-h,100%\);\}/.test(html)
-     && /#map\{position:fixed;inset:0;\}/.test(html));
+  ok('>>> translucent: no full-screen sizing any more (the iOS 26 strip is outside the web view)',
+     !/sb-full-h/.test(html) && /add\('apple-mobile-web-app-status-bar-style', 'black-translucent'\);/.test(sbBody));
+  ok('>>> themed: opaque status bar, theme-color follows data-theme',
+     /add\('apple-mobile-web-app-status-bar-style', 'default'\);/.test(sbBody)
+     && /var tint = add\('theme-color', ''\);/.test(sbBody)
+     && /attributeFilter: \['data-theme'\]/.test(sbBody));
+  ok('>>> off the channel the shade is hidden and #map keeps inset:0',
+     /#statusShade\{display:none;\}/.test(html) && /#map\{position:fixed;inset:0;\}/.test(html));
   ok('>>> the update reload keeps the query, so the test icon stays on the channel',
      /const q = new URLSearchParams\(location\.search\);\s*q\.set\('_cb', Date\.now\(\)\);\s*location\.href = location\.pathname \+ '\?' \+ q;/.test(codeOnly));
 }
