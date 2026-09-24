@@ -1599,12 +1599,34 @@ ok('>>> More\'s note: the number shares the Fuel Dept line, with the approved wo
 ok('  and the number never splits at its hyphens',
    /#legendSupportNote a\{[^}]*white-space:nowrap;\}/.test(html));
 
-console.log('\n=== the copyright is never cut off (v2.2.18); no translucent status bar (v2.2.19) ===');
+console.log('\n=== the copyright is never cut off (v2.2.18); status bar opaque unless opted in (v2.2.19/20) ===');
 // v2.2.18 asked iOS for a translucent status bar so the map ran up under
-// it. In the home-screen app that left the tab bar blank (driver's
-// screenshot) and was rolled back in v2.2.19; see README, Things not to undo.
-ok('>>> no translucent status bar: it blanked the tab bar in the home-screen app',
-   !/apple-mobile-web-app-status-bar-style/.test(html) && !/statusShade/.test(html));
+// it. In the home-screen app it blanked the tab bar on one launch and left a
+// black band at the bottom on another (driver's screenshots); v2.2.19 rolled
+// it back. v2.2.20 brings it back ONLY behind ?statusbar=translucent, for a
+// second test icon; see README, Things not to undo.
+{
+  const head = html.slice(0, html.indexOf('</head>'));
+  ok('>>> no status-bar meta written in the page: every driver\'s app stays opaque',
+     !/<meta name="apple-mobile-web-app-status-bar-style"/.test(html)
+     && !/<meta name="apple-mobile-web-app-capable"/.test(html));
+  const sb = head.slice(head.indexOf('// STATUS-BAR TEST CHANNEL'));
+  const sbBody = sb.slice(0, sb.indexOf('</script>'));
+  ok('  the test channel adds it only for ?statusbar=translucent, returning first otherwise',
+     /^\s*if\(!\/\[\?&\]statusbar=translucent\(\?:&\|\$\)\/\.test\(location\.search\)\) return;/m.test(sbBody)
+     && sbBody.indexOf("statusbar=translucent") < sbBody.indexOf("add('apple-mobile-web-app-status-bar-style', 'black-translucent')"),
+     sbBody.slice(0, 400));
+  ok('  and names that icon "FuelPost Test", so the two cannot be mixed up',
+     /add\('apple-mobile-web-app-title', 'FuelPost Test'\);/.test(sbBody) && /document\.title = 'FuelPost Test';/.test(sbBody));
+  ok('  full-screen sizing only in the home-screen app',
+     /if\(window\.navigator\.standalone !== true\) return;[\s\S]*--sb-full-h/.test(sbBody));
+  ok('>>> off the channel the shade is hidden and #app/#map keep inset:0',
+     /#statusShade\{display:none;\}/.test(html)
+     && /html\.sb-translucent #app, html\.sb-translucent #map\{bottom:auto;height:var\(--sb-full-h,100%\);\}/.test(html)
+     && /#map\{position:fixed;inset:0;\}/.test(html));
+  ok('>>> the update reload keeps the query, so the test icon stays on the channel',
+     /const q = new URLSearchParams\(location\.search\);\s*q\.set\('_cb', Date\.now\(\)\);\s*location\.href = location\.pathname \+ '\?' \+ q;/.test(codeOnly));
+}
 ok('>>> the imprint WRAPS, so a long copyright takes its own line instead of running off the edge',
    /#mapwrap \.H_imprint\{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:flex-end;\}/.test(html)
    && /#mapwrap \.H_imprint > \.H_copyright\{position:static !important;max-width:100%;box-sizing:border-box;\}/.test(html));
