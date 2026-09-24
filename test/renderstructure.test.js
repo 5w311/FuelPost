@@ -1567,5 +1567,9 @@ console.log('\n=== the scale bar sits beside the copyright; the layer menu round
      !/>ULSD</.test(os.slice(0, os.indexOf('\n}\n'))));
 }
 
+console.log('\n=== the Call button is a size smaller, still a full tap target (v2.2.13) ===');
+ok('>>> 15px text in a 44px button (12 + 20 + 12)',
+   /#sheet \.callbtn\{[^}]*font-size:15px;line-height:20px;[^}]*padding:12px;/.test(html));
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
