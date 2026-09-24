@@ -616,6 +616,10 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.2.11
+A new app icon: a truck, a fuel pump and the road. To see it on your home
+screen, remove the old FuelPost icon and add it again from Safari.
+
 ### v2.2.10
 The locate button only turns blue while your location is actually on. When you
 open the app it's plain, like the button above it, until you tap it.
