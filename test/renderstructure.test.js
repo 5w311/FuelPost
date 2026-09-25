@@ -1701,12 +1701,24 @@ ok('>>> the corner pieces take the status bar\'s colour: the theme the app OPENE
    && !/html\[data-theme="dark"\][^{]*#mapCorners/.test(html));
 ok('  set once in the head, beside data-theme, and never by a theme switch',
    /document\.documentElement\.setAttribute\('data-launch-theme', theme\);/.test(html)
-   && (html.match(/data-launch-theme'/g) || []).length === 1);
+   && (html.match(/setAttribute\('data-launch-theme'/g) || []).length === 1);
 ok('>>> the tab bar sits 24px in from each side (was 18), as far in as the map buttons above it',
    /#tabbar\{[^}]*margin:8px 24px 8px;\}/.test(html) && /#locateBtn\{bottom:24px;right:24px;/.test(html));
 ok('>>> dark mode frosts at 50%, light keeps 72%',
    /html\[data-theme="dark"\] #app:has\(#listview\.show\) \.toolbar::before\{background:color-mix\(in srgb, var\(--bg\) 50%, transparent\);\}/.test(html)
    && /#app:has\(#listview\.show\) \.toolbar::before\{[^}]*background:color-mix\(in srgb, var\(--bg\) 72%, transparent\);/.test(html));
+
+console.log('\n=== a theme switch reloads the home-screen app so its status bar repaints (v2.3.6) ===');
+{
+  const fn = codeOnly.slice(codeOnly.indexOf('function reloadForStatusBar('));
+  const body = fn.slice(0, fn.indexOf('\n}\n') + 3);
+  ok('>>> the theme buttons call it after storing and applying the theme',
+     /switchTheme\(next\);\s*reloadForStatusBar\(next\);/.test(codeOnly));
+  ok('  home-screen app only, and only when the theme differs from the one the page opened in',
+     /if\(!root\.classList\.contains\('home-app'\)\) return;/.test(body)
+     && /if\(theme === root\.getAttribute\('data-launch-theme'\)\) return;/.test(body)
+     && /location\.reload\(\)/.test(body), body);
+}
 
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
