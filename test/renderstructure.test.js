@@ -1648,6 +1648,8 @@ console.log('\n=== More: the legend in two columns, the version centred (v2.2.26
      && at('Petro location') < at('Closed for fuel') && at('Closed for fuel') < at('Covenant terminal'), grid.slice(0, 300));
   ok('  a real two-column grid, over the flat flex rule',
      /#legendCard \.legend-grid\{display:grid;grid-template-columns:1fr 1fr;/.test(html));
+  ok('  the terminal spans both columns, centred',
+     /#legendCard \.legend-grid > div:last-child\{grid-column:1 \/ -1;justify-content:center;\}/.test(html));
   ok('>>> the version line is centred',
      /#appVer\{margin-top:14px;[^}]*text-align:center;\}/.test(html));
 }

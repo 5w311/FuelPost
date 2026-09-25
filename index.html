@@ -1329,10 +1329,11 @@ body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_
 /* The five keys in two columns (v2.2.26). Beats the flat `#legendCard div`
    flex rule by specificity; the keys inside keep it. A long label wraps
    under itself rather than pushing its neighbour. The terminal, alone on the
-   last row, takes both columns so it doesn't wrap beside empty space. */
+   last row, takes both columns so it doesn't wrap beside empty space, and
+   sits centred under the pair above it. */
 #legendCard .legend-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:14px;row-gap:14px;margin:14px 0 4px;}
 #legendCard .legend-grid > div{margin:0;align-items:center;line-height:1.25;}
-#legendCard .legend-grid > div:last-child{grid-column:1 / -1;}
+#legendCard .legend-grid > div:last-child{grid-column:1 / -1;justify-content:center;}
 #legendCard .sw{width:20px;height:20px;}
 #legendCard #legendSupportNote{font-size:13px !important;padding-top:12px !important;margin-top:12px !important;}
 #legendCard .theme-row{margin-top:14px;padding-top:14px;border-top:.5px solid var(--line);}

@@ -643,7 +643,8 @@ this list does not.
 
 ### v2.2.26
 In More, the map legend is in two columns: Exclusive beside TA, Closed beside
-Petro. The version number is centred.
+Petro, and Covenant terminal centred under them. The version number is
+centred.
 
 ### v2.2.25
 The map-style button turns blue while its menu is open, and "Choose view" at
