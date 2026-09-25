@@ -1473,10 +1473,18 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
 #mapwrap .H_ui .H_btn{background:var(--glass);border-radius:0;-webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);}
 #mapwrap .H_ui .H_ctl:not(.H_zoom) > .H_btn{border-radius:14px;}
 #mapwrap .H_ui .H_btn .H_icon{fill:var(--ink);}
+/* The layer button lights up while its menu is open (v2.2.25), like the list
+   button does while the list is (#listToggle). HERE marks it .H_active and
+   paints its own dark fill (#0F1621) over ours — near-invisible on the dark
+   glass — with !important, which is why this needs it too. */
+#mapwrap .H_ui .H_btn.H_active > svg.H_icon{fill:var(--navy-text) !important;}
+#mapwrap .H_ui .H_btn.H_active > svg.H_icon .H_icon_stroke{stroke:var(--navy-text);}
 #mapwrap .H_ui .H_zoom .H_btn + .H_btn{border-top:.5px solid var(--line);}
 #mapwrap .H_ui .H_overlay{background:var(--surface);color:var(--ink);border-radius:16px;border:.5px solid var(--glass-border);box-shadow:0 12px 32px rgba(0,0,0,.3);}
 #mapwrap .H_ui .H_overlay .H_btn{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;color:var(--ink);}
-#mapwrap .H_ui .H_rdo_title{color:var(--sub);border-radius:16px 16px 0 0;}
+/* The title sits on HERE's own grey bar (#575B63) in both themes, so its text
+   is near-white in both (v2.2.25): --sub was grey on grey in light mode. */
+#mapwrap .H_ui .H_rdo_title{color:rgba(255,255,255,.85);border-radius:16px 16px 0 0;}
 /* The menu's corners all match (v2.2.12): the grey title runs flush to the
    top, and HERE's 5px on it squared off the 16px menu's upper corners. The
    pointer beside the menu is HERE's hardcoded white (title grey when the
@@ -1969,35 +1977,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.2.24"></script>
+<script src="lib/fuelplan.js?v=2.2.25"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.2.24"></script>
+<script src="lib/triptext.js?v=2.2.25"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.2.24"></script>
+<script src="lib/location.js?v=2.2.25"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.2.24"></script>
+<script src="lib/gauge.js?v=2.2.25"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.2.24"></script>
+<script src="lib/corridors.js?v=2.2.25"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.2.24"></script>
+<script src="lib/nearme.js?v=2.2.25"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.2.24"></script>
+<script src="lib/extract-version.js?v=2.2.25"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.2.24"></script>
+<script src="lib/autosuggest.js?v=2.2.25"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.2.24"></script>
+<script src="lib/baselayer.js?v=2.2.25"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.2.24"></script>
+<script src="lib/memocache.js?v=2.2.25"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.2.24"></script>
+<script src="lib/routerank.js?v=2.2.25"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.2.24"></script>
+<script src="lib/vehicleprofile.js?v=2.2.25"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.2.24"></script>
+<script src="lib/escape.js?v=2.2.25"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.2.24"></script>
+<script src="lib/stopfilter.js?v=2.2.25"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.2.24"></script>
+<script src="lib/navlinks.js?v=2.2.25"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -2013,7 +2021,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.2.24')
+fetch('lib/fuelplan-adaptive.js?v=2.2.25')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2030,7 +2038,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.2.24')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.2.24')
+fetch('lib/shorttrip.js?v=2.2.25')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2041,7 +2049,7 @@ fetch('lib/shorttrip.js?v=2.2.24')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.2.24"></script>
+<script src="lib/flexible-polyline.js?v=2.2.25"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2231,7 +2239,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.2.24';
+const APP_VERSION = '2.2.25';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.

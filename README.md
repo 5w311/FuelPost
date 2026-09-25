@@ -641,6 +641,10 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.2.25
+The map-style button turns blue while its menu is open, and "Choose view" at
+the top of that menu can be read in light mode.
+
 ### v2.2.24
 Removes the test addresses used while working on the bar behind the time and
 battery. If you still have a "FuelPost Test" icon, delete it.

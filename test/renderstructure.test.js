@@ -1632,5 +1632,12 @@ ok('  home-screen app only, keyed on navigator.standalone (the display-mode quer
    && /#mapCorners\{display:none;\}/.test(html)
    && /window\.navigator\.standalone === true[\s\S]{0,300}classList\.add\('home-app'\)/.test(html));
 
+console.log('\n=== the layer button lights up while its menu is open; its title reads in light mode (v2.2.25) ===');
+ok('>>> open (HERE\'s .H_active) paints the icon blue, like the list button',
+   /#mapwrap \.H_ui \.H_btn\.H_active > svg\.H_icon\{fill:var\(--navy-text\) !important;\}/.test(html)
+   && /#mapwrap \.H_ui \.H_btn\.H_active > svg\.H_icon \.H_icon_stroke\{stroke:var\(--navy-text\);\}/.test(html));
+ok('>>> "Choose view" is near-white on HERE\'s grey bar in both themes, not --sub',
+   /#mapwrap \.H_ui \.H_rdo_title\{color:rgba\(255,255,255,\.85\);/.test(html) && !/\.H_rdo_title\{color:var\(--sub\)/.test(html));
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
