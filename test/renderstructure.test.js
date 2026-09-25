@@ -1708,17 +1708,13 @@ ok('>>> dark mode frosts at 50%, light keeps 72%',
    /html\[data-theme="dark"\] #app:has\(#listview\.show\) \.toolbar::before\{background:color-mix\(in srgb, var\(--bg\) 50%, transparent\);\}/.test(html)
    && /#app:has\(#listview\.show\) \.toolbar::before\{[^}]*background:color-mix\(in srgb, var\(--bg\) 72%, transparent\);/.test(html));
 
-console.log('\n=== a theme switch reloads the home-screen app so its status bar repaints (v2.3.6) ===');
-{
-  const fn = codeOnly.slice(codeOnly.indexOf('function reloadForStatusBar('));
-  const body = fn.slice(0, fn.indexOf('\n}\n') + 3);
-  ok('>>> the theme buttons call it after storing and applying the theme',
-     /switchTheme\(next\);\s*reloadForStatusBar\(next\);/.test(codeOnly));
-  ok('  home-screen app only, and only when the theme differs from the one the page opened in',
-     /if\(!root\.classList\.contains\('home-app'\)\) return;/.test(body)
-     && /if\(theme === root\.getAttribute\('data-launch-theme'\)\) return;/.test(body)
-     && /location\.reload\(\)/.test(body), body);
-}
+console.log('\n=== a theme switch does NOT reload (v2.3.6 tried it; v2.3.7 took it out) ===');
+// On device a reload did not repaint the status bar — only a fresh launch
+// does — and the corners, keyed on the theme the PAGE opened in, then
+// changed while the bar did not.
+ok('>>> the theme buttons switch the theme and nothing else',
+   /switchTheme\(v === 'system' \? systemTheme\(\) : v\);\s*\}\)\);/.test(codeOnly)
+   && !/reloadForStatusBar/.test(html));
 
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
