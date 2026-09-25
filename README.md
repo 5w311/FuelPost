@@ -593,12 +593,17 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   the rounded corners below. No browser harness here reproduces a
   home-screen launch.
 - **The map's rounded top corners are drawn, not clipped, and only in the
-  home-screen app.** `#mapCorners` lays two black inverse-corner pieces over the
+  home-screen app.** `#mapCorners` lays two inverse-corner pieces over the
   map, shown under `html.home-app`, which a head script sets from
   `navigator.standalone`. v2.2.22 rounded `#map` itself (border-radius and
   overflow:hidden) under `@media (display-mode: standalone)`, and on device the
   corners stayed square. In Safari the page sits under Safari's toolbar, where
-  black corners would look like a rendering fault.
+  the pieces would look like a rendering fault.
+- **The corner pieces are the status bar's colour, from `prefers-color-scheme`,
+  never from the app's theme.** iOS's opaque status bar follows the phone's
+  appearance: black in dark, light grey (`#F2F2F7`) in light, even with the
+  app set to Dark. v2.2.23-2.3.3 drew them black, which showed as black
+  notches under a light bar.
 
 ### Updating this README
 
@@ -640,6 +645,13 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.3.4
+In the app on your home screen, the rounded corners at the top of the map
+match the colour of the bar behind the time and battery, so they no longer
+show as black notches when your phone is in light mode. In dark mode, the
+frosted strip over the list of stops is lighter, so stops show through it a
+little. The tab bar at the bottom sits a little further in from the edges.
 
 ### v2.3.3
 The frosted strip behind the search bar in the list of stops has rounded

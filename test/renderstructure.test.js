@@ -1624,12 +1624,12 @@ ok('  re-checked whenever the copyright or the strip changes size',
 console.log('\n=== the map\'s top corners round under the black status bar (v2.2.22, v2.2.23) ===');
 ok('>>> drawn as black corner pieces over the map, not by clipping the WebGL canvas',
    /<div id="map"><\/div>\s*<div id="mapCorners" aria-hidden="true"><\/div>/.test(html)
-   && /#mapCorners::before\{left:0;background:radial-gradient\(circle at 100% 100%, transparent 21\.5px, #000 22px\);\}/.test(html)
-   && /#mapCorners::after\{right:0;background:radial-gradient\(circle at 0 100%, transparent 21\.5px, #000 22px\);\}/.test(html)
+   && /#mapCorners::before\{left:0;background:radial-gradient\(circle at 100% 100%, transparent 21\.5px, var\(--statusbar-bg\) 22px\);\}/.test(html)
+   && /#mapCorners::after\{right:0;background:radial-gradient\(circle at 0 100%, transparent 21\.5px, var\(--statusbar-bg\) 22px\);\}/.test(html)
    && !/#mapLoading\{border-radius/.test(html));
 ok('  home-screen app only, keyed on navigator.standalone (the display-mode query alone left them square)',
    /html\.home-app #mapCorners\{display:block;[^}]*z-index:320;pointer-events:none;\}/.test(html)
-   && /#mapCorners\{display:none;\}/.test(html)
+   && /#mapCorners\{display:none;/.test(html)
    && /window\.navigator\.standalone === true[\s\S]{0,300}classList\.add\('home-app'\)/.test(html));
 
 console.log('\n=== the layer button lights up while its menu is open; its title reads in light mode (v2.2.25) ===');
@@ -1690,6 +1690,17 @@ ok('>>> its top corners round with the map\'s: the corner pieces rise over the l
    /#app:has\(#listview\.show\) #mapCorners\{z-index:460;\}/.test(html)
    && /\.toolbar\{position:absolute;top:0;left:0;right:0;z-index:450;/.test(html)
    && /#tabbar\{position:relative;z-index:500;/.test(html));
+
+console.log('\n=== corners in the status bar\'s colour; a lighter dark frost (v2.3.4) ===');
+ok('>>> the corner pieces take the status bar\'s colour, from the PHONE\'s appearance, not the app theme',
+   /#mapCorners\{display:none;--statusbar-bg:#F2F2F7;\}/.test(html)
+   && /@media \(prefers-color-scheme: dark\)\{ #mapCorners\{--statusbar-bg:#000;\} \}/.test(html)
+   && !/html\[data-theme="dark"\][^{]*#mapCorners/.test(html));
+ok('>>> the tab bar sits 24px in from each side (was 18), as far in as the map buttons above it',
+   /#tabbar\{[^}]*margin:8px 24px 8px;\}/.test(html) && /#locateBtn\{bottom:24px;right:24px;/.test(html));
+ok('>>> dark mode frosts at 50%, light keeps 72%',
+   /html\[data-theme="dark"\] #app:has\(#listview\.show\) \.toolbar::before\{background:color-mix\(in srgb, var\(--bg\) 50%, transparent\);\}/.test(html)
+   && /#app:has\(#listview\.show\) \.toolbar::before\{[^}]*background:color-mix\(in srgb, var\(--bg\) 72%, transparent\);/.test(html));
 
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
