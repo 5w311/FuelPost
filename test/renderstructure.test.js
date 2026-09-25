@@ -1692,10 +1692,16 @@ ok('>>> its top corners round with the map\'s: the corner pieces rise over the l
    && /#tabbar\{position:relative;z-index:500;/.test(html));
 
 console.log('\n=== corners in the status bar\'s colour; a lighter dark frost (v2.3.4) ===');
-ok('>>> the corner pieces take the status bar\'s colour, from the PHONE\'s appearance, not the app theme',
+// v2.3.4 keyed them on the phone's appearance; the driver's recording showed
+// iOS paints the bar from the theme the app OPENS in and keeps it (v2.3.5).
+ok('>>> the corner pieces take the status bar\'s colour: the theme the app OPENED in',
    /#mapCorners\{display:none;--statusbar-bg:#F2F2F7;\}/.test(html)
-   && /@media \(prefers-color-scheme: dark\)\{ #mapCorners\{--statusbar-bg:#000;\} \}/.test(html)
+   && /html\[data-launch-theme="dark"\] #mapCorners\{--statusbar-bg:#000;\}/.test(html)
+   && !/prefers-color-scheme: dark\)\{ #mapCorners/.test(html)
    && !/html\[data-theme="dark"\][^{]*#mapCorners/.test(html));
+ok('  set once in the head, beside data-theme, and never by a theme switch',
+   /document\.documentElement\.setAttribute\('data-launch-theme', theme\);/.test(html)
+   && (html.match(/data-launch-theme'/g) || []).length === 1);
 ok('>>> the tab bar sits 24px in from each side (was 18), as far in as the map buttons above it',
    /#tabbar\{[^}]*margin:8px 24px 8px;\}/.test(html) && /#locateBtn\{bottom:24px;right:24px;/.test(html));
 ok('>>> dark mode frosts at 50%, light keeps 72%',

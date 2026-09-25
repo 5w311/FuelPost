@@ -24,6 +24,11 @@
     var theme = (stored === 'light' || stored === 'dark') ? stored :
       ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', theme);
+    // The theme the app OPENED in, kept for the page's lifetime: iOS paints
+    // the home-screen app's status bar from it at launch and never repaints
+    // it, so a later switch in More leaves the bar as it was. Only
+    // #mapCorners reads this; switchTheme() leaves it alone on purpose.
+    document.documentElement.setAttribute('data-launch-theme', theme);
   }catch(e){}
 })();
 </script>
@@ -1134,14 +1139,18 @@ html[data-theme="dark"] #app:has(#listview.show) .toolbar::before{background:col
    the scrim (550) and every sheet. They never cover a round button: where a
    button's edge enters a piece's 22px square it stays within 7px of the
    arc's centre, well inside the clear part (checked point by point). */
-/* The pieces are the STATUS BAR's colour, not always black (v2.3.4). iOS's
-   opaque bar follows the phone's own appearance, not the app's theme: black
-   in dark, light grey (#F2F2F7, sampled at 242,242,246 from the driver's
-   screenshots) in light — even with the app itself set to Dark. Black
-   pieces under a light bar showed as black notches. prefers-color-scheme
-   is that same phone-wide setting, so the pieces follow it, not data-theme. */
+/* The pieces are the STATUS BAR's colour, not always black. iOS paints the
+   home-screen app's opaque bar once, when the app opens, from the theme the
+   page opens in — black for dark, light grey for light (sampled at
+   242,242,246 and 238,237,245 from the driver's screenshots) — and keeps it
+   until the app is closed and reopened, whatever is switched in More after.
+   So the pieces follow data-launch-theme (set in the head, never changed),
+   not the live data-theme and not the phone: v2.3.4 keyed them on
+   prefers-color-scheme, and with the phone dark but the app opened light
+   they came out as black notches under a light bar (driver's recording,
+   v2.3.5). */
 #mapCorners{display:none;--statusbar-bg:#F2F2F7;}
-@media (prefers-color-scheme: dark){ #mapCorners{--statusbar-bg:#000;} }
+html[data-launch-theme="dark"] #mapCorners{--statusbar-bg:#000;}
 html.home-app #mapCorners{display:block;position:fixed;top:0;left:0;right:0;height:22px;z-index:320;pointer-events:none;}
 #app:has(#listview.show) #mapCorners{z-index:460;}
 #mapCorners::before, #mapCorners::after{content:'';position:absolute;top:0;width:22px;height:22px;}
@@ -2062,35 +2071,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.3.4"></script>
+<script src="lib/fuelplan.js?v=2.3.5"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.3.4"></script>
+<script src="lib/triptext.js?v=2.3.5"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.3.4"></script>
+<script src="lib/location.js?v=2.3.5"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.3.4"></script>
+<script src="lib/gauge.js?v=2.3.5"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.3.4"></script>
+<script src="lib/corridors.js?v=2.3.5"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.3.4"></script>
+<script src="lib/nearme.js?v=2.3.5"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.3.4"></script>
+<script src="lib/extract-version.js?v=2.3.5"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.3.4"></script>
+<script src="lib/autosuggest.js?v=2.3.5"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.3.4"></script>
+<script src="lib/baselayer.js?v=2.3.5"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.3.4"></script>
+<script src="lib/memocache.js?v=2.3.5"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.3.4"></script>
+<script src="lib/routerank.js?v=2.3.5"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.3.4"></script>
+<script src="lib/vehicleprofile.js?v=2.3.5"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.3.4"></script>
+<script src="lib/escape.js?v=2.3.5"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.3.4"></script>
+<script src="lib/stopfilter.js?v=2.3.5"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.3.4"></script>
+<script src="lib/navlinks.js?v=2.3.5"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -2106,7 +2115,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.3.4')
+fetch('lib/fuelplan-adaptive.js?v=2.3.5')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2123,7 +2132,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.3.4')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.3.4')
+fetch('lib/shorttrip.js?v=2.3.5')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2134,7 +2143,7 @@ fetch('lib/shorttrip.js?v=2.3.4')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.3.4"></script>
+<script src="lib/flexible-polyline.js?v=2.3.5"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2324,7 +2333,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.3.4';
+const APP_VERSION = '2.3.5';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
