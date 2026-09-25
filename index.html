@@ -1044,6 +1044,9 @@ button{-webkit-tap-highlight-color:transparent;}
   border-radius:0 0 37px 37px;
   z-index:-1;pointer-events:auto;background:color-mix(in srgb, var(--bg) 72%, transparent);
   -webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);}
+/* Dark mode tints it at 50% rather than 72% (v2.3.4): over the black list
+   72% black read as a solid bar, and the stops passing under it vanished. */
+html[data-theme="dark"] #app:has(#listview.show) .toolbar::before{background:color-mix(in srgb, var(--bg) 50%, transparent);}
 
 /* ---- Tab bar. IN THE LAYOUT FLOW under the map, not floating over it:
    floating would cover HERE's copyright line (a terms issue) and the
@@ -1071,11 +1074,14 @@ button{-webkit-tap-highlight-color:transparent;}
    the bar sits as low as it can, down in the home-indicator strip, the way
    iOS's own floating tab bars do. Taps there reach the page; only a swipe up
    from the very edge goes to the system. Sizes are the v2.1.2 bar at 93.6%
-   and the side margin 14 + 16 x 0.936 = 29 (see #routebar below for where
-   those numbers come from). */
+   (see #routebar below for where those numbers come from). The side margin
+   is 24px (v2.3.4; it was 18, and on a phone the bubbles looked about to
+   touch the edges): the same inset as HERE's map buttons and the locate
+   button above it, so the bar's right edge lines up with theirs. #nearMe
+   is inset to match — renderstructure.test.js holds the two together. */
 #app{--tab-h:calc(52px + 8px + 8px);}
 #tabbar{position:relative;z-index:500;flex-shrink:0;display:flex;gap:9px;
-  height:52px;box-sizing:border-box;margin:8px 18px 8px;}
+  height:52px;box-sizing:border-box;margin:8px 24px 8px;}
 #tabbar #modeSeg, #tabbar #legendBtn{box-sizing:border-box;height:100%;border-radius:26px;
   background:var(--glass);border:.5px solid var(--glass-border);box-shadow:var(--glass-shadow);
   -webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%);}
@@ -1108,13 +1114,15 @@ button{-webkit-tap-highlight-color:transparent;}
    amount so its last row scrolls clear (the padding-bottom in the #listview
    rule further down). */
 #map{position:fixed;inset:0;}
-/* Rounded top corners under the black status bar (v2.2.22, redone v2.2.23).
-   In the home-screen app iOS draws an opaque black status bar, and the map
+/* Rounded top corners under the status bar (v2.2.22, redone v2.2.23).
+   In the home-screen app iOS draws an opaque status bar (black, or light
+   grey when the phone is in light mode — see below), and the map
    (which cannot run under it: on iOS 26 black-translucent leaves a
    status-bar-tall strip at the bottom that the page is never drawn into,
    WebKit bug 301108 — see README, Things not to undo) met it in a hard,
-   flat edge that read as a gap. Two black inverse-corner pieces over the
-   map's top corners make the bar read as a frame the map sits in. v2.2.22
+   flat edge that read as a gap. Two inverse-corner pieces in the bar's own
+   colour over the map's top corners make the bar read as a frame the map
+   sits in. v2.2.22
    rounded #map itself (border-radius + overflow:hidden) under a
    display-mode query, and on device the corners stayed square, so this
    draws the corners instead of clipping the WebGL canvas, and keys on
@@ -1126,12 +1134,19 @@ button{-webkit-tap-highlight-color:transparent;}
    the scrim (550) and every sheet. They never cover a round button: where a
    button's edge enters a piece's 22px square it stays within 7px of the
    arc's centre, well inside the clear part (checked point by point). */
-#mapCorners{display:none;}
+/* The pieces are the STATUS BAR's colour, not always black (v2.3.4). iOS's
+   opaque bar follows the phone's own appearance, not the app's theme: black
+   in dark, light grey (#F2F2F7, sampled at 242,242,246 from the driver's
+   screenshots) in light — even with the app itself set to Dark. Black
+   pieces under a light bar showed as black notches. prefers-color-scheme
+   is that same phone-wide setting, so the pieces follow it, not data-theme. */
+#mapCorners{display:none;--statusbar-bg:#F2F2F7;}
+@media (prefers-color-scheme: dark){ #mapCorners{--statusbar-bg:#000;} }
 html.home-app #mapCorners{display:block;position:fixed;top:0;left:0;right:0;height:22px;z-index:320;pointer-events:none;}
 #app:has(#listview.show) #mapCorners{z-index:460;}
 #mapCorners::before, #mapCorners::after{content:'';position:absolute;top:0;width:22px;height:22px;}
-#mapCorners::before{left:0;background:radial-gradient(circle at 100% 100%, transparent 21.5px, #000 22px);}
-#mapCorners::after{right:0;background:radial-gradient(circle at 0 100%, transparent 21.5px, #000 22px);}
+#mapCorners::before{left:0;background:radial-gradient(circle at 100% 100%, transparent 21.5px, var(--statusbar-bg) 22px);}
+#mapCorners::after{right:0;background:radial-gradient(circle at 0 100%, transparent 21.5px, var(--statusbar-bg) 22px);}
 #listview, #mapLoading{bottom:calc(-1 * var(--tab-h,0px));}
 /* HERE's attribution must never sit behind the bar: covering it is a terms
    issue. Both containers, because they are siblings; `bottom` because .H_ui
@@ -1404,7 +1419,7 @@ body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_
    here was a band of empty panel under the text. --nm-h is still measured
    off this box, so HERE's chrome and the locate button lift exactly clear
    of it. */
-#nearMe{left:18px;right:18px;padding-bottom:0;border:.5px solid var(--glass-border);border-radius:22px;
+#nearMe{left:24px;right:24px;padding-bottom:0;border:.5px solid var(--glass-border);border-radius:22px;
   background:var(--glass);box-shadow:var(--glass-shadow);
   -webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%);}
 #nearMe .rb-tab{min-height:44px;padding:0 16px;}
@@ -2047,35 +2062,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.3.3"></script>
+<script src="lib/fuelplan.js?v=2.3.4"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.3.3"></script>
+<script src="lib/triptext.js?v=2.3.4"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.3.3"></script>
+<script src="lib/location.js?v=2.3.4"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.3.3"></script>
+<script src="lib/gauge.js?v=2.3.4"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.3.3"></script>
+<script src="lib/corridors.js?v=2.3.4"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.3.3"></script>
+<script src="lib/nearme.js?v=2.3.4"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.3.3"></script>
+<script src="lib/extract-version.js?v=2.3.4"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.3.3"></script>
+<script src="lib/autosuggest.js?v=2.3.4"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.3.3"></script>
+<script src="lib/baselayer.js?v=2.3.4"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.3.3"></script>
+<script src="lib/memocache.js?v=2.3.4"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.3.3"></script>
+<script src="lib/routerank.js?v=2.3.4"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.3.3"></script>
+<script src="lib/vehicleprofile.js?v=2.3.4"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.3.3"></script>
+<script src="lib/escape.js?v=2.3.4"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.3.3"></script>
+<script src="lib/stopfilter.js?v=2.3.4"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.3.3"></script>
+<script src="lib/navlinks.js?v=2.3.4"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -2091,7 +2106,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.3.3')
+fetch('lib/fuelplan-adaptive.js?v=2.3.4')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2108,7 +2123,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.3.3')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.3.3')
+fetch('lib/shorttrip.js?v=2.3.4')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2119,7 +2134,7 @@ fetch('lib/shorttrip.js?v=2.3.3')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.3.3"></script>
+<script src="lib/flexible-polyline.js?v=2.3.4"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2309,7 +2324,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.3.3';
+const APP_VERSION = '2.3.4';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
