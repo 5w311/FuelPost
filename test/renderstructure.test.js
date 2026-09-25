@@ -1654,5 +1654,9 @@ console.log('\n=== More: the legend in two columns, the version centred (v2.2.26
      /#appVer\{margin-top:14px;[^}]*text-align:center;\}/.test(html));
 }
 
+console.log('\n=== the version check\'s note does not move the More sheet (v2.2.27) ===');
+ok('>>> the note under #appVer takes no height',
+   /#legendCard #appVer \+ \.share-note\{height:0;[^}]*overflow:visible;/.test(html));
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
