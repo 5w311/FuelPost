@@ -599,11 +599,13 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   overflow:hidden) under `@media (display-mode: standalone)`, and on device the
   corners stayed square. In Safari the page sits under Safari's toolbar, where
   the pieces would look like a rendering fault.
-- **The corner pieces are the status bar's colour, from `prefers-color-scheme`,
-  never from the app's theme.** iOS's opaque status bar follows the phone's
-  appearance: black in dark, light grey (`#F2F2F7`) in light, even with the
-  app set to Dark. v2.2.23-2.3.3 drew them black, which showed as black
-  notches under a light bar.
+- **The corner pieces are the status bar's colour, from the theme the app
+  OPENED in.** iOS paints the home-screen app's opaque status bar once, at
+  launch, from the page's theme (black for dark, light grey for light), and
+  keeps it until the app is reopened, whatever is switched in More after. The
+  head script records that as `data-launch-theme`, which nothing else sets.
+  v2.2.23-2.3.3 drew the pieces black; v2.3.4 followed the phone's appearance.
+  Both left black notches under a light bar.
 
 ### Updating this README
 
@@ -645,6 +647,16 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.3.6
+In the app on your home screen, picking Light or Dark in More reloads the app,
+so the bar behind the time and battery changes colour with it. Anything typed
+into a route is cleared by the reload.
+
+### v2.3.5
+The rounded corners at the top of the map match the bar behind the time and
+battery however the app was opened. That bar keeps the colour the app opened
+with; to change it after switching the theme in More, close and reopen the app.
 
 ### v2.3.4
 In the app on your home screen, the rounded corners at the top of the map
