@@ -1648,8 +1648,9 @@ console.log('\n=== More: the legend in two columns, the version centred (v2.2.26
      && at('Petro location') < at('Closed for fuel') && at('Closed for fuel') < at('Covenant terminal'), grid.slice(0, 300));
   ok('  a real two-column grid, over the flat flex rule: brands as wide as they need, the rest to the right',
      /#legendCard \.legend-grid\{display:grid;grid-template-columns:max-content minmax\(0,1fr\);/.test(html));
-  ok('>>> the right-hand labels shrink with the screen to a 12px floor, brands never wrap (v2.2.28)',
-     /#legendCard \.legend-grid > div:nth-child\(even\)\{font-size:clamp\(12px, calc\(\(100vw - 240px\) \/ 16\), 15px\);/.test(html)
+  ok('>>> ONE size for every key, scaling with the screen to a 12px floor; brands never wrap (v2.2.29)',
+     /#legendCard \.legend-grid\{font-size:clamp\(12px, calc\(\(100vw - 118px\) \/ 23\), 16px\);\}/.test(html)
+     && !/\.legend-grid > div:nth-child\(even\)\{font-size/.test(html)
      && /#legendCard \.legend-grid > div:nth-child\(odd\):not\(:last-child\)\{white-space:nowrap;\}/.test(html));
   ok('  the terminal spans both columns, centred',
      /#legendCard \.legend-grid > div:last-child\{grid-column:1 \/ -1;justify-content:center;\}/.test(html));
