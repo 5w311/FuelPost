@@ -1025,6 +1025,18 @@ button{-webkit-tap-highlight-color:transparent;}
    not on the button, because three things close it (this button, a row tap,
    switching to Route) and a style rule cannot drift from any of them. */
 #app:has(#listview.show) #listToggle{color:var(--navy-text);}
+/* While the list is open the toolbar sits on a frosted band (v2.3.2), the
+   way an iOS navigation bar does: rows scrolling up under the search bar
+   blur into it instead of showing sharp between the pills. The band is the
+   toolbar's ::before, not a backdrop-filter on the toolbar itself (see the
+   note above: that would capture the suggestion list's positioning). It runs
+   from the top of the screen to 12px below the pills — where the list's own
+   content starts (#listview padding-top: safe area + 72) — so nothing sits
+   under it at rest. It takes taps, so a blurred row can't be opened blind;
+   the pills paint above it. Map view keeps its clear floating toolbar. */
+#app:has(#listview.show) .toolbar::before{content:'';position:absolute;top:0;left:0;right:0;height:calc(100% + 12px);
+  z-index:-1;pointer-events:auto;background:color-mix(in srgb, var(--bg) 72%, transparent);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);}
 
 /* ---- Tab bar. IN THE LAYOUT FLOW under the map, not floating over it:
    floating would cover HERE's copyright line (a terms issue) and the
@@ -2020,35 +2032,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.3.1"></script>
+<script src="lib/fuelplan.js?v=2.3.2"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.3.1"></script>
+<script src="lib/triptext.js?v=2.3.2"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.3.1"></script>
+<script src="lib/location.js?v=2.3.2"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.3.1"></script>
+<script src="lib/gauge.js?v=2.3.2"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.3.1"></script>
+<script src="lib/corridors.js?v=2.3.2"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.3.1"></script>
+<script src="lib/nearme.js?v=2.3.2"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.3.1"></script>
+<script src="lib/extract-version.js?v=2.3.2"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.3.1"></script>
+<script src="lib/autosuggest.js?v=2.3.2"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.3.1"></script>
+<script src="lib/baselayer.js?v=2.3.2"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.3.1"></script>
+<script src="lib/memocache.js?v=2.3.2"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.3.1"></script>
+<script src="lib/routerank.js?v=2.3.2"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.3.1"></script>
+<script src="lib/vehicleprofile.js?v=2.3.2"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.3.1"></script>
+<script src="lib/escape.js?v=2.3.2"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.3.1"></script>
+<script src="lib/stopfilter.js?v=2.3.2"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.3.1"></script>
+<script src="lib/navlinks.js?v=2.3.2"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -2064,7 +2076,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.3.1')
+fetch('lib/fuelplan-adaptive.js?v=2.3.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2081,7 +2093,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.3.1')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.3.1')
+fetch('lib/shorttrip.js?v=2.3.2')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2092,7 +2104,7 @@ fetch('lib/shorttrip.js?v=2.3.1')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.3.1"></script>
+<script src="lib/flexible-polyline.js?v=2.3.2"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2282,7 +2294,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.3.1';
+const APP_VERSION = '2.3.2';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
