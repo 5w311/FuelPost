@@ -1639,5 +1639,20 @@ ok('>>> open (HERE\'s .H_active) paints the icon blue, like the list button',
 ok('>>> "Choose view" is near-white on HERE\'s grey bar in both themes, not --sub',
    /#mapwrap \.H_ui \.H_rdo_title\{color:rgba\(255,255,255,\.85\);/.test(html) && !/\.H_rdo_title\{color:var\(--sub\)/.test(html));
 
+console.log('\n=== More: the legend in two columns, the version centred (v2.2.26) ===');
+{
+  const grid = (html.match(/<div class="legend-grid">[\s\S]*?\n      <\/div>/) || [''])[0];
+  const at = s => grid.indexOf(s);
+  ok('>>> TA beside Exclusive, Petro beside Closed, the terminal under them',
+     at('TA location') > 0 && at('TA location') < at('Exclusive (most') && at('Exclusive (most') < at('Petro location')
+     && at('Petro location') < at('Closed for fuel') && at('Closed for fuel') < at('Covenant terminal'), grid.slice(0, 300));
+  ok('  a real two-column grid, over the flat flex rule',
+     /#legendCard \.legend-grid\{display:grid;grid-template-columns:1fr 1fr;/.test(html));
+  ok('  the terminal spans both columns, centred',
+     /#legendCard \.legend-grid > div:last-child\{grid-column:1 \/ -1;justify-content:center;\}/.test(html));
+  ok('>>> the version line is centred',
+     /#appVer\{margin-top:14px;[^}]*text-align:center;\}/.test(html));
+}
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
