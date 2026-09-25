@@ -1326,12 +1326,19 @@ body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_
 #legendCard{padding:8px 20px calc(16px + var(--tab-h,0px));font-size:16px;}
 #legendCard .ios-sheet-title{margin:0 0 4px;font-size:22px;line-height:28px;font-weight:700;}
 #legendCard div{gap:12px;margin:12px 0;}
+/* The five keys in two columns (v2.2.26). Beats the flat `#legendCard div`
+   flex rule by specificity; the keys inside keep it. A long label wraps
+   under itself rather than pushing its neighbour. The terminal, alone on the
+   last row, takes both columns so it doesn't wrap beside empty space. */
+#legendCard .legend-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:14px;row-gap:14px;margin:14px 0 4px;}
+#legendCard .legend-grid > div{margin:0;align-items:center;line-height:1.25;}
+#legendCard .legend-grid > div:last-child{grid-column:1 / -1;}
 #legendCard .sw{width:20px;height:20px;}
 #legendCard #legendSupportNote{font-size:13px !important;padding-top:12px !important;margin-top:12px !important;}
 #legendCard .theme-row{margin-top:14px;padding-top:14px;border-top:.5px solid var(--line);}
 #legendCard .theme-label{font-size:15px;font-weight:600;text-transform:none;letter-spacing:0;margin-bottom:8px;}
 #legendCard .theme-row .seg button{font-size:14px;padding:8px 4px;}
-#appVer{margin-top:14px;min-height:44px;font-size:15px;color:var(--navy-text);text-decoration:none;}
+#appVer{margin-top:14px;min-height:44px;font-size:15px;color:var(--navy-text);text-decoration:none;text-align:center;}
 
 /* ---- Near Me: its own slim glass bubble, inset exactly like the tab bar and
    sitting on #mapwrap's bottom edge — which is the bar's 8px top margin
@@ -1856,16 +1863,22 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
     </button>
     <div id="legendCard">
       <h3 class="ios-sheet-title">Map legend</h3>
-      <div><span class="sw" style="background:var(--ta)"></span> TA location</div>
-      <div><span class="sw" style="background:var(--petro)"></span> Petro location</div>
-      <div><span class="sw" style="background:var(--navy);border-radius:4px"></span> Covenant terminal</div>
-      <div><span class="sw" style="background:var(--gold)"></span> Exclusive (most cost-effective)</div>
-      <!-- The legend already explained the gold dot, so a red one with nothing
-           explaining it would be a symbol the driver has to guess at. Worded
-           for what the two closures SHARE — neither can sell fuel — since one
-           of them (TA Gary) is still open for parking and "Closed" alone would
-           overstate it. The pin's own sheet carries the specifics. -->
-      <div><span class="sw" style="background:var(--pin-closed)"></span> Closed for fuel — tap for details</div>
+      <!-- Two columns (v2.2.26): the brands on the left, what a dot ON a pin
+           means on the right — TA beside Exclusive, Petro beside Closed — and
+           the terminal under them. Row order is reading order, so a screen
+           reader still gets TA, Exclusive, Petro, Closed, terminal. -->
+      <div class="legend-grid">
+        <div><span class="sw" style="background:var(--ta)"></span> TA location</div>
+        <div><span class="sw" style="background:var(--gold)"></span> Exclusive (most cost-effective)</div>
+        <div><span class="sw" style="background:var(--petro)"></span> Petro location</div>
+        <!-- The legend already explained the gold dot, so a red one with nothing
+             explaining it would be a symbol the driver has to guess at. Worded
+             for what the two closures SHARE — neither can sell fuel — since one
+             of them (TA Gary) is still open for parking and "Closed" alone would
+             overstate it. The pin's own sheet carries the specifics. -->
+        <div><span class="sw" style="background:var(--pin-closed)"></span> Closed for fuel — tap for details</div>
+        <div><span class="sw" style="background:var(--navy);border-radius:4px"></span> Covenant terminal</div>
+      </div>
       <div id="legendSupportNote" style="margin-top:6px;color:var(--sub);font-size:10.5px;line-height:1.4;border-top:1px solid var(--line);padding-top:6px;"></div>
       <div class="theme-row">
         <span class="theme-label">Theme</span>
@@ -1977,35 +1990,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.2.25"></script>
+<script src="lib/fuelplan.js?v=2.2.26"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.2.25"></script>
+<script src="lib/triptext.js?v=2.2.26"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.2.25"></script>
+<script src="lib/location.js?v=2.2.26"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.2.25"></script>
+<script src="lib/gauge.js?v=2.2.26"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.2.25"></script>
+<script src="lib/corridors.js?v=2.2.26"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.2.25"></script>
+<script src="lib/nearme.js?v=2.2.26"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.2.25"></script>
+<script src="lib/extract-version.js?v=2.2.26"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.2.25"></script>
+<script src="lib/autosuggest.js?v=2.2.26"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.2.25"></script>
+<script src="lib/baselayer.js?v=2.2.26"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.2.25"></script>
+<script src="lib/memocache.js?v=2.2.26"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.2.25"></script>
+<script src="lib/routerank.js?v=2.2.26"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.2.25"></script>
+<script src="lib/vehicleprofile.js?v=2.2.26"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.2.25"></script>
+<script src="lib/escape.js?v=2.2.26"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.2.25"></script>
+<script src="lib/stopfilter.js?v=2.2.26"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.2.25"></script>
+<script src="lib/navlinks.js?v=2.2.26"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -2021,7 +2034,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.2.25')
+fetch('lib/fuelplan-adaptive.js?v=2.2.26')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2038,7 +2051,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.2.25')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.2.25')
+fetch('lib/shorttrip.js?v=2.2.26')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2049,7 +2062,7 @@ fetch('lib/shorttrip.js?v=2.2.25')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.2.25"></script>
+<script src="lib/flexible-polyline.js?v=2.2.26"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2239,7 +2252,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.2.25';
+const APP_VERSION = '2.2.26';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
