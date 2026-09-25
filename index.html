@@ -1033,8 +1033,15 @@ button{-webkit-tap-highlight-color:transparent;}
    from the top of the screen to 12px below the pills — where the list's own
    content starts (#listview padding-top: safe area + 72) — so nothing sits
    under it at rest. It takes taps, so a blurred row can't be opened blind;
-   the pills paint above it. Map view keeps its clear floating toolbar. */
+   the pills paint above it. Map view keeps its clear floating toolbar.
+   Its bottom corners round (v2.3.3) so it reads as wrapped around the
+   toolbar: 37px is the round buttons' own 25px plus the 12px the band
+   clears them by on both the side and the bottom, so each corner is
+   concentric with the button above it. Its top corners round with the
+   map's in the home-screen app — #mapCorners rises over it while the list
+   is open (see #mapCorners below). */
 #app:has(#listview.show) .toolbar::before{content:'';position:absolute;top:0;left:0;right:0;height:calc(100% + 12px);
+  border-radius:0 0 37px 37px;
   z-index:-1;pointer-events:auto;background:color-mix(in srgb, var(--bg) 72%, transparent);
   -webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);}
 
@@ -1105,15 +1112,23 @@ button{-webkit-tap-highlight-color:transparent;}
    In the home-screen app iOS draws an opaque black status bar, and the map
    (which cannot run under it: on iOS 26 black-translucent leaves a
    status-bar-tall strip at the bottom that the page is never drawn into,
-   WebKit bug 301108 — see README, Things not to undo) met it in a hard, flat edge that read as a gap. Two black inverse-corner
-   pieces over the map's top corners make the bar read as a frame the map
-   sits in. v2.2.22 rounded #map itself (border-radius + overflow:hidden)
-   under a display-mode query, and on device the corners stayed square, so
-   this draws the corners instead of clipping the WebGL canvas, and keys on
+   WebKit bug 301108 — see README, Things not to undo) met it in a hard,
+   flat edge that read as a gap. Two black inverse-corner pieces over the
+   map's top corners make the bar read as a frame the map sits in. v2.2.22
+   rounded #map itself (border-radius + overflow:hidden) under a
+   display-mode query, and on device the corners stayed square, so this
+   draws the corners instead of clipping the WebGL canvas, and keys on
    html.home-app (navigator.standalone, set in the head). z 320: over the map
-   and its loading cover (300), under the list (350) and every sheet. */
+   and its loading cover (300), under the list (350) and every sheet.
+   While the list is open they rise to 460 (v2.3.3): over the list and the
+   toolbar's frosted band (450), so the list view keeps the same rounded top
+   and the band's top corners round with it; still under the tab bar (500),
+   the scrim (550) and every sheet. They never cover a round button: where a
+   button's edge enters a piece's 22px square it stays within 7px of the
+   arc's centre, well inside the clear part (checked point by point). */
 #mapCorners{display:none;}
 html.home-app #mapCorners{display:block;position:fixed;top:0;left:0;right:0;height:22px;z-index:320;pointer-events:none;}
+#app:has(#listview.show) #mapCorners{z-index:460;}
 #mapCorners::before, #mapCorners::after{content:'';position:absolute;top:0;width:22px;height:22px;}
 #mapCorners::before{left:0;background:radial-gradient(circle at 100% 100%, transparent 21.5px, #000 22px);}
 #mapCorners::after{right:0;background:radial-gradient(circle at 0 100%, transparent 21.5px, #000 22px);}
@@ -2032,35 +2047,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.3.2"></script>
+<script src="lib/fuelplan.js?v=2.3.3"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.3.2"></script>
+<script src="lib/triptext.js?v=2.3.3"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.3.2"></script>
+<script src="lib/location.js?v=2.3.3"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.3.2"></script>
+<script src="lib/gauge.js?v=2.3.3"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.3.2"></script>
+<script src="lib/corridors.js?v=2.3.3"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.3.2"></script>
+<script src="lib/nearme.js?v=2.3.3"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.3.2"></script>
+<script src="lib/extract-version.js?v=2.3.3"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.3.2"></script>
+<script src="lib/autosuggest.js?v=2.3.3"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.3.2"></script>
+<script src="lib/baselayer.js?v=2.3.3"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.3.2"></script>
+<script src="lib/memocache.js?v=2.3.3"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.3.2"></script>
+<script src="lib/routerank.js?v=2.3.3"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.3.2"></script>
+<script src="lib/vehicleprofile.js?v=2.3.3"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.3.2"></script>
+<script src="lib/escape.js?v=2.3.3"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.3.2"></script>
+<script src="lib/stopfilter.js?v=2.3.3"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.3.2"></script>
+<script src="lib/navlinks.js?v=2.3.3"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -2076,7 +2091,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.3.2')
+fetch('lib/fuelplan-adaptive.js?v=2.3.3')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2093,7 +2108,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.3.2')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.3.2')
+fetch('lib/shorttrip.js?v=2.3.3')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2104,7 +2119,7 @@ fetch('lib/shorttrip.js?v=2.3.2')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.3.2"></script>
+<script src="lib/flexible-polyline.js?v=2.3.3"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2294,7 +2309,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.3.2';
+const APP_VERSION = '2.3.3';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
