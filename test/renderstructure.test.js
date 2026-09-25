@@ -1681,5 +1681,15 @@ ok('  the band ends where the list\'s content starts (safe area + 60 + 12 = the 
    /\.toolbar\{position:absolute;top:0;[^}]*padding:calc\(env\(safe-area-inset-top,0px\) \+ 10px\) 12px 0;/.test(html)
    && /#listview\{[^}]*padding-top:calc\(env\(safe-area-inset-top,0px\) \+ 72px\);/.test(html));
 
+console.log('\n=== the frosted band rounds around the toolbar (v2.3.3) ===');
+ok('>>> its bottom corners are concentric with the round buttons (25px + the 12px it clears them by)',
+   /#app:has\(#listview\.show\) \.toolbar::before\{[^}]*border-radius:0 0 37px 37px;/.test(html)
+   && /\.toolbar \.iconbtn\{width:50px;height:50px;border-radius:25px;/.test(html)
+   && /\.toolbar\{[^}]*padding:calc\(env\(safe-area-inset-top,0px\) \+ 10px\) 12px 0;/.test(html));
+ok('>>> its top corners round with the map\'s: the corner pieces rise over the list and the band',
+   /#app:has\(#listview\.show\) #mapCorners\{z-index:460;\}/.test(html)
+   && /\.toolbar\{position:absolute;top:0;left:0;right:0;z-index:450;/.test(html)
+   && /#tabbar\{position:relative;z-index:500;/.test(html));
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;

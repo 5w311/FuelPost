@@ -641,6 +641,10 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.3.3
+The frosted strip behind the search bar in the list of stops has rounded
+corners, so it wraps around the search bar and its buttons.
+
 ### v2.3.2
 With the list of stops open, the strip behind the search bar is frosted, so
 stops scrolling up under it blur instead of showing through.
