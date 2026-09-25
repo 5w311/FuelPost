@@ -641,6 +641,12 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.2.28
+In More, "Exclusive" and "Closed for fuel" are in smaller text so each fits
+on one line on a larger phone; on a smaller one they take two short lines.
+The green "You're on the latest" sits centred between the version and the
+tab bar.
+
 ### v2.2.27
 Tapping the version number in More no longer nudges the whole sheet up while
 it shows "You're on the latest".
