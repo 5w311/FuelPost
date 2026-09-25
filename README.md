@@ -641,6 +641,10 @@ Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
 
+### v2.2.31
+A new app icon: a map pin holding a fuel drop. To see it on your home screen,
+remove the old FuelPost icon and add it again from Safari.
+
 ### v2.2.30
 The Light / Dark / System buttons in More are smaller, to match the legend
 above them.
