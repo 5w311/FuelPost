@@ -606,6 +606,10 @@ so every time a driver comes back from their nav app. Until v2.0.0 it fetched
   head script records that as `data-launch-theme`, which nothing else sets.
   v2.2.23-2.3.3 drew the pieces black; v2.3.4 followed the phone's appearance.
   Both left black notches under a light bar.
+- **Don't reload the page to repaint the status bar.** v2.3.6 reloaded the
+  home-screen app on a theme switch; on device the bar kept its colour — only
+  closing and reopening the app repaints it — and the corners, keyed on the
+  theme the page loaded in, changed without it. v2.3.7 took it out.
 
 ### Updating this README
 
@@ -647,6 +651,11 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.3.7
+Undoes v2.3.6: picking Light or Dark in More no longer reloads the app. The
+reload didn't change the colour of the bar behind the time and battery; that
+only happens when the app is closed and opened again.
 
 ### v2.3.6
 In the app on your home screen, picking Light or Dark in More reloads the app,
