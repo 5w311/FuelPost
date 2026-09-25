@@ -1352,9 +1352,10 @@ body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_
    (v2.2.27): the More sheet is anchored to the bottom, so a note that pushed
    the sheet taller lifted everything in it for two seconds and dropped it
    again. It is drawn in the empty lower part of the 44px button and the
-   padding below it instead — lifted by `top`, which moves nothing else (a
-   negative margin shrank the sheet by the same amount). */
-#legendCard #appVer + .share-note{height:0;margin:0;overflow:visible;position:relative;top:-11px;font-size:11.5px;line-height:14px;}
+   padding below it instead — placed by `top`, which moves nothing else (a
+   negative margin shrank the sheet by the same amount); -1px centres it in
+   the gap between the version text and the tab bar (v2.2.28). */
+#legendCard #appVer + .share-note{height:0;margin:0;overflow:visible;position:relative;top:-1px;font-size:11.5px;line-height:14px;}
 
 /* ---- Near Me: its own slim glass bubble, inset exactly like the tab bar and
    sitting on #mapwrap's bottom edge — which is the bar's 8px top margin

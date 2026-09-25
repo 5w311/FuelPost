@@ -644,6 +644,8 @@ this list does not.
 ### v2.2.28
 In More, "Exclusive" and "Closed for fuel" are in smaller text so each fits
 on one line on a larger phone; on a smaller one they take two short lines.
+The green "You're on the latest" sits centred between the version and the
+tab bar.
 
 ### v2.2.27
 Tapping the version number in More no longer nudges the whole sheet up while
