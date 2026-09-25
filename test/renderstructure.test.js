@@ -1649,7 +1649,8 @@ console.log('\n=== More: the legend in two columns, the version centred (v2.2.26
   ok('  a real two-column grid, over the flat flex rule: brands as wide as they need, the rest to the right',
      /#legendCard \.legend-grid\{display:grid;grid-template-columns:max-content minmax\(0,1fr\);/.test(html));
   ok('>>> ONE size for every key, scaling with the screen to a 12px floor; brands never wrap (v2.2.29)',
-     /#legendCard \.legend-grid\{font-size:clamp\(12px, calc\(\(100vw - 118px\) \/ 23\), 16px\);\}/.test(html)
+     /#legendCard\{--legend-fs:clamp\(12px, calc\(\(100vw - 118px\) \/ 23\), 16px\);\}/.test(html)
+     && /#legendCard \.legend-grid\{font-size:var\(--legend-fs\);\}/.test(html)
      && !/\.legend-grid > div:nth-child\(even\)\{font-size/.test(html)
      && /#legendCard \.legend-grid > div:nth-child\(odd\):not\(:last-child\)\{white-space:nowrap;\}/.test(html));
   ok('  the terminal spans both columns, centred',
@@ -1661,6 +1662,10 @@ console.log('\n=== More: the legend in two columns, the version centred (v2.2.26
 console.log('\n=== the version check\'s note does not move the More sheet (v2.2.27) ===');
 ok('>>> the note under #appVer takes no height',
    /#legendCard #appVer \+ \.share-note\{height:0;[^}]*overflow:visible;/.test(html));
+
+console.log('\n=== the theme buttons match the legend keys (v2.2.30) ===');
+ok('>>> same size as the legend keys, medium weight, slimmer',
+   /#legendCard \.theme-row \.seg button\{font-size:var\(--legend-fs\);font-weight:500;padding:6px 4px;\}/.test(html));
 
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
