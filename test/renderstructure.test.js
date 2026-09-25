@@ -1667,5 +1667,10 @@ console.log('\n=== the theme buttons match the legend keys (v2.2.30) ===');
 ok('>>> same size as the legend keys, medium weight, slimmer',
    /#legendCard \.theme-row \.seg button\{font-size:var\(--legend-fs\);font-weight:500;padding:6px 4px;\}/.test(html));
 
+console.log('\n=== the pin sits before FuelPost in More (v2.3.1) ===');
+ok('>>> #appVer::before draws icons/pin-emoji.png, emoji-sized',
+   /#legendCard #appVer::before\{content:'';display:inline-block;width:16px;height:22px;[^}]*url\(icons\/pin-emoji\.png\)/.test(html)
+   && require('fs').existsSync(require('path').join(__dirname, '..', 'icons', 'pin-emoji.png')));
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
