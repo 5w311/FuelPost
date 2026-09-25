@@ -1672,5 +1672,14 @@ ok('>>> #appVer::before draws icons/pin-emoji.png, emoji-sized',
    /#legendCard #appVer::before\{content:'';display:inline-block;width:16px;height:22px;[^}]*url\(icons\/pin-emoji\.png\)/.test(html)
    && require('fs').existsSync(require('path').join(__dirname, '..', 'icons', 'pin-emoji.png')));
 
+console.log('\n=== the list scrolls under a frosted band, not under bare pills (v2.3.2) ===');
+ok('>>> while the list is open the toolbar\'s ::before blurs what scrolls under it',
+   /#app:has\(#listview\.show\) \.toolbar::before\{content:'';position:absolute;top:0;left:0;right:0;height:calc\(100% \+ 12px\);[^}]*backdrop-filter:blur\(20px\) saturate\(180%\);\}/.test(html));
+ok('  the toolbar itself still carries no backdrop-filter (it would capture the suggestion list)',
+   !/\.toolbar\{[^}]*backdrop-filter/.test(html));
+ok('  the band ends where the list\'s content starts (safe area + 60 + 12 = the list\'s + 72)',
+   /\.toolbar\{position:absolute;top:0;[^}]*padding:calc\(env\(safe-area-inset-top,0px\) \+ 10px\) 12px 0;/.test(html)
+   && /#listview\{[^}]*padding-top:calc\(env\(safe-area-inset-top,0px\) \+ 72px\);/.test(html));
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;
