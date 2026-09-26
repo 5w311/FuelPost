@@ -421,5 +421,48 @@ console.log('\n=== Petro Amarillo sits on I-40, not on HERE\'s wrong listing (v2
      row && miles(row[9], row[10], 35.1332, -101.7425) > 3);
 }
 
+console.log('\n=== restaurants at each stop (v2.3.8) ===');
+{
+  // RESTAURANTS sits right after DATA: one line per stop, read line by line
+  // like DATA is — no eval of the page.
+  const start = html.indexOf('const RESTAURANTS = {');
+  const body = start < 0 ? '' : html.slice(start, html.indexOf('\n};', start));
+  const lines = body.split('\n').slice(1);
+  const REST = {};
+  let badLines = 0;
+  for (const line of lines) {
+    const m = line.match(/^"([A-Z]{2}\d+)":(\[.*\]),$/);
+    if (!m) { badLines++; continue; }
+    try { REST[m[1]] = JSON.parse(m[2]); } catch (e) { badLines++; }
+  }
+  const ids = Object.keys(REST);
+  const byId = new Map(DATA.map(r => [r[0], r]));
+  ok('>>> RESTAURANTS holds 134 stops, one clean line each',
+     ids.length === 134 && badLines === 0, `${ids.length} stops, ${badLines} bad lines`);
+  ok('  every key is a stop in DATA', ids.every(id => byId.has(id)),
+     ids.filter(id => !byId.has(id)).join(','));
+  ok('  the terminal has none', !('TN6' in REST) && byId.get('TN6') && byId.get('TN6')[11] === 'term');
+  ok('  each is [full service, quick service], strings, never both empty',
+     ids.every(id => Array.isArray(REST[id]) && REST[id].length === 2
+       && REST[id].every(v => typeof v === 'string' && v === v.trim())
+       && (REST[id][0] || REST[id][1])));
+  ok('  spellings tidied: no curly apostrophes, no "Mcdonald\'s"',
+     !/[‘’]/.test(body) && !/Mcdonald/.test(body));
+  // The two sources were built apart and agree: a Full service name exactly
+  // where DATA's amenity column carries R. If a future export disagrees, the
+  // sheet would show a restaurant the filter can't find, or the reverse.
+  const withR = DATA.filter(r => (r[16] || '').split(',').includes('R')).map(r => r[0]).sort();
+  const withFull = ids.filter(id => REST[id][0]).sort();
+  ok('>>> a Full service name on exactly the 70 stops flagged sit-down restaurant',
+     withR.length === 70 && JSON.stringify(withR) === JSON.stringify(withFull),
+     `R ${withR.length}, full ${withFull.length}`);
+  ok('  spot checks: TA Ashland, TA Tonopah, Petro North Little Rock, Petro Carl\'s Corner',
+     JSON.stringify(REST.VA1) === JSON.stringify(['Fuddruckers', ''])
+     && JSON.stringify(REST.AZ3) === JSON.stringify(['Black Bear Diner', 'Subway, Taco Bell & Pizza Hut Express'])
+     && JSON.stringify(REST.AR1) === JSON.stringify(['Iron Skillet', ''])
+     && JSON.stringify(REST.TX7) === JSON.stringify(['', "Miss J's, Sbarro"])
+     && JSON.stringify(REST.AL1) === JSON.stringify(['', "Charleys Philly Steaks, Miss J's Café"]));
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) process.exitCode = 1;

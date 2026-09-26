@@ -2071,35 +2071,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.3.7"></script>
+<script src="lib/fuelplan.js?v=2.3.8"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.3.7"></script>
+<script src="lib/triptext.js?v=2.3.8"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.3.7"></script>
+<script src="lib/location.js?v=2.3.8"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.3.7"></script>
+<script src="lib/gauge.js?v=2.3.8"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.3.7"></script>
+<script src="lib/corridors.js?v=2.3.8"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.3.7"></script>
+<script src="lib/nearme.js?v=2.3.8"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.3.7"></script>
+<script src="lib/extract-version.js?v=2.3.8"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.3.7"></script>
+<script src="lib/autosuggest.js?v=2.3.8"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.3.7"></script>
+<script src="lib/baselayer.js?v=2.3.8"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.3.7"></script>
+<script src="lib/memocache.js?v=2.3.8"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.3.7"></script>
+<script src="lib/routerank.js?v=2.3.8"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.3.7"></script>
+<script src="lib/vehicleprofile.js?v=2.3.8"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.3.7"></script>
+<script src="lib/escape.js?v=2.3.8"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.3.7"></script>
+<script src="lib/stopfilter.js?v=2.3.8"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.3.7"></script>
+<script src="lib/navlinks.js?v=2.3.8"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -2115,7 +2115,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.3.7')
+fetch('lib/fuelplan-adaptive.js?v=2.3.8')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2132,7 +2132,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.3.7')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.3.7')
+fetch('lib/shorttrip.js?v=2.3.8')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2143,7 +2143,7 @@ fetch('lib/shorttrip.js?v=2.3.7')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.3.7"></script>
+<script src="lib/flexible-polyline.js?v=2.3.8"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2295,6 +2295,157 @@ const DATA = [
 ["WY1","TA","TA Cheyenne","4000 I-80 Service Road","Burns","WY","82053","I-80, Exit 377","(307) 365-6670",41.1602,-104.5205,"prim",140,1,12,3,"F,W,R","",1,1,"CVENTA187"],
 ];
 
+// Restaurants at each stop, from TA's location master (locmaster, exported
+// 2026-09-26): [full-service restaurant, quick-service restaurants], either
+// '' when the stop has none. Kept apart from DATA on purpose — DATA is the
+// fuel book, this is a different source on a different schedule, and a
+// column appended to DATA would tie the two together.
+//
+// Matched to DATA by phone number (141 stops), by name (AR1's "N. Little
+// Rock"), and by address for TX7: the master calls Petro Carl's Corner
+// "Petro North Hillsboro" — same 101 Cornelius Road, same I-35E Exit 374 —
+// with a different phone. Names that differ only in form (TA New Haven vs
+// "TA Express New Haven", TA Saginaw vs "TA Bridgeport") share phone and
+// coordinates. The terminal (TN6) has no row; 9 stops list no restaurant
+// and are left out. Two spellings tidied: "Mcdonald's" -> "McDonald's", and a
+// curly apostrophe straightened. Shown on the station sheet (openSheet).
+const RESTAURANTS = {
+"AL1":["","Charleys Philly Steaks, Miss J's Café"],
+"AL2":["","Popeyes"],
+"AL3":["","Popeyes"],
+"AZ1":["Black Bear Diner",""],
+"AZ2":["","A&W All American Food, Sbarro, Taco Bell"],
+"AZ3":["Black Bear Diner","Subway, Taco Bell & Pizza Hut Express"],
+"AZ4":["","Popeyes"],
+"AR1":["Iron Skillet",""],
+"AR2":["IHOP",""],
+"CA1":["","Burger King, Popeyes"],
+"CA2":["Country Pride","Pizza Hut Express, Taco Bell"],
+"CA3":["IHOP","Popeyes"],
+"CA4":["Iron Skillet",""],
+"CO1":["","Burger King, Pizza Hut Express, Popeyes"],
+"CO2":["","Highway Kitchen"],
+"CT1":["","Pizza Hut Express, Popeyes, Starbucks"],
+"FL1":["","Arby's"],
+"FL2":["","Popeyes, Subway"],
+"FL3":["","Popeyes, Taco Bell & Pizza Hut Express"],
+"FL4":["","Arby's, Popeyes"],
+"FL5":["","Popeyes, Subway"],
+"FL6":["","Pizza Hut Express, Popeyes"],
+"GA1":["","Popeyes"],
+"GA2":["IHOP","Burger King, Popeyes, Taco Bell & Pizza Hut Express"],
+"GA3":["Fuddruckers",""],
+"GA4":["IHOP","Subway"],
+"ID1":["Country Pride","Subway, Taco Bell"],
+"IL3":["","Dunkin', Popeyes, Sbarro"],
+"IL4":["IHOP",""],
+"IL5":["","Popeyes"],
+"IL6":["Black Bear Diner","Charleys Philly Steaks"],
+"IL7":["","Popeyes"],
+"IL8":["","Baskin Robbins, Dunkin'"],
+"IN1":["","Pizza Hut Express, Taco Bell"],
+"IN2":["Iron Skillet","Taco Bell & Pizza Hut Express"],
+"IN3":["","Charleys Philly Steaks, Highway Kitchen"],
+"IN4":["","Burger King"],
+"IN5":["Miss J's Diner",""],
+"IN6":["","Popeyes"],
+"KS1":["Country Pride","Wendy's"],
+"KS2":["","Miss J's, Popeyes"],
+"KY1":["","Popeyes, Subway"],
+"KY2":["Iron Skillet",""],
+"KY3":["","Highway Kitchen, KFC"],
+"LA1":["Iron Skillet",""],
+"LA2":["","KFC, Subway"],
+"LA3":["","Sbarro"],
+"LA4":["Country Pride",""],
+"LA5":["Country Pride",""],
+"LA6":["Iron Skillet",""],
+"LA7":["","Subway"],
+"MD2":["Country Pride",""],
+"MI1":["","Popeyes"],
+"MI2":["","Fazoli's, Popeyes, Tim Horton's"],
+"MI3":["Miss J's Diner",""],
+"MI4":["","Burger King, Pizza Hut, Popeyes, Taco Bell Express"],
+"MN1":["Skol Tavern","Caribou Coffee, McDonald's, Sbarro, Taco Bell"],
+"MS1":["Country Pride",""],
+"MO1":["Black Bear Diner","Blimpie, Dairy Queen, McDonald's, Starbucks, Taco Bell & Pizza Hut Express"],
+"MO2":["","Wendy's"],
+"MO3":["IHOP","Popeyes"],
+"MT1":["TA Cafe",""],
+"NE1":["Country Pride",""],
+"NV1":["","Burger King, Taco Time"],
+"NV2":["","Taco Bell Express"],
+"NV3":["Iron Skillet","Dunkin'"],
+"NH1":["Country Pride",""],
+"NJ1":["Country Pride","Burger King"],
+"NJ2":["Iron Skillet","Arby's"],
+"NJ3":["Country Pride","Pizza Hut Express, Taco Bell Express"],
+"NJ4":["","Miss J's Café"],
+"NY1":["Country Pride",""],
+"NY2":["Country Pride",""],
+"NY3":["Miss J's Diner","Miss J's, Sbarro"],
+"NY4":["Country Pride","Pizza Hut Express"],
+"NY5":["Country Pride",""],
+"NC1":["Country Pride",""],
+"NC2":["","Burger King, Popeyes"],
+"NC3":["Iron Skillet","Dairy Queen, Pizza Hut Express, Starbucks, Subway, Taco Bell, Wendy's"],
+"NC4":["","Popeyes"],
+"OH1":["IHOP","Burger King, Popeyes, Starbucks"],
+"OH2":["","Popeyes"],
+"OH4":["IHOP","Pizza Hut Express, Popeyes"],
+"OH6":["IHOP","Taco Bell & Pizza Hut Express"],
+"OK1":["IHOP",""],
+"OK2":["Iron Skillet",""],
+"OK3":["","Fazoli's, Popeyes"],
+"OR1":["","Popeyes"],
+"OR2":["Country Pride","Popeyes, Subway"],
+"PA1":["Country Pride","Subway"],
+"PA2":["","Taco Bell"],
+"PA3":["Iron Skillet",""],
+"PA4":["Country Pride",""],
+"PA5":["IHOP","Pizza Hut Express, Subway"],
+"PA6":["Country Pride",""],
+"SC1":["","Miss J's Café, Popeyes"],
+"SC2":["Country Pride",""],
+"SC3":["","Dunkin', Miss J's Café, Taco Bell"],
+"SC4":["","Popeyes"],
+"SC5":["Quaker Steak & Lube","Starbucks"],
+"SC6":["Iron Skillet",""],
+"TN1":["","Burger King, Popeyes"],
+"TN2":["","Miss J's Café"],
+"TN3":["","Popeyes"],
+"TN4":["","Burger King, Pizza Hut Express, Popeyes, Subway"],
+"TN5":["Iron Skillet",""],
+"TX1":["Black Bear Diner","Burger King, Pizza Hut Express, Popeyes"],
+"TX2":["Iron Skillet",""],
+"TX3":["IHOP",""],
+"TX4":["","Burger King, Taco Bell & Pizza Hut Express"],
+"TX5":["Black Bear Diner",""],
+"TX6":["","Burger King, Subway"],
+"TX7":["","Miss J's, Sbarro"],
+"TX8":["Black Bear Diner","Popeyes, Subway"],
+"TX9":["","Burger King, Fazoli's, Popeyes"],
+"TX10":["","Pizza Hut Express, Subway"],
+"TX11":["Iron Skillet","Popeyes"],
+"TX12":["IHOP","Burger King"],
+"TX13":["","Burger King, Pizza Hut Express"],
+"TX14":["","Tule Tree Legendary Burritos"],
+"TX15":["","Burger King, Pizza Hut"],
+"TX16":["Black Bear Diner",""],
+"UT1":["","Subway, Taco Bell"],
+"UT2":["","Burger King, Taco Bell"],
+"VA1":["Fuddruckers",""],
+"VA2":["","Pizza Hut Express, Popeyes"],
+"VA3":["IHOP","Popeyes, Subway, Taco Bell"],
+"VA4":["Quaker Steak & Lube","Burger King, Nathan's Famous Express, Papa John's Pizza, Popeyes, Subway"],
+"WA1":["","Popeyes, Starbucks"],
+"WA2":["Iron Skillet","Starbucks"],
+"WV2":["Country Pride",""],
+"WI1":["","Miss J's Café"],
+"WI2":["","Popeyes"],
+"WY1":["Country Pride","Burger King, Taco Bell"],
+};
+
 // Full names for the list's state headings. DATA carries the two-letter code
 // (row[5]) and nothing else does; every state and DC is listed, not just the
 // 40 the network covers today, so a station joining in a new state gets its
@@ -2333,7 +2484,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.3.7';
+const APP_VERSION = '2.3.8';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2347,9 +2498,10 @@ const FUEL_BOOK_REV = 'Rev 01-2026';
 // last in every string so the existing F,O,W,H,B,T prefix and ordering are
 // untouched. Source: TA's location master, 08-2026.
 //
-// R records only THAT a sit-down exists, never which brand. Country Pride,
-// Iron Skillet, IHOP, Black Bear Diner and the rest are known per stop, but
-// storing them needs a column — also a deliberate trade, not missing data.
+// R records only THAT a sit-down exists, never which brand. The brands
+// (Country Pride, Iron Skillet, IHOP, Black Bear Diner...) live in
+// RESTAURANTS since v2.3.8, beside DATA rather than in it, and agree with R
+// on every stop.
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss",R:"Sit-down restaurant"};
 const CLIN_LABEL = {M:"Medical clinic",D:"Dental clinic",C:"Chiropractic",T:"Drug testing",P:"DOT physicals"};
 const TYPE_LABEL = {excl:"Exclusive — most cost-effective",prim:"Primary network stop",term:"Covenant terminal"};
@@ -3408,6 +3560,12 @@ function openSheet(row){
   if(phone) html += `<div class="row"><div class="k">Phone</div><div class="v mono">${phone}</div></div>`;
   if(park) html += `<div class="row"><div class="k">Parking spaces</div><div class="v">${park}${resIt?' &middot; Reserve-It available':''}</div></div>`;
   if(showers) html += `<div class="row"><div class="k">Private showers</div><div class="v">${showers}</div></div>`;
+  // Food, with the comfort rows (v2.3.8): the sit-down restaurant, then the
+  // quick-service counters. Either row only when the stop has one — see
+  // RESTAURANTS. Escaped: the names are data from a spreadsheet.
+  const food = RESTAURANTS[id];
+  if(food && food[0]) html += `<div class="row"><div class="k">Full service</div><div class="v">${Esc.escapeHtml(food[0])}</div></div>`;
+  if(food && food[1]) html += `<div class="row"><div class="k">Quick service</div><div class="v">${Esc.escapeHtml(food[1])}</div></div>`;
   if(bays) html += `<div class="row"><div class="k">Truck service bays</div><div class="v">${bays}</div></div>`;
   if(scale) html += `<div class="row"><div class="k">CAT scale</div><div class="v">Yes</div></div>`;
   // No ULSD row (v2.2.12): every stop in DATA has ulsd set, so "ULSD: Yes" on
@@ -3427,8 +3585,13 @@ function openSheet(row){
   // any other row, and a "Nav code" label with an empty value beside it reads
   // as a data error rather than as a yard that was never assigned one.
   if(nav) html += `<div class="row"><div class="k">Nav code</div><div class="v mono">${nav}</div></div>`;
-  if(amen){
-    html += `<div class="amenities"><h4>Amenities</h4><div class="chip-wrap">${amenChips(amen,AMEN_LABEL)}</div></div>`;
+  // The "Sit-down restaurant" chip (R) says less than the Full service row
+  // above, which names it, so the sheet drops it whenever that row shows
+  // (v2.3.8). R stays in DATA and still drives the amenity filter; the two
+  // sources agree on all 70 stops that have one.
+  const sheetAmen = food && food[0] ? amen.split(',').filter(c => c && c !== 'R').join(',') : amen;
+  if(sheetAmen){
+    html += `<div class="amenities"><h4>Amenities</h4><div class="chip-wrap">${amenChips(sheetAmen,AMEN_LABEL)}</div></div>`;
   }
   if(clin){
     html += `<div class="amenities"><h4>On-site clinics</h4><div class="chip-wrap">${amenChips(clin,CLIN_LABEL)}</div></div>`;

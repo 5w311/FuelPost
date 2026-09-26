@@ -1716,5 +1716,23 @@ ok('>>> the theme buttons switch the theme and nothing else',
    /switchTheme\(v === 'system' \? systemTheme\(\) : v\);\s*\}\)\);/.test(codeOnly)
    && !/reloadForStatusBar/.test(html));
 
+console.log('\n=== the stop card lists its restaurants (v2.3.8) ===');
+{
+  const sheet = (codeOnly.match(/function openSheet\(row\)\{[\s\S]*?\n\}/) || [''])[0];
+  const at = s => sheet.indexOf(s);
+  ok('>>> Full service and Quick service rows, each only when the stop has one, escaped',
+     /const food = RESTAURANTS\[id\];/.test(sheet)
+     && /if\(food && food\[0\]\) html \+= `<div class="row"><div class="k">Full service<\/div><div class="v">\$\{Esc\.escapeHtml\(food\[0\]\)\}<\/div><\/div>`;/.test(sheet)
+     && /if\(food && food\[1\]\) html \+= `<div class="row"><div class="k">Quick service<\/div><div class="v">\$\{Esc\.escapeHtml\(food\[1\]\)\}<\/div><\/div>`;/.test(sheet));
+  ok('  with the comfort rows: after Private showers, before Truck service bays',
+     at('Private showers') > 0 && at('Private showers') < at('Full service')
+     && at('Full service') < at('Quick service') && at('Quick service') < at('Truck service bays'));
+  ok('>>> the Sit-down restaurant chip drops off the card only when Full service names it',
+     /const sheetAmen = food && food\[0\] \? amen\.split\(','\)\.filter\(c => c && c !== 'R'\)\.join\(','\) : amen;/.test(sheet)
+     && /if\(sheetAmen\)\{\s*html \+= `<div class="amenities"><h4>Amenities<\/h4><div class="chip-wrap">\$\{amenChips\(sheetAmen,AMEN_LABEL\)\}/.test(sheet));
+  ok('  R still labelled, so the amenity filter keeps it',
+     /R:"Sit-down restaurant"/.test(html));
+}
+
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;

@@ -235,7 +235,8 @@ in the first place.
 is current and complete. The fitness room flag is mostly right but probably
 missing a few. **The walking trail flag is over-claimed** — the list says 95
 stops have one and TA's own data says none do. Nothing was ever invented to fill
-a gap.
+a gap. The restaurant names on a stop's card come from TA's location list of
+September 2026; 9 stops list no restaurant there, so their cards show none.
 
 ---
 
@@ -651,6 +652,11 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.3.8
+A stop's card lists its restaurants: the sit-down restaurant as Full service
+and the counters as Quick service, taken from TA's location list. When a stop
+has a Full service row, its amenities no longer repeat "Sit-down restaurant".
 
 ### v2.3.7
 Undoes v2.3.6: picking Light or Dark in More no longer reloads the app. The
