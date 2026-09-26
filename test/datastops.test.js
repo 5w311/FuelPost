@@ -50,10 +50,10 @@ ok('exactly 1 terminal row in DATA', terms.length === 1, JSON.stringify(terms.ma
 ok('  it is TN6, Covenant Logistics HQ', terms.map(r => r[0]).join() === 'TN6',
    JSON.stringify(terms.map(r => r[0])));
 
-// 144 rows - 1 terminal - 1 closed = 142, the same figure as before the
-// deletions: one of each kind went. The header is DERIVED (filtered.length),
-// so it now reads 144 with no filters on, and needs no separate pin.
-ok('mapping yields 142 fuel stops', FUEL_STOPS.length === 142, FUEL_STOPS.length);
+// 144 rows - 1 terminal = 143. It was 142 while TA Gary was closed; it
+// reopened in v2.3.8. The header is DERIVED (filtered.length), so it reads
+// 144 with no filters on, and needs no separate pin.
+ok('mapping yields 143 fuel stops', FUEL_STOPS.length === 143, FUEL_STOPS.length);
 ok('no terminal survives the filter', FUEL_STOPS.every(s => s.tier !== 'term'),
    JSON.stringify(FUEL_STOPS.filter(s => s.tier === 'term').map(s => s.id)));
 ok('  TN6 is not a fuel stop', !FUEL_STOPS.some(s => s.id === 'TN6'));
@@ -62,15 +62,15 @@ ok('every fuel stop is excl or prim',
    JSON.stringify([...new Set(FUEL_STOPS.map(s => s.tier))]));
 
 console.log('\n=== closed stations: excluded from planning, kept in DATA ===');
-// One row now: TA Gary (IN1), reported temporarily closed with only its
-// parking lot open. TA Corning used to be the other, and v1.31.0 deleted it
-// rather than closing it — which is the distinction this whole section turns
-// on. A CLOSED row stays in DATA, keeps its pin, its list entry and its sheet,
-// and is merely never planned; a DELETED row is gone, and a driver who goes
-// looking for it learns nothing.
-ok('the closed set was actually found in index.html (not an empty regex match)',
-   CLOSED_STOP_IDS.size === 1, JSON.stringify([...CLOSED_STOP_IDS]));
-ok('  it is exactly IN1', [...CLOSED_STOP_IDS].join() === 'IN1',
+// No row now. TA Gary (IN1) was the last — temporarily closed with only its
+// parking lot open — and reopened in v2.3.8. TA Corning used to be the other,
+// and v1.31.0 deleted it rather than closing it — which is the distinction
+// this whole section turns on. A CLOSED row stays in DATA, keeps its pin, its
+// list entry and its sheet, and is merely never planned; a DELETED row is
+// gone, and a driver who goes looking for it learns nothing.
+ok('the closed set was actually found in index.html (the declaration, not a miss)',
+   /const CLOSED_STOP_IDS = new Set\(\[\]\);/.test(html));
+ok('  and it is empty: TA Gary reopened (v2.3.8)', CLOSED_STOP_IDS.size === 0,
    JSON.stringify([...CLOSED_STOP_IDS]));
 // THE REGRESSION THIS FILE EXISTS TO CATCH FROM NOW ON: v1.22.0 marked TA
 // Saginaw (MI3) closed because it was looked up under "Saginaw" while TA
@@ -81,19 +81,15 @@ ok('>>> TA Saginaw (MI3) IS plannable — a rename is not a closure',
    FUEL_STOPS.some(s => s.id === 'MI3'),
    JSON.stringify([...CLOSED_STOP_IDS]));
 ok('  and MI3 is not in the closed set at all', !CLOSED_STOP_IDS.has('MI3'));
-// v1.30.2. A temporary closure is excluded on exactly the same terms as a
-// permanent one. The tempting half-measure — leave it plannable because the
-// gate is open — routes a driver to an island that cannot sell them fuel,
-// which is the whole failure this set exists to prevent.
-ok('>>> TA Gary (IN1) is excluded too — parking open is not fuel available',
-   !FUEL_STOPS.some(s => s.id === 'IN1') && CLOSED_STOP_IDS.has('IN1'));
+// v1.30.2 closed TA Gary for fuel with its parking open, on the same terms as
+// a permanent closure. v2.3.8 reopened it: plannable again, like any stop.
+ok('>>> TA Gary (IN1) is plannable again (reopened, v2.3.8)',
+   FUEL_STOPS.some(s => s.id === 'IN1') && !CLOSED_STOP_IDS.has('IN1'));
 ok('  and TA Gary is still in DATA under its own name',
    (DATA.find(r => r[0] === 'IN1') || [])[2] === 'TA Gary');
 // The Corning trap again, in Indiana. TA Gary and Petro Gary are two separate
 // stations 2.5 mi apart on I-80/I-94 (exits 6 and 9), with different
-// addresses, phones and nav codes. Shutting one must not take the other, and
-// Petro Gary is the alternative the closed sheet points at — so if this ever
-// fails, the banner is sending drivers to a stop the planner won't use.
+// addresses, phones and nav codes. Shutting one must not take the other.
 ok('>>> Petro Gary (IN2) is still plannable', FUEL_STOPS.some(s => s.id === 'IN2'));
 {
   const in1 = DATA.find(r => r[0] === 'IN1') || [];
@@ -201,10 +197,10 @@ console.log('\n=== marker stacking: a closed pin never hides an open one ===');
   ok('>>> the legend explains the red dot', /var\(--pin-closed\)/.test(legendCard), legendCard.slice(0, 60));
   ok('  right after the gold one it has to be told apart from',
      legendCard.indexOf('var(--gold)') < legendCard.indexOf('var(--pin-closed)'));
-  // Worded for what BOTH closures share. TA Gary is still open for parking,
-  // so a bare "Closed" in the legend would overstate its own pin.
-  ok('  and says "for fuel", not a bare "Closed" that overstates TA Gary',
-     /Closed for fuel/.test(legendCard), legendCard);
+  // Kept when TA Gary reopened (v2.3.8), so the next closure is explained,
+  // and worded as the driver asked for it.
+  ok('  and reads "Closed Temporarily"',
+     /var\(--pin-closed\)"><\/span> Closed Temporarily<\/div>/.test(legendCard), legendCard);
   ok('  the swatch reads the same variable as the pin (one red, not two)',
      (html.match(/var\(--pin-closed\)/g) || []).length === 2,
      String((html.match(/var\(--pin-closed\)/g) || []).length));
@@ -419,6 +415,49 @@ console.log('\n=== Petro Amarillo sits on I-40, not on HERE\'s wrong listing (v2
      off < 0.25, row && JSON.stringify([row[9], row[10], off.toFixed(2) + ' mi']));
   ok('  and nowhere near HERE\'s S Lakeside Dr listing',
      row && miles(row[9], row[10], 35.1332, -101.7425) > 3);
+}
+
+console.log('\n=== restaurants at each stop (v2.3.8) ===');
+{
+  // RESTAURANTS sits right after DATA: one line per stop, read line by line
+  // like DATA is — no eval of the page.
+  const start = html.indexOf('const RESTAURANTS = {');
+  const body = start < 0 ? '' : html.slice(start, html.indexOf('\n};', start));
+  const lines = body.split('\n').slice(1);
+  const REST = {};
+  let badLines = 0;
+  for (const line of lines) {
+    const m = line.match(/^"([A-Z]{2}\d+)":(\[.*\]),$/);
+    if (!m) { badLines++; continue; }
+    try { REST[m[1]] = JSON.parse(m[2]); } catch (e) { badLines++; }
+  }
+  const ids = Object.keys(REST);
+  const byId = new Map(DATA.map(r => [r[0], r]));
+  ok('>>> RESTAURANTS holds 134 stops, one clean line each',
+     ids.length === 134 && badLines === 0, `${ids.length} stops, ${badLines} bad lines`);
+  ok('  every key is a stop in DATA', ids.every(id => byId.has(id)),
+     ids.filter(id => !byId.has(id)).join(','));
+  ok('  the terminal has none', !('TN6' in REST) && byId.get('TN6') && byId.get('TN6')[11] === 'term');
+  ok('  each is [full service, quick service], strings, never both empty',
+     ids.every(id => Array.isArray(REST[id]) && REST[id].length === 2
+       && REST[id].every(v => typeof v === 'string' && v === v.trim())
+       && (REST[id][0] || REST[id][1])));
+  ok('  spellings tidied: no curly apostrophes, no "Mcdonald\'s"',
+     !/[‘’]/.test(body) && !/Mcdonald/.test(body));
+  // The two sources were built apart and agree: a Full service name exactly
+  // where DATA's amenity column carries R. If a future export disagrees, the
+  // sheet would show a restaurant the filter can't find, or the reverse.
+  const withR = DATA.filter(r => (r[16] || '').split(',').includes('R')).map(r => r[0]).sort();
+  const withFull = ids.filter(id => REST[id][0]).sort();
+  ok('>>> a Full service name on exactly the 70 stops flagged sit-down restaurant',
+     withR.length === 70 && JSON.stringify(withR) === JSON.stringify(withFull),
+     `R ${withR.length}, full ${withFull.length}`);
+  ok('  spot checks: TA Ashland, TA Tonopah, Petro North Little Rock, Petro Carl\'s Corner',
+     JSON.stringify(REST.VA1) === JSON.stringify(['Fuddruckers', ''])
+     && JSON.stringify(REST.AZ3) === JSON.stringify(['Black Bear Diner', 'Subway, Taco Bell & Pizza Hut Express'])
+     && JSON.stringify(REST.AR1) === JSON.stringify(['Iron Skillet', ''])
+     && JSON.stringify(REST.TX7) === JSON.stringify(['', "Miss J's, Sbarro"])
+     && JSON.stringify(REST.AL1) === JSON.stringify(['', "Charleys Philly Steaks, Miss J's Café"]));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

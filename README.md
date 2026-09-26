@@ -180,8 +180,13 @@ the nearest fuel" — tap it to see the nearest four.
 roads you're not on. 25 stops sit on two or more interstates and show up under
 either.
 
-**Filters** — state, corridor and amenities, all applied together. Reset clears
-them but leaves your search text alone.
+**Filters** — state, corridor, restaurant and amenities, all applied together.
+Reset clears them but leaves your search text alone.
+
+**Restaurant filter** — every restaurant in the network, sit-down ones first,
+with how many stops have each. Pick Popeyes and IHOP and you get stops with
+either. Taco Bell also finds the Taco Bell Express counters and the shared Taco
+Bell & Pizza Hut Express ones, and Pizza Hut works the same way.
 
 **Amenities:** 10+ showers, fitness room, sit-down restaurant. Others were tried
 and dropped for being useless — every single stop has a CAT scale, so filtering
@@ -212,20 +217,17 @@ from the map service. When the signal comes back, the map loads on its own.
 
 # About the station list
 
-**144 stops. 142 you can be routed to** — one is the Covenant yard, one is
-closed.
+**144 stops. 143 you can be routed to** — the other is the Covenant yard.
 
 **The header shows which fuel book the list came from** (`Rev 01-2026`). This
 matters: when the book is reissued, stops join and leave the network, and
 **fuelling at a stop that has left it is a compliance violation.** If the book on
 your side is newer than the one in the header, the list is stale.
 
-**TA Gary is closed for fuel — parking only.** The lot is open and taking trucks,
-but there's no fuel, showers or service. It's still on the map and in the list so
-you can find it and see what happened, and it still has Call and Navigate,
-because you can still go park there. It's just never used in a plan. Its sheet
-points you at Petro Gary, which is a **different station** 2.5 miles away at a
-different exit — not the same place renamed.
+**No stop is closed right now.** TA Gary was closed for fuel with only its lot
+open, and is open again. A closed stop wears a red dot on its pin (More calls it
+"Closed Temporarily"), stays on the map and in the list with a note on its card
+saying what's shut, and is never used in a plan.
 
 **A closed stop is never quietly deleted.** If it's in the fuel book, it stays
 visible with an explanation. Rows only get removed when the book never had them
@@ -235,7 +237,8 @@ in the first place.
 is current and complete. The fitness room flag is mostly right but probably
 missing a few. **The walking trail flag is over-claimed** — the list says 95
 stops have one and TA's own data says none do. Nothing was ever invented to fill
-a gap.
+a gap. The restaurant names on a stop's card come from TA's location list of
+September 2026; 9 stops list no restaurant there, so their cards show none.
 
 ---
 
@@ -651,6 +654,14 @@ and in the code comments. Nothing below is needed to use the app.
 Three releases shipped as v1.65.0, v1.66.0 and v2.0.0 on the same day and are
 one entry here. The commits keep their own titles, so git log names two versions
 this list does not.
+
+### v2.3.8
+A stop's card lists its restaurants: the sit-down restaurant as Full service
+and the counters as Quick service, taken from TA's location list. When a stop
+has a Full service row, its amenities no longer repeat "Sit-down restaurant".
+Filters has a restaurant list too, to show only the stops with the ones you pick.
+TA Gary is open again and back in plans. In More, the red dot now reads "Closed
+Temporarily" and the terminal reads "Covenant Terminal".
 
 ### v2.3.7
 Undoes v2.3.6: picking Light or Dark in More no longer reloads the app. The

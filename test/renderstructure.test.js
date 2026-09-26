@@ -602,25 +602,23 @@ const entry = id => {
   if (i < 0) return '';
   return infoBody.slice(i, infoBody.indexOf('\n  }', i));
 };
-// One entry since v1.31.0: TA Corning was deleted from DATA outright (it was
-// never in the fuel book — a data-collection error), so its CLOSED_STOP_INFO
-// entry went with it. The table keeps its per-station SHAPE deliberately: it
-// was built for two, and the next closure should be a row added here rather
-// than a renderer rewritten, which is what the lookup assertions below pin.
-const IN1_E = entry('IN1');
-ok('  the entry was actually found (not an empty string)',
-   IN1_E.length > 40 && !IN1_E.includes('CA5'), JSON.stringify([IN1_E.length]));
-ok('  and the deleted station has no entry left behind',
-   entry('CA5') === '', entry('CA5'));
-ok('>>> TA Gary says temporarily closed AND that parking is what is left',
-   /title: 'Temporarily closed — parking only'/.test(IN1_E)
-   && /The lot is open and taking trucks/.test(IN1_E), IN1_E);
-ok('  the list chip for TA Gary reads "Parking only", not "Closed"',
-   /tag: 'Parking only'/.test(IN1_E));
-// The banner has to disown the amenity rows under it: those rows still read
-// 14 showers and 6 bays, straight from the fuel book.
-ok('  and it names what is closed, not just that something is',
-   /showers/.test(IN1_E) && /service bays/.test(IN1_E), IN1_E);
+// Empty since v2.3.8. TA Corning was deleted from DATA outright in v1.31.0
+// (never in the fuel book — a data-collection error), and TA Gary reopened in
+// v2.3.8; each entry went with its closure. The table keeps its per-station
+// SHAPE deliberately: the next closure should be a row added here rather than
+// a renderer rewritten, which is what the lookup assertions below pin.
+ok('  the table was actually found, and is empty',
+   /^const CLOSED_STOP_INFO = \{\s*\};$/.test(infoBody), infoBody);
+ok('  neither TA Gary nor the deleted TA Corning has an entry left behind',
+   entry('IN1') === '' && entry('CA5') === '');
+// The list row reads CLOSED_STOP_INFO[id].tag for every closed id, so an id
+// in the set without an entry would throw and take the list with it.
+{
+  const ids = ((html.match(/const CLOSED_STOP_IDS = new Set\(\[([^\]]*)\]\)/) || [, ''])[1]
+    .match(/'([^']+)'/g) || []).map(q => q.slice(1, -1));
+  ok('>>> every closed id has an entry (none closed today, so none needed)',
+     ids.every(id => entry(id) !== ''), JSON.stringify(ids));
+}
 ok('the banner uses theme custom properties, not a fixed light-mode red',
    /#sheet \.closedNote\{[^}]*var\(--danger-text\)/.test(html)
    && !/#sheet \.closedNote\{[^}]*background:#[0-9A-Fa-f]{6}/.test(html));
@@ -629,15 +627,12 @@ ok('the banner uses theme custom properties, not a fixed light-mode red',
 ok('>>> the alternative is looked up, never hardcoded per station',
    /const alt = DATA\.find\(r => r\[0\] === info\.alt\)/.test(osBody0)
    && /\$\{alt \?/.test(osBody0));
-ok('  the table names Petro Gary as TA Gary\'s alternative',
-   /alt: 'IN2'/.test(IN1_E));
 // Only ONE of the two alternatives is at the same exit — Petro Gary is at
 // exit 9 against TA Gary's exit 6 — so the relationship cannot be a constant
 // in the sentence. It was one before v1.30.2, and shipping the new row
 // without this would have told drivers to look for Petro Gary at exit 6.
 ok('>>> how the alternative relates to the stop is per-station, not "same exit"',
    /\$\{info\.altNote\}/.test(osBody0) && !/same exit \(/.test(osBody0));
-ok('  and the entry says which it is', /altNote: '2\.5 mi east'/.test(IN1_E));
 ok('the list row also carries a closed tag, worded per station',
    /CLOSED_STOP_IDS\.has\(row\[0\]\)\?`<span class="tag tag-closed">\$\{CLOSED_STOP_INFO\[row\[0\]\]\.tag\}<\/span>`/.test(html));
 
@@ -1645,7 +1640,7 @@ console.log('\n=== More: the legend in two columns, the version centred (v2.2.26
   const at = s => grid.indexOf(s);
   ok('>>> TA beside Exclusive, Petro beside Closed, the terminal under them',
      at('TA location') > 0 && at('TA location') < at('Exclusive (most') && at('Exclusive (most') < at('Petro location')
-     && at('Petro location') < at('Closed for fuel') && at('Closed for fuel') < at('Covenant terminal'), grid.slice(0, 300));
+     && at('Petro location') < at('Closed Temporarily') && at('Closed Temporarily') < at('Covenant Terminal'), grid.slice(0, 300));
   ok('  a real two-column grid, over the flat flex rule: brands as wide as they need, the rest to the right',
      /#legendCard \.legend-grid\{display:grid;grid-template-columns:max-content minmax\(0,1fr\);/.test(html));
   ok('>>> ONE size for every key, scaling with the screen to a 12px floor; brands never wrap (v2.2.29)',
@@ -1715,6 +1710,24 @@ console.log('\n=== a theme switch does NOT reload (v2.3.6 tried it; v2.3.7 took 
 ok('>>> the theme buttons switch the theme and nothing else',
    /switchTheme\(v === 'system' \? systemTheme\(\) : v\);\s*\}\)\);/.test(codeOnly)
    && !/reloadForStatusBar/.test(html));
+
+console.log('\n=== the stop card lists its restaurants (v2.3.8) ===');
+{
+  const sheet = (codeOnly.match(/function openSheet\(row\)\{[\s\S]*?\n\}/) || [''])[0];
+  const at = s => sheet.indexOf(s);
+  ok('>>> Full service and Quick service rows, each only when the stop has one, escaped',
+     /const food = RESTAURANTS\[id\];/.test(sheet)
+     && /if\(food && food\[0\]\) html \+= `<div class="row"><div class="k">Full service<\/div><div class="v">\$\{Esc\.escapeHtml\(food\[0\]\)\}<\/div><\/div>`;/.test(sheet)
+     && /if\(food && food\[1\]\) html \+= `<div class="row"><div class="k">Quick service<\/div><div class="v">\$\{Esc\.escapeHtml\(food\[1\]\)\}<\/div><\/div>`;/.test(sheet));
+  ok('  with the comfort rows: after Private showers, before Truck service bays',
+     at('Private showers') > 0 && at('Private showers') < at('Full service')
+     && at('Full service') < at('Quick service') && at('Quick service') < at('Truck service bays'));
+  ok('>>> the Sit-down restaurant chip drops off the card only when Full service names it',
+     /const sheetAmen = food && food\[0\] \? amen\.split\(','\)\.filter\(c => c && c !== 'R'\)\.join\(','\) : amen;/.test(sheet)
+     && /if\(sheetAmen\)\{\s*html \+= `<div class="amenities"><h4>Amenities<\/h4><div class="chip-wrap">\$\{amenChips\(sheetAmen,AMEN_LABEL\)\}/.test(sheet));
+  ok('  R still labelled, so the amenity filter keeps it',
+     /R:"Sit-down restaurant"/.test(html));
+}
 
 console.log(`\n${p} passed, ${f} failed`);
 if (f) process.exitCode = 1;

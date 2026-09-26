@@ -559,6 +559,10 @@
   #filterCard .fm-opt{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;
     font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;}
   #filterCard .fm-opt input{flex-shrink:0;width:16px;height:16px;accent-color:var(--ta);margin:0;}
+  /* A heading inside a list — the restaurant list's Full service / Quick
+     service. Text, not a control: it has no checkbox and takes no tap. */
+  #filterCard .fm-head{padding:8px 8px 4px;font-size:10px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.5px;color:var(--sub);}
   #filterCard .reset-filters{display:block;width:100%;margin-top:10px;padding:8px 10px;
     border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--navy-text);
     font-size:12.5px;font-weight:700;}
@@ -1370,6 +1374,7 @@ body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_
 #filterCard .fm-list{max-height:240px;margin-top:6px;border-radius:14px;background:var(--fill);border:0;}
 #filterCard .fm-opt{min-height:44px;padding:0 14px;font-size:16px;border-radius:0;}
 #filterCard .fm-opt input{width:20px;height:20px;accent-color:var(--accent-fill);}
+#filterCard .fm-head{padding:14px 14px 6px;font-size:13px;font-weight:600;letter-spacing:0;}
 .amen-head{font-size:15px;font-weight:600;text-transform:none;letter-spacing:0;margin:18px 0 8px;}
 .amen-wrap{gap:8px;}
 .amen-wrap button{font-size:15px;font-weight:600;padding:0 14px;min-height:40px;border-radius:20px;background:var(--fill);border:.5px solid transparent;color:var(--ink);}
@@ -1391,7 +1396,8 @@ body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_
    beside them looked out of place). The brand column is only as wide as
    "Petro location" and never wraps; the whole grid scales with the screen,
    16px down to a 12px floor, sized so a row (dot, brand, dot, "Closed for
-   fuel — tap for details") fits: ~14px on a 440-wide phone. The divisor is
+   fuel — tap for details", the red dot's label until v2.3.8's shorter
+   "Closed Temporarily") fits: ~14px on a 440-wide phone. The divisor is
    measured with a wider font than iOS's, so on an iPhone the row fits with
    room to spare; where it still can't, the long label wraps. */
 #legendCard{--legend-fs:clamp(12px, calc((100vw - 118px) / 23), 16px);}
@@ -1953,12 +1959,12 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
         <div><span class="sw" style="background:var(--gold)"></span> Exclusive (most cost-effective)</div>
         <div><span class="sw" style="background:var(--petro)"></span> Petro location</div>
         <!-- The legend already explained the gold dot, so a red one with nothing
-             explaining it would be a symbol the driver has to guess at. Worded
-             for what the two closures SHARE — neither can sell fuel — since one
-             of them (TA Gary) is still open for parking and "Closed" alone would
-             overstate it. The pin's own sheet carries the specifics. -->
-        <div><span class="sw" style="background:var(--pin-closed)"></span> Closed for fuel — tap for details</div>
-        <div><span class="sw" style="background:var(--navy);border-radius:4px"></span> Covenant terminal</div>
+             explaining it would be a symbol the driver has to guess at. Kept
+             when TA Gary reopened (v2.3.8) and no pin wears it, and reworded
+             "Closed Temporarily" at the driver's ask; a closed pin's own sheet
+             carries the specifics. -->
+        <div><span class="sw" style="background:var(--pin-closed)"></span> Closed Temporarily</div>
+        <div><span class="sw" style="background:var(--navy);border-radius:4px"></span> Covenant Terminal</div>
       </div>
       <div id="legendSupportNote" style="margin-top:6px;color:var(--sub);font-size:10.5px;line-height:1.4;border-top:1px solid var(--line);padding-top:6px;"></div>
       <div class="theme-row">
@@ -2006,6 +2012,17 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
           <span class="fm-caret" aria-hidden="true">▾</span>
         </button>
         <div class="fm-list" id="corridorList" role="group" aria-label="Filter by corridor" hidden></div>
+      </div>
+      <!-- Restaurant (v2.3.8). The third multi-select, same control again:
+           every restaurant in RESTAURANTS, under Full service and Quick
+           service headings, built at startup like the other two. -->
+      <div class="fm stops-only">
+        <button type="button" id="foodToggle" class="fm-toggle"
+                aria-expanded="false" aria-controls="foodList">
+          <span class="fm-sum" id="foodSummary">All restaurants</span>
+          <span class="fm-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="fm-list" id="foodList" role="group" aria-label="Filter by restaurant" hidden></div>
       </div>
       <div class="amen-head">What do you need tonight?</div>
       <div class="amen-wrap" id="amenWrap" role="group" aria-label="Amenity filters">
@@ -2071,35 +2088,35 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      commit). test/cachebust.test.js fails the suite if any stamp drifts from
      APP_VERSION, so bump them together. -->
 <script>var module = { exports: {} };</script>
-<script src="lib/fuelplan.js?v=2.3.7"></script>
+<script src="lib/fuelplan.js?v=2.3.8"></script>
 <script>var FuelPlan = module.exports; module = { exports: {} };</script>
-<script src="lib/triptext.js?v=2.3.7"></script>
+<script src="lib/triptext.js?v=2.3.8"></script>
 <script>var TripText = module.exports; module = { exports: {} };</script>
-<script src="lib/location.js?v=2.3.7"></script>
+<script src="lib/location.js?v=2.3.8"></script>
 <script>var GeoLib = module.exports; module = { exports: {} };</script>
-<script src="lib/gauge.js?v=2.3.7"></script>
+<script src="lib/gauge.js?v=2.3.8"></script>
 <script>var FuelGauge = module.exports; module = { exports: {} };</script>
-<script src="lib/corridors.js?v=2.3.7"></script>
+<script src="lib/corridors.js?v=2.3.8"></script>
 <script>var Corridors = module.exports; module = { exports: {} };</script>
-<script src="lib/nearme.js?v=2.3.7"></script>
+<script src="lib/nearme.js?v=2.3.8"></script>
 <script>var NearMe = module.exports; module = { exports: {} };</script>
-<script src="lib/extract-version.js?v=2.3.7"></script>
+<script src="lib/extract-version.js?v=2.3.8"></script>
 <script>var ExtractVersion = module.exports; module = { exports: {} };</script>
-<script src="lib/autosuggest.js?v=2.3.7"></script>
+<script src="lib/autosuggest.js?v=2.3.8"></script>
 <script>var AutoSuggest = module.exports; module = { exports: {} };</script>
-<script src="lib/baselayer.js?v=2.3.7"></script>
+<script src="lib/baselayer.js?v=2.3.8"></script>
 <script>var BaseLayer = module.exports; module = { exports: {} };</script>
-<script src="lib/memocache.js?v=2.3.7"></script>
+<script src="lib/memocache.js?v=2.3.8"></script>
 <script>var MemoCache = module.exports; module = { exports: {} };</script>
-<script src="lib/routerank.js?v=2.3.7"></script>
+<script src="lib/routerank.js?v=2.3.8"></script>
 <script>var RouteRank = module.exports; module = { exports: {} };</script>
-<script src="lib/vehicleprofile.js?v=2.3.7"></script>
+<script src="lib/vehicleprofile.js?v=2.3.8"></script>
 <script>var VehicleProfile = module.exports; module = { exports: {} };</script>
-<script src="lib/escape.js?v=2.3.7"></script>
+<script src="lib/escape.js?v=2.3.8"></script>
 <script>var Esc = module.exports; module = { exports: {} };</script>
-<script src="lib/stopfilter.js?v=2.3.7"></script>
+<script src="lib/stopfilter.js?v=2.3.8"></script>
 <script>var StopFilter = module.exports; module = { exports: {} };</script>
-<script src="lib/navlinks.js?v=2.3.7"></script>
+<script src="lib/navlinks.js?v=2.3.8"></script>
 <script>var NavLinks = module.exports; module = { exports: {} };</script>
 
 <!-- fuelplan-adaptive.js ships unmodified and does `require('./fuelplan.js')`
@@ -2115,7 +2132,7 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
      mode never loads this file. -->
 <script>
 var FuelPlanAdaptive;
-fetch('lib/fuelplan-adaptive.js?v=2.3.7')
+fetch('lib/fuelplan-adaptive.js?v=2.3.8')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2132,7 +2149,7 @@ fetch('lib/fuelplan-adaptive.js?v=2.3.7')
 // same reason as the long comment above. planLoad() guards on both being
 // loaded before planning.
 var ShortTrip;
-fetch('lib/shorttrip.js?v=2.3.7')
+fetch('lib/shorttrip.js?v=2.3.8')
   .then(r => r.text())
   .then(src => {
     const m = { exports: {} };
@@ -2143,7 +2160,7 @@ fetch('lib/shorttrip.js?v=2.3.7')
   .catch(err => console.error('Failed to load lib/shorttrip.js:', err));
 </script>
 
-<script src="lib/flexible-polyline.js?v=2.3.7"></script>
+<script src="lib/flexible-polyline.js?v=2.3.8"></script>
 <script>var FlexPolyline = module.exports; module = undefined;</script>
 
 <script>
@@ -2295,6 +2312,157 @@ const DATA = [
 ["WY1","TA","TA Cheyenne","4000 I-80 Service Road","Burns","WY","82053","I-80, Exit 377","(307) 365-6670",41.1602,-104.5205,"prim",140,1,12,3,"F,W,R","",1,1,"CVENTA187"],
 ];
 
+// Restaurants at each stop, from TA's location master (locmaster, exported
+// 2026-09-26): [full-service restaurant, quick-service restaurants], either
+// '' when the stop has none. Kept apart from DATA on purpose — DATA is the
+// fuel book, this is a different source on a different schedule, and a
+// column appended to DATA would tie the two together.
+//
+// Matched to DATA by phone number (141 stops), by name (AR1's "N. Little
+// Rock"), and by address for TX7: the master calls Petro Carl's Corner
+// "Petro North Hillsboro" — same 101 Cornelius Road, same I-35E Exit 374 —
+// with a different phone. Names that differ only in form (TA New Haven vs
+// "TA Express New Haven", TA Saginaw vs "TA Bridgeport") share phone and
+// coordinates. The terminal (TN6) has no row; 9 stops list no restaurant
+// and are left out. Two spellings tidied: "Mcdonald's" -> "McDonald's", and a
+// curly apostrophe straightened. Shown on the station sheet (openSheet).
+const RESTAURANTS = {
+"AL1":["","Charleys Philly Steaks, Miss J's Café"],
+"AL2":["","Popeyes"],
+"AL3":["","Popeyes"],
+"AZ1":["Black Bear Diner",""],
+"AZ2":["","A&W All American Food, Sbarro, Taco Bell"],
+"AZ3":["Black Bear Diner","Subway, Taco Bell & Pizza Hut Express"],
+"AZ4":["","Popeyes"],
+"AR1":["Iron Skillet",""],
+"AR2":["IHOP",""],
+"CA1":["","Burger King, Popeyes"],
+"CA2":["Country Pride","Pizza Hut Express, Taco Bell"],
+"CA3":["IHOP","Popeyes"],
+"CA4":["Iron Skillet",""],
+"CO1":["","Burger King, Pizza Hut Express, Popeyes"],
+"CO2":["","Highway Kitchen"],
+"CT1":["","Pizza Hut Express, Popeyes, Starbucks"],
+"FL1":["","Arby's"],
+"FL2":["","Popeyes, Subway"],
+"FL3":["","Popeyes, Taco Bell & Pizza Hut Express"],
+"FL4":["","Arby's, Popeyes"],
+"FL5":["","Popeyes, Subway"],
+"FL6":["","Pizza Hut Express, Popeyes"],
+"GA1":["","Popeyes"],
+"GA2":["IHOP","Burger King, Popeyes, Taco Bell & Pizza Hut Express"],
+"GA3":["Fuddruckers",""],
+"GA4":["IHOP","Subway"],
+"ID1":["Country Pride","Subway, Taco Bell"],
+"IL3":["","Dunkin', Popeyes, Sbarro"],
+"IL4":["IHOP",""],
+"IL5":["","Popeyes"],
+"IL6":["Black Bear Diner","Charleys Philly Steaks"],
+"IL7":["","Popeyes"],
+"IL8":["","Baskin Robbins, Dunkin'"],
+"IN1":["","Pizza Hut Express, Taco Bell"],
+"IN2":["Iron Skillet","Taco Bell & Pizza Hut Express"],
+"IN3":["","Charleys Philly Steaks, Highway Kitchen"],
+"IN4":["","Burger King"],
+"IN5":["Miss J's Diner",""],
+"IN6":["","Popeyes"],
+"KS1":["Country Pride","Wendy's"],
+"KS2":["","Miss J's, Popeyes"],
+"KY1":["","Popeyes, Subway"],
+"KY2":["Iron Skillet",""],
+"KY3":["","Highway Kitchen, KFC"],
+"LA1":["Iron Skillet",""],
+"LA2":["","KFC, Subway"],
+"LA3":["","Sbarro"],
+"LA4":["Country Pride",""],
+"LA5":["Country Pride",""],
+"LA6":["Iron Skillet",""],
+"LA7":["","Subway"],
+"MD2":["Country Pride",""],
+"MI1":["","Popeyes"],
+"MI2":["","Fazoli's, Popeyes, Tim Horton's"],
+"MI3":["Miss J's Diner",""],
+"MI4":["","Burger King, Pizza Hut, Popeyes, Taco Bell Express"],
+"MN1":["Skol Tavern","Caribou Coffee, McDonald's, Sbarro, Taco Bell"],
+"MS1":["Country Pride",""],
+"MO1":["Black Bear Diner","Blimpie, Dairy Queen, McDonald's, Starbucks, Taco Bell & Pizza Hut Express"],
+"MO2":["","Wendy's"],
+"MO3":["IHOP","Popeyes"],
+"MT1":["TA Cafe",""],
+"NE1":["Country Pride",""],
+"NV1":["","Burger King, Taco Time"],
+"NV2":["","Taco Bell Express"],
+"NV3":["Iron Skillet","Dunkin'"],
+"NH1":["Country Pride",""],
+"NJ1":["Country Pride","Burger King"],
+"NJ2":["Iron Skillet","Arby's"],
+"NJ3":["Country Pride","Pizza Hut Express, Taco Bell Express"],
+"NJ4":["","Miss J's Café"],
+"NY1":["Country Pride",""],
+"NY2":["Country Pride",""],
+"NY3":["Miss J's Diner","Miss J's, Sbarro"],
+"NY4":["Country Pride","Pizza Hut Express"],
+"NY5":["Country Pride",""],
+"NC1":["Country Pride",""],
+"NC2":["","Burger King, Popeyes"],
+"NC3":["Iron Skillet","Dairy Queen, Pizza Hut Express, Starbucks, Subway, Taco Bell, Wendy's"],
+"NC4":["","Popeyes"],
+"OH1":["IHOP","Burger King, Popeyes, Starbucks"],
+"OH2":["","Popeyes"],
+"OH4":["IHOP","Pizza Hut Express, Popeyes"],
+"OH6":["IHOP","Taco Bell & Pizza Hut Express"],
+"OK1":["IHOP",""],
+"OK2":["Iron Skillet",""],
+"OK3":["","Fazoli's, Popeyes"],
+"OR1":["","Popeyes"],
+"OR2":["Country Pride","Popeyes, Subway"],
+"PA1":["Country Pride","Subway"],
+"PA2":["","Taco Bell"],
+"PA3":["Iron Skillet",""],
+"PA4":["Country Pride",""],
+"PA5":["IHOP","Pizza Hut Express, Subway"],
+"PA6":["Country Pride",""],
+"SC1":["","Miss J's Café, Popeyes"],
+"SC2":["Country Pride",""],
+"SC3":["","Dunkin', Miss J's Café, Taco Bell"],
+"SC4":["","Popeyes"],
+"SC5":["Quaker Steak & Lube","Starbucks"],
+"SC6":["Iron Skillet",""],
+"TN1":["","Burger King, Popeyes"],
+"TN2":["","Miss J's Café"],
+"TN3":["","Popeyes"],
+"TN4":["","Burger King, Pizza Hut Express, Popeyes, Subway"],
+"TN5":["Iron Skillet",""],
+"TX1":["Black Bear Diner","Burger King, Pizza Hut Express, Popeyes"],
+"TX2":["Iron Skillet",""],
+"TX3":["IHOP",""],
+"TX4":["","Burger King, Taco Bell & Pizza Hut Express"],
+"TX5":["Black Bear Diner",""],
+"TX6":["","Burger King, Subway"],
+"TX7":["","Miss J's, Sbarro"],
+"TX8":["Black Bear Diner","Popeyes, Subway"],
+"TX9":["","Burger King, Fazoli's, Popeyes"],
+"TX10":["","Pizza Hut Express, Subway"],
+"TX11":["Iron Skillet","Popeyes"],
+"TX12":["IHOP","Burger King"],
+"TX13":["","Burger King, Pizza Hut Express"],
+"TX14":["","Tule Tree Legendary Burritos"],
+"TX15":["","Burger King, Pizza Hut"],
+"TX16":["Black Bear Diner",""],
+"UT1":["","Subway, Taco Bell"],
+"UT2":["","Burger King, Taco Bell"],
+"VA1":["Fuddruckers",""],
+"VA2":["","Pizza Hut Express, Popeyes"],
+"VA3":["IHOP","Popeyes, Subway, Taco Bell"],
+"VA4":["Quaker Steak & Lube","Burger King, Nathan's Famous Express, Papa John's Pizza, Popeyes, Subway"],
+"WA1":["","Popeyes, Starbucks"],
+"WA2":["Iron Skillet","Starbucks"],
+"WV2":["Country Pride",""],
+"WI1":["","Miss J's Café"],
+"WI2":["","Popeyes"],
+"WY1":["Country Pride","Burger King, Taco Bell"],
+};
+
 // Full names for the list's state headings. DATA carries the two-letter code
 // (row[5]) and nothing else does; every state and DC is listed, not just the
 // 40 the network covers today, so a station joining in a new state gets its
@@ -2333,7 +2501,7 @@ const STATE_NAMES = {
 // CLOSED_STOP_IDS, and keeps its pin and its sheet so a driver who goes looking
 // learns what happened to it. Deleting a closed row throws that away. See the
 // closure block further down for the live example of the second kind.
-const APP_VERSION = '2.3.7';
+const APP_VERSION = '2.3.8';
 const FUEL_BOOK_REV = 'Rev 01-2026';
 
 // Every code that appears in DATA's amenity column must have an entry here.
@@ -2347,9 +2515,10 @@ const FUEL_BOOK_REV = 'Rev 01-2026';
 // last in every string so the existing F,O,W,H,B,T prefix and ordering are
 // untouched. Source: TA's location master, 08-2026.
 //
-// R records only THAT a sit-down exists, never which brand. Country Pride,
-// Iron Skillet, IHOP, Black Bear Diner and the rest are known per stop, but
-// storing them needs a column — also a deliberate trade, not missing data.
+// R records only THAT a sit-down exists, never which brand. The brands
+// (Country Pride, Iron Skillet, IHOP, Black Bear Diner...) live in
+// RESTAURANTS since v2.3.8, beside DATA rather than in it, and agree with R
+// on every stop.
 const AMEN_LABEL = {F:"Fitness room",O:"Outdoor fitness",W:"Walking trail",H:"Horseshoes",B:"Basketball court",T:"Bean bag toss",R:"Sit-down restaurant"};
 const CLIN_LABEL = {M:"Medical clinic",D:"Dental clinic",C:"Chiropractic",T:"Drug testing",P:"DOT physicals"};
 const TYPE_LABEL = {excl:"Exclusive — most cost-effective",prim:"Primary network stop",term:"Covenant terminal"};
@@ -2470,14 +2639,24 @@ document.addEventListener('visibilitychange', () => {
 // that adds a state needs no edit here.
 const states = [...new Set(DATA.map(r=>r[5]))].sort();
 
-// One builder for both multi-selects. `value` is what passes() tests against;
+// One builder for every multi-select. `value` is what passes() tests against;
 // `label` is what the driver reads, and they differ for corridors (the stop
 // count rides along). Checkboxes rather than buttons on purpose: the checked
 // state is native, so a screen reader announces it without an aria-* mirror
 // that could drift from what passes() reads.
+//
+// An item with `heading` instead is a heading between options (v2.3.8, for
+// the restaurant list's two groups).
 function buildFilterList(container, items, onChange){
   const frag = document.createDocumentFragment();
-  items.forEach(({value, label}) => {
+  items.forEach(({value, label, heading}) => {
+    if(heading){
+      const h = document.createElement('div');
+      h.className = 'fm-head';
+      h.textContent = heading;
+      frag.appendChild(h);
+      return;
+    }
     const lab = document.createElement('label');
     lab.className = 'fm-opt';
     const cb = document.createElement('input');
@@ -2518,6 +2697,28 @@ const CORRIDOR_INDEX = Corridors.corridorIndex(
 // LABEL and not the value: passes() tests the bare corridor.
 const CORRIDOR_ITEMS = CORRIDOR_INDEX.map(({corridor, count}) =>
   ({ value: corridor, label: `${corridor} (${count})` }));
+
+// Restaurants (v2.3.8), the same way: each row's names worked out once, keyed
+// by row reference, and the list built from RESTAURANTS rather than typed out.
+// StopFilter.restaurantBrands folds the one counter spelled several ways
+// (Taco Bell Express is a Taco Bell) — see its aliases.
+const ROW_RESTAURANTS = new Map(
+  DATA.map(r => [r, StopFilter.restaurantBrands(RESTAURANTS[r[0]])]));
+
+// Full service first, then quick service, each A to Z under its heading, with
+// the stop count in the label as the corridors have it — Popeyes is at 46
+// stops, Skol Tavern at one.
+const FOOD_COUNTS = [new Map(), new Map()];
+DATA.forEach(r => {
+  const e = RESTAURANTS[r[0]];
+  if(!e) return;
+  [[e[0], ''], ['', e[1]]].forEach((part, i) =>
+    StopFilter.restaurantBrands(part).forEach(n => FOOD_COUNTS[i].set(n, (FOOD_COUNTS[i].get(n) || 0) + 1)));
+});
+const FOOD_ITEMS = [['Full service', FOOD_COUNTS[0]], ['Quick service', FOOD_COUNTS[1]]]
+  .flatMap(([heading, counts]) => [{ heading },
+    ...[...counts].sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([n, c]) => ({ value: n, label: `${n} (${c})` }))]);
 
 // Map init — HERE Maps JS API
 const HERE_API_KEY = 'qw5SbRTawhv8u1ZvQ18uhH5jIpNgADcrD1EOgixbES4';
@@ -3305,7 +3506,7 @@ const SHOWERS_MANY  = 10;
 // asks, and both facts stay visible where they matter: brand on every pin and
 // list row, Exclusive on the station sheet and result cards. row[1] and row[11]
 // are untouched everywhere else.
-let state = {st:new Set(), corridor:new Set(), q:'',
+let state = {st:new Set(), corridor:new Set(), food:new Set(), q:'',
              showers:false, gym:false, restaurant:false};
 
 // One DomIcon per distinct pin APPEARANCE, not per call. There are only a
@@ -3408,6 +3609,12 @@ function openSheet(row){
   if(phone) html += `<div class="row"><div class="k">Phone</div><div class="v mono">${phone}</div></div>`;
   if(park) html += `<div class="row"><div class="k">Parking spaces</div><div class="v">${park}${resIt?' &middot; Reserve-It available':''}</div></div>`;
   if(showers) html += `<div class="row"><div class="k">Private showers</div><div class="v">${showers}</div></div>`;
+  // Food, with the comfort rows (v2.3.8): the sit-down restaurant, then the
+  // quick-service counters. Either row only when the stop has one — see
+  // RESTAURANTS. Escaped: the names are data from a spreadsheet.
+  const food = RESTAURANTS[id];
+  if(food && food[0]) html += `<div class="row"><div class="k">Full service</div><div class="v">${Esc.escapeHtml(food[0])}</div></div>`;
+  if(food && food[1]) html += `<div class="row"><div class="k">Quick service</div><div class="v">${Esc.escapeHtml(food[1])}</div></div>`;
   if(bays) html += `<div class="row"><div class="k">Truck service bays</div><div class="v">${bays}</div></div>`;
   if(scale) html += `<div class="row"><div class="k">CAT scale</div><div class="v">Yes</div></div>`;
   // No ULSD row (v2.2.12): every stop in DATA has ulsd set, so "ULSD: Yes" on
@@ -3427,8 +3634,13 @@ function openSheet(row){
   // any other row, and a "Nav code" label with an empty value beside it reads
   // as a data error rather than as a yard that was never assigned one.
   if(nav) html += `<div class="row"><div class="k">Nav code</div><div class="v mono">${nav}</div></div>`;
-  if(amen){
-    html += `<div class="amenities"><h4>Amenities</h4><div class="chip-wrap">${amenChips(amen,AMEN_LABEL)}</div></div>`;
+  // The "Sit-down restaurant" chip (R) says less than the Full service row
+  // above, which names it, so the sheet drops it whenever that row shows
+  // (v2.3.8). R stays in DATA and still drives the amenity filter; the two
+  // sources agree on all 70 stops that have one.
+  const sheetAmen = food && food[0] ? amen.split(',').filter(c => c && c !== 'R').join(',') : amen;
+  if(sheetAmen){
+    html += `<div class="amenities"><h4>Amenities</h4><div class="chip-wrap">${amenChips(sheetAmen,AMEN_LABEL)}</div></div>`;
   }
   if(clin){
     html += `<div class="amenities"><h4>On-site clinics</h4><div class="chip-wrap">${amenChips(clin,CLIN_LABEL)}</div></div>`;
@@ -3533,6 +3745,8 @@ function passes(row){
     showers:      state.showers,
     gym:          state.gym,
     restaurant:   state.restaurant,
+    restaurants:  state.food,
+    rowRestaurants: ROW_RESTAURANTS.get(row),
     showersMany:  SHOWERS_MANY
   });
 }
@@ -3543,16 +3757,14 @@ function passes(row){
 let listDirty = true;          // list rows are stale relative to the filters
 let currentFiltered = [];      // what the last render() resolved to
 
-// Stations a driver CANNOT FUEL AT, though the row stays in DATA. One now:
+// Stations a driver CANNOT FUEL AT, though the row stays in DATA. None now.
 //
-//   IN1  TA Gary — TEMPORARILY closed, parking still open. The lot takes
-//        trucks; the fuel island and the building do not. Source: reported
-//        by the fleet, 08-2026. That is an OPERATIONAL STATUS, not a
-//        master-list lookup, and it is worth naming as such rather than
-//        dressing it up as a citation. It was not confirmable against TA's
-//        public site from the build environment. Being temporary it expires
-//        on its own terms: when the stop reopens, delete the id here and its
-//        entry in CLOSED_STOP_INFO, and nothing else has to change.
+// The last was IN1, TA Gary: temporarily closed with its parking open,
+// reported by the fleet 08-2026, and reported reopened by the driver 09-2026
+// (v2.3.8). Both are OPERATIONAL STATUS, not a master-list lookup. It was
+// taken out the way this set was built to expire: the id deleted here and
+// its entry deleted from CLOSED_STOP_INFO, nothing else changed. The red dot,
+// its legend key and the sheet banner stay for the next closure.
 //
 // "Parking only" is still "no fuel here", so the exclusion from FUEL_STOPS is
 // the same one a permanent closure would get — the planner has exactly one
@@ -3583,38 +3795,36 @@ let currentFiltered = [];      // what the last render() resolved to
 // Deleting such a row throws that explanation away, so "it's closed anyway"
 // is not a reason to delete it.
 //
-// TEMPORARY BY DESIGN: this entry goes when TA Gary reopens, or when the fuel
-// book revs and the row is restated. That expiry is why it is a set here and
+// TEMPORARY BY DESIGN: an entry goes when its stop reopens, as TA Gary's did
+// in v2.3.8, or when the fuel book revs and the row is restated. That expiry is why it is a set here and
 // not a column on DATA, which would drag FIELD_COUNT, tools/geocode.js and the
 // data tests along with it for a marker with a known end date.
 //
 // A CLOSED ROW IS NOT ITS NEIGHBOUR. TA Gary (IN1, 2510 Burr St., I-80/I-94
 // exit 6) and Petro Gary (IN2, 3001 Grant Street, exit 9) are two stations
-// 2.5 mi apart with different addresses, phones and nav codes. Petro Gary is
-// open, stays plannable, and is what TA Gary's sheet points at. Closing one of
-// a same-city pair must never quietly take the other — the mistake that cost
-// TA Saginaw a release, in the other direction.
-const CLOSED_STOP_IDS = new Set(['IN1']);
+// 2.5 mi apart with different addresses, phones and nav codes; while TA Gary
+// was closed, Petro Gary stayed plannable and was what its sheet pointed at.
+// Closing one of a same-city pair must never quietly take the other — the
+// mistake that cost TA Saginaw a release, in the other direction.
+const CLOSED_STOP_IDS = new Set([]);
 // What the list row and the sheet SAY, per station. The two closures do not
 // read alike, so the copy is data rather than an if-chain in the renderer:
 // `tag` is the chip in the list, `title` the banner headline, `body` the
 // sentence under it, `alt` the id of a real alternative and `altNote` how
 // that alternative relates to this stop. That last field is not decoration:
 // the sentence used to end with a hardcoded "— same exit", which was true of
-// the entry this table has since lost and FALSE of Petro Gary, 2.5 mi east at
-// exit 9 against TA Gary's exit 6. A closed row with no `alt` names none;
-// nothing is invented to fill the slot.
+// TA Corning's entry and FALSE of TA Gary's (Petro Gary, 2.5 mi east at exit
+// 9 against its exit 6). A closed row with no `alt` names none; nothing is
+// invented to fill the slot. Empty since TA Gary reopened (v2.3.8). Its entry,
+// for the shape of the next one:
+//   IN1: { tag: 'Parking only', title: 'Temporarily closed — parking only',
+//          body: 'The lot is open and taking trucks. Fuel, showers and service
+//                 bays are closed for now — the counts below are what the
+//                 stop has when it is open.',
+//          alt: 'IN2', altNote: '2.5 mi east' }
+// The body named the amenity rows on purpose: they still read the fuel book's
+// showers and bays, and a banner that didn't disown them invited a shower stop.
 const CLOSED_STOP_INFO = {
-  IN1: {
-    tag: 'Parking only',
-    title: 'Temporarily closed — parking only',
-    // Names the amenity rows on purpose. Those rows are the fuel book's record
-    // of the site and they still say 14 showers and 6 bays; a driver who reads
-    // "temporarily closed" and then that list will otherwise plan a shower
-    // stop here. The banner has to reach forward and disown them.
-    body: 'The lot is open and taking trucks. Fuel, showers and service bays are closed for now — the counts below are what the stop has when it is open.',
-    alt: 'IN2', altNote: '2.5 mi east'
-  }
 };
 // Below every default marker z-index the engine assigns (it uses small
 // non-negative integers derived from screen Y), so a closed pin always sits
@@ -3642,8 +3852,7 @@ const CLOSED_PIN_Z = -1;
 // the rule stays because the next closure will land somewhere just as tight.
 // Measured over the current 144 rows, the closest pairs left are TA Knoxville
 // West / Petro Knoxville at 0.12 mi and Petro / TA Oak Grove at 0.22 mi, both
-// open; the one closed row, TA Gary, is 2.51 mi from Petro Gary and so only
-// overlaps it when zoomed far enough out that both pins are tiny.
+// open; no row is closed since TA Gary reopened in v2.3.8.
 //
 // That ONLY decides which pin wins the overlap. It does NOT fix pin overlap:
 // at the zoom where both are on screen there is still one visible pin, not
@@ -3837,7 +4046,7 @@ function render(){
 // against a Set is silently ALWAYS FALSE — the badge would have been pinned on
 // forever, and Reset filters permanently visible.
 function filtersActive(){
-  return state.st.size > 0 || state.corridor.size > 0
+  return state.st.size > 0 || state.corridor.size > 0 || state.food.size > 0
       || state.showers || state.gym || state.restaurant;
 }
 
@@ -3863,14 +4072,16 @@ function filterSummary(sel, emptyLabel){
   return `${v.slice(0, FM_SUMMARY_NAMES).join(', ')} +${v.length - FM_SUMMARY_NAMES}`;
 }
 
-// The two multi-selects, described once. Everything below drives off this
-// table rather than naming stateList/corridorList twice, so the two controls
-// cannot drift apart in behaviour.
+// The multi-selects, described once — state, corridor and, since v2.3.8,
+// restaurant. Everything below drives off this table rather than naming each
+// list, so the controls cannot drift apart in behaviour.
 const FILTER_MULTIS = [
   { key:'st',       list:'stateList',    toggle:'stateToggle',
     summary:'stateSummary',    empty:'All states' },
   { key:'corridor', list:'corridorList', toggle:'corridorToggle',
-    summary:'corridorSummary', empty:'All corridors' }
+    summary:'corridorSummary', empty:'All corridors' },
+  { key:'food',     list:'foodList',     toggle:'foodToggle',
+    summary:'foodSummary',     empty:'All restaurants' }
 ];
 
 function refreshFilterSummary(m){
@@ -3883,9 +4094,9 @@ function setFilterListOpen(m, open){
 }
 
 FILTER_MULTIS.forEach(m => {
-  const items = m.key === 'st'
-    ? states.map(v => ({ value:v, label:v }))
-    : CORRIDOR_ITEMS;
+  const items = m.key === 'st' ? states.map(v => ({ value:v, label:v }))
+    : m.key === 'corridor' ? CORRIDOR_ITEMS
+    : FOOD_ITEMS;
   // The checkbox IS the state: read it on change rather than tracking a
   // parallel flag, so what passes() tests and what the driver sees checked
   // are the same fact.
@@ -3985,8 +4196,8 @@ document.querySelectorAll('#amenWrap button').forEach(b=>{
   });
 });
 
-// Clears everything that can empty the map — the amenity toggles plus both
-// multi-selects — and drives the controls from state rather than the other way
+// Clears everything that can empty the map — the amenity toggles plus every
+// multi-select — and drives the controls from state rather than the other way
 // round, so aria-pressed, .checked and the summaries can never drift from what
 // passes() reads.
 //
