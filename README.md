@@ -180,8 +180,13 @@ the nearest fuel" — tap it to see the nearest four.
 roads you're not on. 25 stops sit on two or more interstates and show up under
 either.
 
-**Filters** — state, corridor and amenities, all applied together. Reset clears
-them but leaves your search text alone.
+**Filters** — state, corridor, restaurant and amenities, all applied together.
+Reset clears them but leaves your search text alone.
+
+**Restaurant filter** — every restaurant in the network, sit-down ones first,
+with how many stops have each. Pick Popeyes and IHOP and you get stops with
+either. Taco Bell also finds the Taco Bell Express counters and the shared Taco
+Bell & Pizza Hut Express ones, and Pizza Hut works the same way.
 
 **Amenities:** 10+ showers, fitness room, sit-down restaurant. Others were tried
 and dropped for being useless — every single stop has a CAT scale, so filtering
@@ -657,6 +662,7 @@ this list does not.
 A stop's card lists its restaurants: the sit-down restaurant as Full service
 and the counters as Quick service, taken from TA's location list. When a stop
 has a Full service row, its amenities no longer repeat "Sit-down restaurant".
+Filters has a restaurant list too, to show only the stops with the ones you pick.
 
 ### v2.3.7
 Undoes v2.3.6: picking Light or Dark in More no longer reloads the app. The

@@ -559,6 +559,10 @@
   #filterCard .fm-opt{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;
     font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;}
   #filterCard .fm-opt input{flex-shrink:0;width:16px;height:16px;accent-color:var(--ta);margin:0;}
+  /* A heading inside a list — the restaurant list's Full service / Quick
+     service. Text, not a control: it has no checkbox and takes no tap. */
+  #filterCard .fm-head{padding:8px 8px 4px;font-size:10px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.5px;color:var(--sub);}
   #filterCard .reset-filters{display:block;width:100%;margin-top:10px;padding:8px 10px;
     border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--navy-text);
     font-size:12.5px;font-weight:700;}
@@ -1370,6 +1374,7 @@ body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_
 #filterCard .fm-list{max-height:240px;margin-top:6px;border-radius:14px;background:var(--fill);border:0;}
 #filterCard .fm-opt{min-height:44px;padding:0 14px;font-size:16px;border-radius:0;}
 #filterCard .fm-opt input{width:20px;height:20px;accent-color:var(--accent-fill);}
+#filterCard .fm-head{padding:14px 14px 6px;font-size:13px;font-weight:600;letter-spacing:0;}
 .amen-head{font-size:15px;font-weight:600;text-transform:none;letter-spacing:0;margin:18px 0 8px;}
 .amen-wrap{gap:8px;}
 .amen-wrap button{font-size:15px;font-weight:600;padding:0 14px;min-height:40px;border-radius:20px;background:var(--fill);border:.5px solid transparent;color:var(--ink);}
@@ -2007,6 +2012,17 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
         </button>
         <div class="fm-list" id="corridorList" role="group" aria-label="Filter by corridor" hidden></div>
       </div>
+      <!-- Restaurant (v2.3.8). The third multi-select, same control again:
+           every restaurant in RESTAURANTS, under Full service and Quick
+           service headings, built at startup like the other two. -->
+      <div class="fm stops-only">
+        <button type="button" id="foodToggle" class="fm-toggle"
+                aria-expanded="false" aria-controls="foodList">
+          <span class="fm-sum" id="foodSummary">All restaurants</span>
+          <span class="fm-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="fm-list" id="foodList" role="group" aria-label="Filter by restaurant" hidden></div>
+      </div>
       <div class="amen-head">What do you need tonight?</div>
       <div class="amen-wrap" id="amenWrap" role="group" aria-label="Amenity filters">
         <button type="button" data-amen="showers" aria-pressed="false">10+ showers</button>
@@ -2622,14 +2638,24 @@ document.addEventListener('visibilitychange', () => {
 // that adds a state needs no edit here.
 const states = [...new Set(DATA.map(r=>r[5]))].sort();
 
-// One builder for both multi-selects. `value` is what passes() tests against;
+// One builder for every multi-select. `value` is what passes() tests against;
 // `label` is what the driver reads, and they differ for corridors (the stop
 // count rides along). Checkboxes rather than buttons on purpose: the checked
 // state is native, so a screen reader announces it without an aria-* mirror
 // that could drift from what passes() reads.
+//
+// An item with `heading` instead is a heading between options (v2.3.8, for
+// the restaurant list's two groups).
 function buildFilterList(container, items, onChange){
   const frag = document.createDocumentFragment();
-  items.forEach(({value, label}) => {
+  items.forEach(({value, label, heading}) => {
+    if(heading){
+      const h = document.createElement('div');
+      h.className = 'fm-head';
+      h.textContent = heading;
+      frag.appendChild(h);
+      return;
+    }
     const lab = document.createElement('label');
     lab.className = 'fm-opt';
     const cb = document.createElement('input');
@@ -2670,6 +2696,28 @@ const CORRIDOR_INDEX = Corridors.corridorIndex(
 // LABEL and not the value: passes() tests the bare corridor.
 const CORRIDOR_ITEMS = CORRIDOR_INDEX.map(({corridor, count}) =>
   ({ value: corridor, label: `${corridor} (${count})` }));
+
+// Restaurants (v2.3.8), the same way: each row's names worked out once, keyed
+// by row reference, and the list built from RESTAURANTS rather than typed out.
+// StopFilter.restaurantBrands folds the one counter spelled several ways
+// (Taco Bell Express is a Taco Bell) — see its aliases.
+const ROW_RESTAURANTS = new Map(
+  DATA.map(r => [r, StopFilter.restaurantBrands(RESTAURANTS[r[0]])]));
+
+// Full service first, then quick service, each A to Z under its heading, with
+// the stop count in the label as the corridors have it — Popeyes is at 46
+// stops, Skol Tavern at one.
+const FOOD_COUNTS = [new Map(), new Map()];
+DATA.forEach(r => {
+  const e = RESTAURANTS[r[0]];
+  if(!e) return;
+  [[e[0], ''], ['', e[1]]].forEach((part, i) =>
+    StopFilter.restaurantBrands(part).forEach(n => FOOD_COUNTS[i].set(n, (FOOD_COUNTS[i].get(n) || 0) + 1)));
+});
+const FOOD_ITEMS = [['Full service', FOOD_COUNTS[0]], ['Quick service', FOOD_COUNTS[1]]]
+  .flatMap(([heading, counts]) => [{ heading },
+    ...[...counts].sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([n, c]) => ({ value: n, label: `${n} (${c})` }))]);
 
 // Map init — HERE Maps JS API
 const HERE_API_KEY = 'qw5SbRTawhv8u1ZvQ18uhH5jIpNgADcrD1EOgixbES4';
@@ -3457,7 +3505,7 @@ const SHOWERS_MANY  = 10;
 // asks, and both facts stay visible where they matter: brand on every pin and
 // list row, Exclusive on the station sheet and result cards. row[1] and row[11]
 // are untouched everywhere else.
-let state = {st:new Set(), corridor:new Set(), q:'',
+let state = {st:new Set(), corridor:new Set(), food:new Set(), q:'',
              showers:false, gym:false, restaurant:false};
 
 // One DomIcon per distinct pin APPEARANCE, not per call. There are only a
@@ -3696,6 +3744,8 @@ function passes(row){
     showers:      state.showers,
     gym:          state.gym,
     restaurant:   state.restaurant,
+    restaurants:  state.food,
+    rowRestaurants: ROW_RESTAURANTS.get(row),
     showersMany:  SHOWERS_MANY
   });
 }
@@ -4000,7 +4050,7 @@ function render(){
 // against a Set is silently ALWAYS FALSE — the badge would have been pinned on
 // forever, and Reset filters permanently visible.
 function filtersActive(){
-  return state.st.size > 0 || state.corridor.size > 0
+  return state.st.size > 0 || state.corridor.size > 0 || state.food.size > 0
       || state.showers || state.gym || state.restaurant;
 }
 
@@ -4026,14 +4076,16 @@ function filterSummary(sel, emptyLabel){
   return `${v.slice(0, FM_SUMMARY_NAMES).join(', ')} +${v.length - FM_SUMMARY_NAMES}`;
 }
 
-// The two multi-selects, described once. Everything below drives off this
-// table rather than naming stateList/corridorList twice, so the two controls
-// cannot drift apart in behaviour.
+// The multi-selects, described once — state, corridor and, since v2.3.8,
+// restaurant. Everything below drives off this table rather than naming each
+// list, so the controls cannot drift apart in behaviour.
 const FILTER_MULTIS = [
   { key:'st',       list:'stateList',    toggle:'stateToggle',
     summary:'stateSummary',    empty:'All states' },
   { key:'corridor', list:'corridorList', toggle:'corridorToggle',
-    summary:'corridorSummary', empty:'All corridors' }
+    summary:'corridorSummary', empty:'All corridors' },
+  { key:'food',     list:'foodList',     toggle:'foodToggle',
+    summary:'foodSummary',     empty:'All restaurants' }
 ];
 
 function refreshFilterSummary(m){
@@ -4046,9 +4098,9 @@ function setFilterListOpen(m, open){
 }
 
 FILTER_MULTIS.forEach(m => {
-  const items = m.key === 'st'
-    ? states.map(v => ({ value:v, label:v }))
-    : CORRIDOR_ITEMS;
+  const items = m.key === 'st' ? states.map(v => ({ value:v, label:v }))
+    : m.key === 'corridor' ? CORRIDOR_ITEMS
+    : FOOD_ITEMS;
   // The checkbox IS the state: read it on change rather than tracking a
   // parallel flag, so what passes() tests and what the driver sees checked
   // are the same fact.
@@ -4148,8 +4200,8 @@ document.querySelectorAll('#amenWrap button').forEach(b=>{
   });
 });
 
-// Clears everything that can empty the map — the amenity toggles plus both
-// multi-selects — and drives the controls from state rather than the other way
+// Clears everything that can empty the map — the amenity toggles plus every
+// multi-select — and drives the controls from state rather than the other way
 // round, so aria-pressed, .checked and the summaries can never drift from what
 // passes() reads.
 //

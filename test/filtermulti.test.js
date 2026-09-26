@@ -83,8 +83,8 @@ ok('  and hands it every dimension',
 // filters these rows at all. That decision stays in index.html on purpose.
 ok('  reading the query through activeSearchQuery, not state.q directly',
    /query:\s+activeSearchQuery\(\),/.test(code));
-ok('>>> both are declared as Sets, not strings',
-   /let state = \{st:new Set\(\), corridor:new Set\(\), q:''/.test(code));
+ok('>>> all three are declared as Sets, not strings (restaurant since v2.3.8)',
+   /let state = \{st:new Set\(\), corridor:new Set\(\), food:new Set\(\), q:''/.test(code));
 // The haystack is testable directly now instead of pinned by its spelling.
 ok('>>> the search haystack is name, city, state, exit and nav code',
    (() => {
@@ -308,7 +308,7 @@ console.log('\n=== the controls themselves ===');
                                   markup.indexOf('<div id="scrim">'))));
   ok('  and no leftover single selects anywhere',
      !/id="stateSel"/.test(markup) && !/id="corridorSel"/.test(markup));
-  ['state', 'corridor'].forEach(d => {
+  ['state', 'corridor', 'food'].forEach(d => {
     ok(`>>> ${d} uses the disclosure pattern (aria-expanded + aria-controls)`,
        new RegExp(`id="${d}Toggle"[\\s\\S]{0,160}aria-expanded="false"[\\s\\S]{0,80}aria-controls="${d}List"`).test(markup));
     ok(`  with a named group for its list`,
@@ -345,6 +345,64 @@ console.log('\n=== the collapsed summary ===');
      /\$\{v\.slice\(0, FM_SUMMARY_NAMES\)\.join\(', '\)\} \+\$\{v\.length - FM_SUMMARY_NAMES\}/.test(code));
   ok('  with an ellipsis rule so an overlong summary cannot wrap the button',
      /#filterCard \.fm-sum\{[^}]*text-overflow:ellipsis;white-space:nowrap/.test(html));
+}
+
+console.log('\n=== the restaurant multi-select (v2.3.8) ===');
+{
+  // RESTAURANTS read line by line, as datastops.test.js does.
+  const start = html.indexOf('const RESTAURANTS = {');
+  const REST = {};
+  for (const m of html.slice(start, html.indexOf('\n};', start)).matchAll(/^"([A-Z]{2}\d+)":(\[.*\]),$/gm))
+    REST[m[1]] = JSON.parse(m[2]);
+  const ROW_REST = new Map(DATA.map(r => [r, StopFilter.restaurantBrands(REST[r[0]])]));
+  const food = picks => DATA.filter(r => StopFilter.stopPasses(r, {
+    ...criteria(), rowCorridors: ROW_CORRIDORS.get(r),
+    restaurants: new Set(picks), rowRestaurants: ROW_REST.get(r) }));
+
+  ok('>>> nothing picked is no constraint', food([]).length === DATA.length);
+  ok('  Popeyes alone: 46 stops, every one listing Popeyes',
+     food(['Popeyes']).length === 46 && food(['Popeyes']).every(r => /Popeyes/.test(REST[r[0]][1])));
+  ok('>>> Popeyes or IHOP: the union, a stop with both counted once',
+     food(['Popeyes', 'IHOP']).length ===
+       new Set([...food(['Popeyes']), ...food(['IHOP'])]).size);
+  ok('>>> Taco Bell finds the Express and the Taco Bell & Pizza Hut Express too (22)',
+     food(['Taco Bell']).length === 22
+     && food(['Taco Bell']).some(r => REST[r[0]][1].includes('Taco Bell Express'))
+     && food(['Taco Bell']).some(r => REST[r[0]][1].includes('Taco Bell & Pizza Hut Express')));
+  ok('  Pizza Hut finds Pizza Hut Express and the shared counter (24)',
+     food(['Pizza Hut']).length === 24);
+  ok("  Miss J's finds both spellings of the counter, not the Diner",
+     food(["Miss J's"]).length === 9
+     && food(["Miss J's"]).every(r => /Miss J's/.test(REST[r[0]][1])));
+  ok('>>> AND with the other dimensions: IHOP in Texas',
+     DATA.filter(r => StopFilter.stopPasses(r, { ...criteria({ st: ['TX'] }), rowCorridors: ROW_CORRIDORS.get(r),
+       restaurants: new Set(['IHOP']), rowRestaurants: ROW_REST.get(r) }))
+       .map(r => r[0]).join() === 'TX3,TX12');
+  ok('  a stop with no restaurants never passes a restaurant pick',
+     !food(['Popeyes', 'IHOP', 'Subway']).some(r => !REST[r[0]]));
+  ok('  restaurantBrands: a missing entry is no names', StopFilter.restaurantBrands(undefined).length === 0);
+
+  // The labels' counts are the stops each pick returns, so a driver reading
+  // "Popeyes (46)" gets 46.
+  const names = [...new Set([...ROW_REST.values()].flat())];
+  const full = new Set(Object.values(REST).map(e => e[0]).filter(Boolean));
+  const quick = new Set(Object.values(REST).flatMap(e => StopFilter.restaurantBrands(['', e[1]])));
+  ok('>>> 9 full-service names and 26 quick-service, none in both lists',
+     full.size === 9 && quick.size === 26 && [...full].every(n => !quick.has(n)),
+     `${full.size} full, ${quick.size} quick`);
+  ok('  every name the filter offers is on some stop', names.length === full.size + quick.size);
+
+  ok('>>> index.html hands the picks and the row\'s names to the rule',
+     /restaurants:\s+state\.food,/.test(code) && /rowRestaurants: ROW_RESTAURANTS\.get\(row\),/.test(code)
+     && /const ROW_RESTAURANTS = new Map\(\s*DATA\.map\(r => \[r, StopFilter\.restaurantBrands\(RESTAURANTS\[r\[0\]\]\)\]\)\);/.test(code));
+  ok('  the list: headings, then names A to Z with the stop count in the label',
+     /\[\['Full service', FOOD_COUNTS\[0\]\], \['Quick service', FOOD_COUNTS\[1\]\]\]/.test(code)
+     && /\.map\(\(\[n, c\]\) => \(\{ value: n, label: `\$\{n\} \(\$\{c\}\)` \}\)\)/.test(code));
+  ok('  a heading is text, not a checkbox',
+     /if\(heading\)\{\s*const h = document\.createElement\('div'\);\s*h\.className = 'fm-head';\s*h\.textContent = heading;/.test(code));
+  ok('>>> a restaurant pick lights the badge and Reset, and Reset clears it',
+     /state\.food\.size > 0/.test(code.slice(code.indexOf('function filtersActive()'), code.indexOf('function filtersActive()') + 200))
+     && /key:'food',\s+list:'foodList',\s+toggle:'foodToggle',\s+summary:'foodSummary',\s+empty:'All restaurants'/.test(code));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
