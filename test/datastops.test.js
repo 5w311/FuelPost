@@ -50,10 +50,10 @@ ok('exactly 1 terminal row in DATA', terms.length === 1, JSON.stringify(terms.ma
 ok('  it is TN6, Covenant Logistics HQ', terms.map(r => r[0]).join() === 'TN6',
    JSON.stringify(terms.map(r => r[0])));
 
-// 144 rows - 1 terminal - 1 closed = 142, the same figure as before the
-// deletions: one of each kind went. The header is DERIVED (filtered.length),
-// so it now reads 144 with no filters on, and needs no separate pin.
-ok('mapping yields 142 fuel stops', FUEL_STOPS.length === 142, FUEL_STOPS.length);
+// 144 rows - 1 terminal = 143. It was 142 while TA Gary was closed; it
+// reopened in v2.3.8. The header is DERIVED (filtered.length), so it reads
+// 144 with no filters on, and needs no separate pin.
+ok('mapping yields 143 fuel stops', FUEL_STOPS.length === 143, FUEL_STOPS.length);
 ok('no terminal survives the filter', FUEL_STOPS.every(s => s.tier !== 'term'),
    JSON.stringify(FUEL_STOPS.filter(s => s.tier === 'term').map(s => s.id)));
 ok('  TN6 is not a fuel stop', !FUEL_STOPS.some(s => s.id === 'TN6'));
@@ -62,15 +62,15 @@ ok('every fuel stop is excl or prim',
    JSON.stringify([...new Set(FUEL_STOPS.map(s => s.tier))]));
 
 console.log('\n=== closed stations: excluded from planning, kept in DATA ===');
-// One row now: TA Gary (IN1), reported temporarily closed with only its
-// parking lot open. TA Corning used to be the other, and v1.31.0 deleted it
-// rather than closing it — which is the distinction this whole section turns
-// on. A CLOSED row stays in DATA, keeps its pin, its list entry and its sheet,
-// and is merely never planned; a DELETED row is gone, and a driver who goes
-// looking for it learns nothing.
-ok('the closed set was actually found in index.html (not an empty regex match)',
-   CLOSED_STOP_IDS.size === 1, JSON.stringify([...CLOSED_STOP_IDS]));
-ok('  it is exactly IN1', [...CLOSED_STOP_IDS].join() === 'IN1',
+// No row now. TA Gary (IN1) was the last — temporarily closed with only its
+// parking lot open — and reopened in v2.3.8. TA Corning used to be the other,
+// and v1.31.0 deleted it rather than closing it — which is the distinction
+// this whole section turns on. A CLOSED row stays in DATA, keeps its pin, its
+// list entry and its sheet, and is merely never planned; a DELETED row is
+// gone, and a driver who goes looking for it learns nothing.
+ok('the closed set was actually found in index.html (the declaration, not a miss)',
+   /const CLOSED_STOP_IDS = new Set\(\[\]\);/.test(html));
+ok('  and it is empty: TA Gary reopened (v2.3.8)', CLOSED_STOP_IDS.size === 0,
    JSON.stringify([...CLOSED_STOP_IDS]));
 // THE REGRESSION THIS FILE EXISTS TO CATCH FROM NOW ON: v1.22.0 marked TA
 // Saginaw (MI3) closed because it was looked up under "Saginaw" while TA
@@ -81,19 +81,15 @@ ok('>>> TA Saginaw (MI3) IS plannable — a rename is not a closure',
    FUEL_STOPS.some(s => s.id === 'MI3'),
    JSON.stringify([...CLOSED_STOP_IDS]));
 ok('  and MI3 is not in the closed set at all', !CLOSED_STOP_IDS.has('MI3'));
-// v1.30.2. A temporary closure is excluded on exactly the same terms as a
-// permanent one. The tempting half-measure — leave it plannable because the
-// gate is open — routes a driver to an island that cannot sell them fuel,
-// which is the whole failure this set exists to prevent.
-ok('>>> TA Gary (IN1) is excluded too — parking open is not fuel available',
-   !FUEL_STOPS.some(s => s.id === 'IN1') && CLOSED_STOP_IDS.has('IN1'));
+// v1.30.2 closed TA Gary for fuel with its parking open, on the same terms as
+// a permanent closure. v2.3.8 reopened it: plannable again, like any stop.
+ok('>>> TA Gary (IN1) is plannable again (reopened, v2.3.8)',
+   FUEL_STOPS.some(s => s.id === 'IN1') && !CLOSED_STOP_IDS.has('IN1'));
 ok('  and TA Gary is still in DATA under its own name',
    (DATA.find(r => r[0] === 'IN1') || [])[2] === 'TA Gary');
 // The Corning trap again, in Indiana. TA Gary and Petro Gary are two separate
 // stations 2.5 mi apart on I-80/I-94 (exits 6 and 9), with different
-// addresses, phones and nav codes. Shutting one must not take the other, and
-// Petro Gary is the alternative the closed sheet points at — so if this ever
-// fails, the banner is sending drivers to a stop the planner won't use.
+// addresses, phones and nav codes. Shutting one must not take the other.
 ok('>>> Petro Gary (IN2) is still plannable', FUEL_STOPS.some(s => s.id === 'IN2'));
 {
   const in1 = DATA.find(r => r[0] === 'IN1') || [];
@@ -201,10 +197,10 @@ console.log('\n=== marker stacking: a closed pin never hides an open one ===');
   ok('>>> the legend explains the red dot', /var\(--pin-closed\)/.test(legendCard), legendCard.slice(0, 60));
   ok('  right after the gold one it has to be told apart from',
      legendCard.indexOf('var(--gold)') < legendCard.indexOf('var(--pin-closed)'));
-  // Worded for what BOTH closures share. TA Gary is still open for parking,
-  // so a bare "Closed" in the legend would overstate its own pin.
-  ok('  and says "for fuel", not a bare "Closed" that overstates TA Gary',
-     /Closed for fuel/.test(legendCard), legendCard);
+  // Kept when TA Gary reopened (v2.3.8), so the next closure is explained,
+  // and worded as the driver asked for it.
+  ok('  and reads "Closed Temporarily"',
+     /var\(--pin-closed\)"><\/span> Closed Temporarily<\/div>/.test(legendCard), legendCard);
   ok('  the swatch reads the same variable as the pin (one red, not two)',
      (html.match(/var\(--pin-closed\)/g) || []).length === 2,
      String((html.match(/var\(--pin-closed\)/g) || []).length));

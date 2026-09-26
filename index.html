@@ -1396,7 +1396,8 @@ body:not(.route-mode) #mapwrap .H_l_bottom.H_l_right .H_ctl:not(.H_zoom):not(.H_
    beside them looked out of place). The brand column is only as wide as
    "Petro location" and never wraps; the whole grid scales with the screen,
    16px down to a 12px floor, sized so a row (dot, brand, dot, "Closed for
-   fuel — tap for details") fits: ~14px on a 440-wide phone. The divisor is
+   fuel — tap for details", the red dot's label until v2.3.8's shorter
+   "Closed Temporarily") fits: ~14px on a 440-wide phone. The divisor is
    measured with a wider font than iOS's, so on an iPhone the row fits with
    room to spare; where it still can't, the long label wraps. */
 #legendCard{--legend-fs:clamp(12px, calc((100vw - 118px) / 23), 16px);}
@@ -1958,12 +1959,12 @@ html[data-theme="dark"]{--navy:#3A5F9E;}
         <div><span class="sw" style="background:var(--gold)"></span> Exclusive (most cost-effective)</div>
         <div><span class="sw" style="background:var(--petro)"></span> Petro location</div>
         <!-- The legend already explained the gold dot, so a red one with nothing
-             explaining it would be a symbol the driver has to guess at. Worded
-             for what the two closures SHARE — neither can sell fuel — since one
-             of them (TA Gary) is still open for parking and "Closed" alone would
-             overstate it. The pin's own sheet carries the specifics. -->
-        <div><span class="sw" style="background:var(--pin-closed)"></span> Closed for fuel — tap for details</div>
-        <div><span class="sw" style="background:var(--navy);border-radius:4px"></span> Covenant terminal</div>
+             explaining it would be a symbol the driver has to guess at. Kept
+             when TA Gary reopened (v2.3.8) and no pin wears it, and reworded
+             "Closed Temporarily" at the driver's ask; a closed pin's own sheet
+             carries the specifics. -->
+        <div><span class="sw" style="background:var(--pin-closed)"></span> Closed Temporarily</div>
+        <div><span class="sw" style="background:var(--navy);border-radius:4px"></span> Covenant Terminal</div>
       </div>
       <div id="legendSupportNote" style="margin-top:6px;color:var(--sub);font-size:10.5px;line-height:1.4;border-top:1px solid var(--line);padding-top:6px;"></div>
       <div class="theme-row">
@@ -3756,16 +3757,14 @@ function passes(row){
 let listDirty = true;          // list rows are stale relative to the filters
 let currentFiltered = [];      // what the last render() resolved to
 
-// Stations a driver CANNOT FUEL AT, though the row stays in DATA. One now:
+// Stations a driver CANNOT FUEL AT, though the row stays in DATA. None now.
 //
-//   IN1  TA Gary — TEMPORARILY closed, parking still open. The lot takes
-//        trucks; the fuel island and the building do not. Source: reported
-//        by the fleet, 08-2026. That is an OPERATIONAL STATUS, not a
-//        master-list lookup, and it is worth naming as such rather than
-//        dressing it up as a citation. It was not confirmable against TA's
-//        public site from the build environment. Being temporary it expires
-//        on its own terms: when the stop reopens, delete the id here and its
-//        entry in CLOSED_STOP_INFO, and nothing else has to change.
+// The last was IN1, TA Gary: temporarily closed with its parking open,
+// reported by the fleet 08-2026, and reported reopened by the driver 09-2026
+// (v2.3.8). Both are OPERATIONAL STATUS, not a master-list lookup. It was
+// taken out the way this set was built to expire: the id deleted here and
+// its entry deleted from CLOSED_STOP_INFO, nothing else changed. The red dot,
+// its legend key and the sheet banner stay for the next closure.
 //
 // "Parking only" is still "no fuel here", so the exclusion from FUEL_STOPS is
 // the same one a permanent closure would get — the planner has exactly one
@@ -3796,38 +3795,36 @@ let currentFiltered = [];      // what the last render() resolved to
 // Deleting such a row throws that explanation away, so "it's closed anyway"
 // is not a reason to delete it.
 //
-// TEMPORARY BY DESIGN: this entry goes when TA Gary reopens, or when the fuel
-// book revs and the row is restated. That expiry is why it is a set here and
+// TEMPORARY BY DESIGN: an entry goes when its stop reopens, as TA Gary's did
+// in v2.3.8, or when the fuel book revs and the row is restated. That expiry is why it is a set here and
 // not a column on DATA, which would drag FIELD_COUNT, tools/geocode.js and the
 // data tests along with it for a marker with a known end date.
 //
 // A CLOSED ROW IS NOT ITS NEIGHBOUR. TA Gary (IN1, 2510 Burr St., I-80/I-94
 // exit 6) and Petro Gary (IN2, 3001 Grant Street, exit 9) are two stations
-// 2.5 mi apart with different addresses, phones and nav codes. Petro Gary is
-// open, stays plannable, and is what TA Gary's sheet points at. Closing one of
-// a same-city pair must never quietly take the other — the mistake that cost
-// TA Saginaw a release, in the other direction.
-const CLOSED_STOP_IDS = new Set(['IN1']);
+// 2.5 mi apart with different addresses, phones and nav codes; while TA Gary
+// was closed, Petro Gary stayed plannable and was what its sheet pointed at.
+// Closing one of a same-city pair must never quietly take the other — the
+// mistake that cost TA Saginaw a release, in the other direction.
+const CLOSED_STOP_IDS = new Set([]);
 // What the list row and the sheet SAY, per station. The two closures do not
 // read alike, so the copy is data rather than an if-chain in the renderer:
 // `tag` is the chip in the list, `title` the banner headline, `body` the
 // sentence under it, `alt` the id of a real alternative and `altNote` how
 // that alternative relates to this stop. That last field is not decoration:
 // the sentence used to end with a hardcoded "— same exit", which was true of
-// the entry this table has since lost and FALSE of Petro Gary, 2.5 mi east at
-// exit 9 against TA Gary's exit 6. A closed row with no `alt` names none;
-// nothing is invented to fill the slot.
+// TA Corning's entry and FALSE of TA Gary's (Petro Gary, 2.5 mi east at exit
+// 9 against its exit 6). A closed row with no `alt` names none; nothing is
+// invented to fill the slot. Empty since TA Gary reopened (v2.3.8). Its entry,
+// for the shape of the next one:
+//   IN1: { tag: 'Parking only', title: 'Temporarily closed — parking only',
+//          body: 'The lot is open and taking trucks. Fuel, showers and service
+//                 bays are closed for now — the counts below are what the
+//                 stop has when it is open.',
+//          alt: 'IN2', altNote: '2.5 mi east' }
+// The body named the amenity rows on purpose: they still read the fuel book's
+// showers and bays, and a banner that didn't disown them invited a shower stop.
 const CLOSED_STOP_INFO = {
-  IN1: {
-    tag: 'Parking only',
-    title: 'Temporarily closed — parking only',
-    // Names the amenity rows on purpose. Those rows are the fuel book's record
-    // of the site and they still say 14 showers and 6 bays; a driver who reads
-    // "temporarily closed" and then that list will otherwise plan a shower
-    // stop here. The banner has to reach forward and disown them.
-    body: 'The lot is open and taking trucks. Fuel, showers and service bays are closed for now — the counts below are what the stop has when it is open.',
-    alt: 'IN2', altNote: '2.5 mi east'
-  }
 };
 // Below every default marker z-index the engine assigns (it uses small
 // non-negative integers derived from screen Y), so a closed pin always sits
@@ -3855,8 +3852,7 @@ const CLOSED_PIN_Z = -1;
 // the rule stays because the next closure will land somewhere just as tight.
 // Measured over the current 144 rows, the closest pairs left are TA Knoxville
 // West / Petro Knoxville at 0.12 mi and Petro / TA Oak Grove at 0.22 mi, both
-// open; the one closed row, TA Gary, is 2.51 mi from Petro Gary and so only
-// overlaps it when zoomed far enough out that both pins are tiny.
+// open; no row is closed since TA Gary reopened in v2.3.8.
 //
 // That ONLY decides which pin wins the overlap. It does NOT fix pin overlap:
 // at the zoom where both are on screen there is still one visible pin, not
